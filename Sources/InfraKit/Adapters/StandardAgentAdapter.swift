@@ -143,4 +143,28 @@ extension StandardAgentAdapter {
             projectRootDiscovery: .none
         )
     }
+
+    /// pi（Mario Zechner 的 minimal harness）：检测 `~/.pi`；skill 目录候选 `skills`。
+    public static func pi(homeDirectory: URL) -> StandardAgentAdapter {
+        StandardAgentAdapter(
+            id: "pi",
+            displayName: "pi",
+            homeDirectory: homeDirectory,
+            detectionSubpaths: [".pi"],
+            skillRootCandidates: [".pi/skills", ".pi/agent/skills"],
+            projectRootDiscovery: .none
+        )
+    }
+
+    /// oh-my-pi（pi 的 fork，同源结构）：检测 `~/.omp` / `~/.config/oh-my-pi`；skill 目录候选 `skills`。
+    public static func ohMyPi(homeDirectory: URL) -> StandardAgentAdapter {
+        StandardAgentAdapter(
+            id: "oh-my-pi",
+            displayName: "oh-my-pi",
+            homeDirectory: homeDirectory,
+            detectionSubpaths: [".omp", ".config/oh-my-pi"],
+            skillRootCandidates: [".omp/skills", ".omp/agent/skills", ".config/oh-my-pi/skills"],
+            projectRootDiscovery: .none
+        )
+    }
 }

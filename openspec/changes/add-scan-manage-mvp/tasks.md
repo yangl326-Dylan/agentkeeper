@@ -12,7 +12,7 @@
 - [x] 2.1 实现 Claude Code adapter：`~/.claude/` 检测 + 用户级 `~/.claude/skills` root + 从 Claude 配置读取 projects 记录作为项目根 + 结构版本声明与 `.unrecognized` 降级；验证：fixture 目录（真实 ~/.claude 结构快照）单测——安装/未安装/结构未知/项目根提取四态
 - [x] 2.2 实现 OpenCode 与 Codex CLI adapter：安装检测 + 用户级 skill root + 结构版本声明与 `.unrecognized` 降级（OpenCode 本身即本项目运行环境,目录结构可直接实测采样）；验证：两 adapter 的 fixture 单测通过
 - [x] 2.3 实现 Gemini CLI、OpenClaw adapter：安装检测 + 各自 skill 目录定位（OpenClaw workspace/skills 结构,以实施时实测为准采样 fixture）+ 降级路径；验证：fixture 单测通过
-- [ ] 2.4 实现 pi/oh-my-pi adapter（单 adapter 双识别）：检测 pi 与 oh-my-pi 各自配置与 skill 目录、互不串扰、共同结构规则复用；验证：pi 环境 fixture 单测双实例识别
+- [x] 2.4 实现 pi/oh-my-pi adapter（单 adapter 双识别）：检测 pi 与 oh-my-pi 各自配置与 skill 目录、互不串扰、共同结构规则复用；验证：pi 环境 fixture 单测双实例识别
 - [ ] 2.5 实现 AgentRegistry + 扫描调度器：遍历注册表、多 adapter 并发扫描、产出 `ScanReport`（含性能诊断）；验证：含 4+ fake adapter 的注册表单测与扫描进度发布测
 - [ ] 2.6 项目根发现与扫描范围管理：adapter `discoverProjectRoots()` 流程、用户增删项目根设置项、范围变更触发重扫；验证：无项目根记录 adapter 的「仅用户添加」行为单测 + 范围设置集成测
 - [ ] 2.7 权限不足与只读异常路径处理：失败报告结构（目录+原因+授权引导 key）；验证：无权限目录 fixture 单测

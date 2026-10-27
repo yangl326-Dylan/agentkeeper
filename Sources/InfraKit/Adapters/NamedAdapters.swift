@@ -59,3 +59,31 @@ public struct OpenClawAdapter: AgentAdapter {
     public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
     public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
 }
+
+/// pi（minimal harness）。
+public struct PiAdapter: AgentAdapter {
+    private let engine: StandardAgentAdapter
+    public init(homeDirectory: URL) {
+        self.engine = .pi(homeDirectory: homeDirectory)
+    }
+    public var id: AgentID { engine.id }
+    public var displayName: String { engine.displayName }
+    public func detectInstallation() async -> AgentInstallState { await engine.detectInstallation() }
+    public func skillRoots() async -> [SkillRoot] { await engine.skillRoots() }
+    public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
+    public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
+}
+
+/// oh-my-pi（pi fork，同源结构）。
+public struct OhMyPiAdapter: AgentAdapter {
+    private let engine: StandardAgentAdapter
+    public init(homeDirectory: URL) {
+        self.engine = .ohMyPi(homeDirectory: homeDirectory)
+    }
+    public var id: AgentID { engine.id }
+    public var displayName: String { engine.displayName }
+    public func detectInstallation() async -> AgentInstallState { await engine.detectInstallation() }
+    public func skillRoots() async -> [SkillRoot] { await engine.skillRoots() }
+    public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
+    public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
+}
