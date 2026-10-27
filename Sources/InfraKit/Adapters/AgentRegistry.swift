@@ -38,10 +38,12 @@ public struct ScanScheduler: Sendable {
     }
 
     /// 执行一次全量扫描。任何 adapter 局部失败都体面降级为诊断，不中断整体。
-    public func scanAll(rootDirectory: URL? = nil) async -> ScanReport {
+    /// - Parameter knownProjectRoots: 参与扫描的项目根（adapter 记录 + 用户添加）。
+    public func scanAll(rootDirectory: URL? = nil, knownProjectRoots: [ProjectRoot] = []) async -> ScanReport {
         let startedAt = Date()
         var agents: [Agent] = []
         var diagnostics: [ScanDiagnostic] = []
+        let fileManager = FileManager.default
 
         await withTaskGroup(of: AgentScanOutcome.self) { group in
             for adapter in registry.all {
@@ -53,6 +55,22 @@ public struct ScanScheduler: Sendable {
                 agents.append(outcome.agent)
                 diagnostics.append(contentsOf: outcome.diagnostics)
             }
+        }
+
+        // 项目根：由通用项目扫描器产出 agent 各自的项目级 skill 根，并入 owner agent
+        let projectScanner = ProjectRootScanner()
+        var perAgentProjectRoots: [AgentID: [SkillRoot]] = [:]
+        for root in knownProjectRoots {
+            for skillRoot in projectScanner.skillRoots(inProjectRoot: root) {
+                for owner in skillRoot.owners {
+                    perAgentProjectRoots[owner, default: []].append(skillRoot)
+                }
+            }
+        }
+        for index in agents.indices {
+            let candidateRoots = perAgentProjectRoots[agents[index].id] ?? []
+            agents[index].skillRoots.append(contentsOf: candidateRoots)
+            agents[index].knownProjectRoots = knownProjectRoots
         }
 
         agents.sort { $0.id < $1.id }

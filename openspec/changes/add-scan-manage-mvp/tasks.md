@@ -16,7 +16,7 @@
 - [x] 2.5 实现 AgentRegistry + 扫描调度器：遍历注册表、多 adapter 并发扫描、产出 `ScanReport`（含性能诊断）；验证：含 4+ fake adapter 的注册表单测与扫描进度发布测
 - [x] 2.6 项目根发现与扫描范围管理：adapter `discoverProjectRoots()` 流程、用户增删项目根设置项、范围变更触发重扫；验证：无项目根记录 adapter 的「仅用户添加」行为单测 + 范围设置集成测
 - [x] 2.7 权限不足与只读异常路径处理：失败报告结构（目录+原因+授权引导 key）；验证：无权限目录 fixture 单测
-- [ ] 2.8 AppCore 接线扫描 action：后台队列执行、扫描状态机（idle/running/complete/failed）、进度注入 `AppUpdate`；验证：reducer 状态机单测 + fake scanner 端到端
+- [x] 2.8 AppCore 接线扫描 action：后台队列执行、扫描状态机（idle/running/complete/failed）、进度注入 `AppUpdate`；验证：reducer 状态机单测 + fake scanner 端到端
 
 ## 3. Skill 目录与索引（skill-catalog）
 
