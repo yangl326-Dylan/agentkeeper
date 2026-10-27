@@ -16,6 +16,7 @@ final class AppEnvironment {
     let operationService: OperationService
     let history: OperationHistory
     let snapshots: SnapshotStore
+    let snapshotService: SnapshotService
     let lifecycle: SkillLifecycle
 
     /// 列表选中态（三面板共享）。
@@ -76,6 +77,17 @@ final class AppEnvironment {
         self.operationService = operationService
         self.history = history
         self.snapshots = snapshots
+        self.snapshotService = SnapshotService(
+            snapshots: snapshots,
+            history: history,
+            rescan: { [weak store, weak scanService] in
+                guard let store, let scanService else { return }
+                await MainActor.run {
+                    Task { await scanService.runScan(projectRoots: []) }
+                    _ = store
+                }
+            }
+        )
         self.lifecycle = lifecycle
     }
 
@@ -108,21 +120,7 @@ final class AppEnvironment {
 
     /// 快照恢复（先快照当前 → 重建旧内容；失败回滚不丢数据）。
     func restoreSnapshot(skill: Skill, sha: String) async {
-        do {
-            try await Task.detached(priority: .userInitiated) { [snapshots, directory = skill.directory] in
-                try snapshots.restore(skillID: skill.id, sha: sha, currentDirectory: directory)
-            }.value
-            history.append(skillID: skill.id, name: skill.name, direction: .snapshotRestore, result: .success)
-        } catch {
-            let message = "\(error)"
-            history.append(skillID: skill.id, name: skill.name, direction: .snapshotRestore, result: .failure(message: message))
-            await store.dispatch(.operationFailed(
-                skillID: skill.id,
-                direction: .snapshotRestore,
-                message: message
-            ))
-        }
-        await scanNow()
+        await snapshotService.restore(skill: skill, sha: sha)
     }
 
     /// Reduce Motion 策略（跟随系统辅助功能设置）。
