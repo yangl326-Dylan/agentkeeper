@@ -35,7 +35,7 @@
 - [x] 4.3 实现恢复启用流程：按 manifest 回原路径、原路径冲突中止并输出冲突明细、manifest 清理；验证：含冲突 fixture 的集成测
 - [x] 4.4 操作历史记录器（时间/skill/方向/结果）与查询接口；验证：增删查单测
 - [x] 4.5 删除确认流程：删除类操作统一确认入口（路径清单+确认回调）；验证：确认/取消两路径行为测
-- [ ] 4.6 AppCore 操作状态机接线（操作进行中/完成后 catalog 即时更新 + AppUpdate 广播）；验证：fake lifecycle 端到端状态流测
+- [x] 4.6 AppCore 操作状态机接线（操作进行中/完成后 catalog 即时更新 + AppUpdate 广播）；验证：fake lifecycle 端到端状态流测
 
 ## 5. 快照与历史（skill-snapshots）
 
