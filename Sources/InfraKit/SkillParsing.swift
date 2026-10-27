@@ -121,4 +121,10 @@ public enum SkillParsing {
         }
         return files.sorted { $0.path < $1.path }
     }
+
+    /// 把任意 skillID 变成文件系统安全的目录键（内容哈希，防路径注入/超长）。
+    static func directoryKey(for skillID: String) -> String {
+        let digest = SHA256.hash(data: Data(skillID.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined().prefix(24) + ""
+    }
 }
