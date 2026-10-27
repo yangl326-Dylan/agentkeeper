@@ -207,14 +207,23 @@ public struct ScanDiagnostic: Hashable, Codable, Sendable {
 public struct ScanReport: Hashable, Codable, Sendable {
     public var agents: [Agent]
     public var diagnostics: [ScanDiagnostic]
+    /// 跨 agent 的共享/全局根目录视图（同一路径多方引用 → owners 并集）。
+    public var sharedRoots: [SkillRoot]
     public var startedAt: Date
     public var elapsed: TimeInterval
 
-    public static let empty = ScanReport(agents: [], diagnostics: [], startedAt: Date(), elapsed: 0)
+    public static let empty = ScanReport(agents: [], diagnostics: [], sharedRoots: [], startedAt: Date(), elapsed: 0)
 
-    public init(agents: [Agent], diagnostics: [ScanDiagnostic], startedAt: Date, elapsed: TimeInterval) {
+    public init(
+        agents: [Agent],
+        diagnostics: [ScanDiagnostic],
+        sharedRoots: [SkillRoot] = [],
+        startedAt: Date,
+        elapsed: TimeInterval
+    ) {
         self.agents = agents
         self.diagnostics = diagnostics
+        self.sharedRoots = sharedRoots
         self.startedAt = startedAt
         self.elapsed = elapsed
     }
