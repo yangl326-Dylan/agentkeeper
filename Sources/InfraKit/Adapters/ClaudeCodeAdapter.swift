@@ -39,7 +39,7 @@ public struct ClaudeCodeAdapter: AgentAdapter {
     public func discoverProjectRoots() async -> [ProjectRoot] {
         // MVP：Claude 的 projects 记录存于 ~/.claude.json（顶层 projects 字典）。
         // 复用通用引擎（含"目录必须真实存在"过滤）。
-        await ProjectRootDiscovery.topLevelJSONProjects(jsonSubpath: ".claude.json")
+        ProjectRootDiscovery.topLevelJSONProjects(jsonSubpath: ".claude.json")
             .discover(homeDirectory: homeDirectory)
     }
 

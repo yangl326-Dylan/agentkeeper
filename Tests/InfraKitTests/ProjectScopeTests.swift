@@ -43,7 +43,7 @@ import DomainKit
     @Test func removeProjectRoot() throws {
         let base = makeFakeHome(files: [])
         defer { cleanup(base) }
-        var store = try ScanScopeStore(directory: base)
+        let store = try ScanScopeStore(directory: base)
         let root = ProjectRoot(path: "/Users/x/code/atlas")
         try store.addProjectRoot(root)
         try store.removeProjectRoot(root)

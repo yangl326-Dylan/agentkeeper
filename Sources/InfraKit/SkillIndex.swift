@@ -59,7 +59,7 @@ public final class SkillIndex: @unchecked Sendable {
                 defer { sqlite3_finalize(statement) }
                 sqlite3_bind_text(statement, 1, skill.id, -1, SQLITE_TRANSIENT)
                 payload.withUnsafeBytes { buffer in
-                    sqlite3_bind_blob(statement, 2, buffer.baseAddress, Int32(buffer.count), SQLITE_TRANSIENT)
+                    _ = sqlite3_bind_blob(statement, 2, buffer.baseAddress, Int32(buffer.count), SQLITE_TRANSIENT)
                 }
                 sqlite3_step(statement)
             }
@@ -91,7 +91,7 @@ public final class SkillIndex: @unchecked Sendable {
     /// 全量替换（索引纠偏主通道）。
     public func replaceAll(_ skills: [Skill]) {
         queue.sync {
-            guard let db else { return }
+            guard db != nil else { return }
             exec("BEGIN TRANSACTION")
             exec("DELETE FROM skills")
             exec("COMMIT")

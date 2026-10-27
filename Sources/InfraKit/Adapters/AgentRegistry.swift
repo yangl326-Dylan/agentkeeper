@@ -43,7 +43,6 @@ public struct ScanScheduler: Sendable {
         let startedAt = Date()
         var agents: [Agent] = []
         var diagnostics: [ScanDiagnostic] = []
-        let fileManager = FileManager.default
 
         await withTaskGroup(of: AgentScanOutcome.self) { group in
             for adapter in registry.all {
