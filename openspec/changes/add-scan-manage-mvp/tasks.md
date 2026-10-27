@@ -56,7 +56,7 @@
 
 ## 7. 集成验证与稳定化
 
-- [ ] 7.1 真机 E2E 手动验收：本机已安装的全部 agent（Claude Code/Codex/Gemini/OpenCode/OpenClaw/pi 中实际存在者）全流程（扫描→浏览→筛选→禁用→恢复→修改触发快照→diff→恢复旧版本→菜单栏操作→项目级分组浏览）；验证：验收清单全项通过并记录
+- [x] 7.1 真机 E2E 手动验收：本机已安装的全部 agent（Claude Code/Codex/Gemini/OpenCode/OpenClaw/pi 中实际存在者）全流程（扫描→浏览→筛选→禁用→恢复→修改触发快照→diff→恢复旧版本→菜单栏操作→项目级分组浏览）；验证：验收清单全项通过并记录
 - [x] 7.2 性能与稳定性压测：200+ skill 目录扫描耗时、FSEvents 事件风暴（脚本批量写文件）下字典/CPU 表现、索引重建体验；验证：性能报告达标（扫描 < 2s @ 200 skills 量级、批量事件 UI 无卡顿）
 - [x] 7.3 崩溃与损坏恢复演练：手删 `~/.agentkeeper` 子树、损坏 SQLite、中断搬移（kill -9）后重启的行为；验证：各场景 UI 可用、数据零丢失
 - [x] 7.4 Swift 6 并发审计与警告清零（strict concurrency 下无 warning）；验证：`swift build` 警告 0
