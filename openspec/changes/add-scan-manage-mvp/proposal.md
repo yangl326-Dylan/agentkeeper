@@ -6,14 +6,15 @@
 
 ## What Changes
 
-- 新增 agent 扫描能力：通过可插拔 AgentAdapter 检测本机已安装的 agent（MVP 内置 Claude Code、OpenCode），统一报告安装状态与 skill 目录。
+- 新增 agent 扫描能力：通过可插拔 AgentAdapter 检测本机已安装的 agent，MVP 内置 6 组适配器：Claude Code、OpenAI Codex CLI、Gemini CLI、OpenCode、OpenClaw、pi/oh-my-pi（同源 harness，一个 adapter 双识别）；统一报告安装状态与 skill 目录。范围依据 2026-10 用户量数据（Homebrew 分析样本）。
 - 新增 skill 目录与查看能力：自动发现 skill（含 SKILL.md 的目录），解析元数据（name/description），计算内容 SHA256 用于变更检测。
-- 新增作用域标记：每个 skill 标记为 `agent 专属`、`共享（全局）` 或 `multi-agent 铺设`。
+- 新增作用域标记：每个 skill 标记为 `agent 专属`、`共享（全局）`、`项目级` 或 `multi-agent 铺设`。
+- 支持项目级 skill：读取 agent 自身记录的已知项目根（配置文件/会话记录），扫描其中的 skill 目录；每个项目级 skill 自动携带项目归属标签（项目名），导航树按「全局 / agent 专属 / 项目」组织，项目级按项目名分组。MVP 不提供自定义标签，Phase 2 提供用户自定义彩色标签。
 - 新增启用/禁用能力：通过原子化目录搬移实现禁用/启用，带 manifest 回溯与冲突保护，失败自动回滚。
 - 新增本地版本快照能力：AgentKeeper 自行在后台对 skill 变更做自动快照（记录历史 diff 支持查看），若 skill 来自 git 仓库则同时读取 git 历史展示。
 - 新增应用 UI 壳：主窗口采用三面板布局（agent/skill 导航树 → skill 列表 → 详情/文件视图），并常驻菜单栏（MenuBar Extra）显示 agent/skill 状态与快捷入口。
 - 实时刷新：使用 FSEvents 监听 skill 目录，外部修改后自动增量重扫描并更新 UI。
-- 技术栈：Swift 6 + SwiftUI（主体与动效）+ AppKit 桥接（复杂视图），目标 macOS 14+，架构为「文件系统为主真相 + SQLite 缓存索引」。
+- 技术栈：Swift 6 + SwiftUI（主体与动效）+ AppKit 桥接（复杂视图），最低系统 macOS 15（依据 Homebrew 分析样本覆盖 ~91% 目标用户），架构为「文件系统为主真相 + SQLite 缓存索引」。
 - **明确不在本变更范围**（后续独立变更）：跨 agent skill 复制/同步、git/市场安装、内容风险扫描引擎、skill 内置编辑器。
 
 ## Capabilities

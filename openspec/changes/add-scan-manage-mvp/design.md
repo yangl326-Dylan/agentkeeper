@@ -37,6 +37,7 @@ Presentation 只订阅 `AppUpdate` 消息流渲染，不直接触碰 InfraKit—
 SkillIndex（SQLite）只缓存解析结果与指纹，一切状态以磁盘为准。启动做增量扫描（对比 mtime+指纹），运行期由 FSEvents 驱动增量重扫。索引失真时以磁盘纠正并覆盖索引。
 **备选**:数据库主档。放弃原因：用户在终端改动是常态，双源冲突是维护噩梦。
 **UI 数据源**:AppCore 在内存中维护只读 catalog 快照数组,UI 不直接读 SQLite——SwiftUI 侧只有纯状态。
+**作用域与项目标签模型**:`SkillScope = .global | .agentAgentOnly(agent) | .project(ProjectRoot) | .multiAgentProject([agent])`;项目标签由项目根派生(项目名 = 根目录名),零维护;自定义标签 Phase 2,模型预留 tags 向量不建 UI。
 
 ### D3. 禁用区与 manifest
 禁用=原子搬移到 `~/.agentkeeper/disabled/<agent>/<skill>/`，manifest JSON 记录 `{originalPath, disabledAt, sha256, files:[...]}`。搬移在同物理卷用 rename（原子）；跨卷先 copy+verify再删源。失败沿 manifest 反向回滚。冲突（原路径被占用）→ 中止 + UI 冲突面板，绝不覆盖。
@@ -52,8 +53,13 @@ FileMonitor 监听每个 agent 的 skill 根目录（不是每个 skill），事
 **备选**:轮询/mtime。放弃:FSEvents 是 macOS 原生机制,CPU 影响为纳秒级,轮询会有可感延迟。
 
 ### D6. Adapter 体系
-`AgentAdapter` 协议:`detectInstallation() → AgentInstallState`、`skillRoots() → [SkillRoot]`、`parseSkill(at:) → ParsedSkill?`。每个 adapter 内部声明它支持的结构版本,未知结构返回 `.unrecognized(path)` 而非错误。Claude Code adapter 首期覆盖:用户级 `~/.claude/skills`、项目级扫描（via `~/.claude.json` 配置或用户选择的项目根）→ MVP 建议仅扫**用户级**,项目级列为 follow-up。
-**理由**:项目级涉及其它任意目录的递归与授权,闪烁 scope 风险;MVP 聚焦用户级,同一 adapter 架构下后续加 root 即可。
+`AgentAdapter` 协议:`detectInstallation() → AgentInstallState`、`skillRoots() → [SkillRoot]`、`discoverProjectRoots() → [ProjectRoot]`、`parseSkill(at:) → ParsedSkill?`。每个 adapter 内部声明它支持的结构版本,未知结构返回 `.unrecognized(path)` 而非错误。
+
+**MVP 内置 6 组适配器（按 2026-10 使用量数据排序）**:Claude Code、Codex CLI、Gemini CLI、OpenCode、OpenClaw（skills 最重度人群,3.2M MAU）、pi/oh-my-pi（单 adapter 双识别）。Phase 2:GitHub Copilot CLI、Antigravity CLI。落地注意:各 agent 的 skill 目录约定以实施时实测为准,adapter fixture 用真实环境采样目录结构。
+
+**项目级扫描策略**:MVP 只扫用户级 + agent 已知项目根;Claude Code 从其配置读取 projects 记录,其它 agent 无记录来源则依赖用户添加。绝不无条件递归扫描 home 目录——范围在设置页明示,变更触发重扫。
+
+**备选（已弃）**:MVP 仅 Claude Code+OpenCode——依据用户量数据扩到 6 组,pi 系合并为单 adapter 控制成本。
 
 ### D7. UI 动效规范
 - 三面板布局:`NavigationSplitView`（sidebar=agent 树,`List`=skill 列表,`Detail`=详情/文件）
@@ -63,8 +69,8 @@ FileMonitor 监听每个 agent 的 skill 根目录（不是每个 skill），事
 - 菜单栏:MenuBarExtra(.menuBarExtraStyle = .menu) 显示 agent 摘要与快捷操作
 
 ### D8. 分发与权限策略
-MVP 目标为非沙盒 + Developer ID（本地/直接分发），避免 App Store 沙盒对 `~/.claude` 等目录的额外摩擦。之后如有上架需求再评估沙盒+security-scoped bookmarks 迁移成本。
-**备选**:上架 App Store,放弃原因:沙盒与用户级 agent 目录读取组合会引入 Bookmarks 迁移复杂度,与 MVP 稳定性目标冲突。
+最低系统:**macOS 15 Sequoia**（2026-10 Homebrew 数据:Tahoe 61.4% / Sequoia 22.3% / Sonoma 7.8%——覆盖 ~91% 目标用户,Sonoma 余量为老设备长尾,升级概率高于装本工具的概率）。MVP 目标为非沙盒 + Developer ID（本地/直接分发），避免 App Store 沙盒对 `~/.claude` 等目录的额外摩擦。之后如有上架需求再评估沙盒+security-scoped bookmarks 迁移成本。
+**备选**:min 14（+7.8% 覆盖,API 债 2-3 年）/ min 26(丢 ~40% 用户)——均与用户量优先不符。上架 App Store,放弃原因:沙盒与用户级 agent 目录读取组合会引入 Bookmarks 迁移复杂度,与 MVP 稳定性目标冲突。
 
 ### D9. 测试策略
 - DomainKit/InfraKit 纯逻辑 100% 单测（XCTest），文件操作类测试在临时目录夹具（`FileManager.temporaryDirectory` 每用例新建）中真跑;FSEvents 测试用注入 FakeMonitor 协议
