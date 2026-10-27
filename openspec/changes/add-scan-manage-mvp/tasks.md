@@ -25,7 +25,7 @@
 - [x] 3.3 实现作用域判定：私有目录→专属；共享引用目录→全局；项目根内→项目级（自动项目标签）；同名同指纹多目录→multi-agent 铺设（含判定原因透出）；验证：四种作用域 fixture 单测
 - [x] 3.4 实现 SkillIndex（SQLite）：建表、增量 upsert、全量 rebuild、integrity check 失败自动重建；验证：索引 CRUD/rebuild/损坏恢复单测
 - [x] 3.5 实现 FileMonitor（FSEvents）：per-root 监听、500ms debounce 聚合、增量重扫触发、FakeMonitor 注入协议；验证：真实 FSEvents 集成测（临时目录写入触发）+ 协议级单测
-- [ ] 3.6 实现 catalog snapshot 内存视图与统一查询（agent/作用域/名称筛选、搜索）；验证：查询组合单测；索引失真时以磁盘纠正的行为测
+- [x] 3.6 实现 catalog snapshot 内存视图与统一查询（agent/作用域/名称筛选、搜索）；验证：查询组合单测；索引失真时以磁盘纠正的行为测
 - [ ] 3.7 AppCore 接线：外部变更→增量扫描→catalog 更新→UI 刷新链路；验证：临时目录中改文件、catalog 数秒内更新的集成测
 
 ## 4. Skill 生命周期操作（skill-lifecycle）
