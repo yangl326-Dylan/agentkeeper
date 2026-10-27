@@ -3,6 +3,65 @@ import Testing
 import DomainKit
 @testable import InfraKit
 
+@Suite struct SkillLifecycleEnableTests {
+    private func makeEnvironment() -> (home: URL, base: URL) {
+        let home = makeFakeHome(
+            files: [".claude/skills/alpha/SKILL.md", ".claude/skills/alpha/scripts/run.sh"],
+            fileContents: [
+                ".claude/skills/alpha/SKILL.md": "---\nname: alpha\ndescription: 测试\n---\nA",
+                ".claude/skills/alpha/scripts/run.sh": "#!/bin/sh\n",
+            ]
+        )
+        let base = home.appendingPathComponent("ak-base", isDirectory: true)
+        return (home, base)
+    }
+
+    @Test func enableRestoresToOriginalPathAndClearsManifest() throws {
+        let (home, base) = makeEnvironment()
+        defer { cleanup(home) }
+        let source = home.appendingPathComponent(".claude/skills/alpha", isDirectory: true)
+        let lifecycle = SkillLifecycle(baseDirectory: base)
+        _ = try lifecycle.disable(agentID: "claude-code", skillDirectory: source)
+
+        let record = try lifecycle.enable(agentID: "claude-code", name: "alpha")
+
+        #expect(record.originalPath == source.path)
+        #expect(FileManager.default.fileExists(atPath: source.appendingPathComponent("SKILL.md").path))
+        #expect(FileManager.default.fileExists(atPath: source.appendingPathComponent("scripts/run.sh").path))
+        // manifest 已清理（不留垃圾）
+        #expect(!FileManager.default.fileExists(atPath: base.appendingPathComponent("disabled/claude-code/alpha.manifest.json").path))
+        #expect(!FileManager.default.fileExists(atPath: base.appendingPathComponent("disabled/claude-code/alpha").path))
+    }
+
+    @Test func enableWithoutDisableManifestIsRejected() throws {
+        let (home, base) = makeEnvironment()
+        defer { cleanup(home) }
+        let lifecycle = SkillLifecycle(baseDirectory: base)
+        #expect(throws: SkillLifecycleError.self) {
+            try lifecycle.enable(agentID: "claude-code", name: "never-disabled")
+        }
+    }
+
+    @Test func enableOriginalPathOccupiedAbortsWithConflictDetail() throws {
+        let (home, base) = makeEnvironment()
+        defer { cleanup(home) }
+        let source = home.appendingPathComponent(".claude/skills/alpha", isDirectory: true)
+        let lifecycle = SkillLifecycle(baseDirectory: base)
+        _ = try lifecycle.disable(agentID: "claude-code", skillDirectory: source)
+
+        // 原路径被外部重新创建（agent 又装了同名 skill / 手动残留）
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        try "native new version".write(to: source.appendingPathComponent("SKILL.md"), atomically: true, encoding: .utf8)
+
+        #expect(throws: SkillLifecycleError.self) {
+            try lifecycle.enable(agentID: "claude-code", name: "alpha")
+        }
+        // 冲突中止：禁用区份与原路径的原生新版本都完好，绝不覆盖
+        #expect(FileManager.default.fileExists(atPath: base.appendingPathComponent("disabled/claude-code/alpha").path))
+        #expect(try String(contentsOf: source.appendingPathComponent("SKILL.md"), encoding: .utf8) == "native new version")
+    }
+}
+
 @Suite struct SkillLifecycleDisableTests {
     private func makeEnvironment() -> (home: URL, base: URL) {
         let home = makeFakeHome(

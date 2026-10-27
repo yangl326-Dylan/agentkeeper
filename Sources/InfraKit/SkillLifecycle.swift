@@ -91,6 +91,56 @@ public struct SkillLifecycle: @unchecked Sendable {
         return record
     }
 
+    // MARK: - 恢复（4.3）
+
+    /// 恢复：按 manifest 回原路径。原路径被占 → 中止并输出冲突明细，绝不覆盖。
+    /// 成功后清理 manifest 与（已空的）禁用目录。
+    @discardableResult
+    public func enable(agentID: AgentID, name: String) throws -> DisabledSkillRecord {
+        let manifestURL = disabledRoot(agentID: agentID).appendingPathComponent("\(name).manifest.json")
+        guard FileManager.default.fileExists(atPath: manifestURL.path) else {
+            throw SkillLifecycleError.manifestMissing(path: manifestURL.path)
+        }
+        let record: DisabledSkillRecord
+        do {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            record = try decoder.decode(DisabledSkillRecord.self, from: Data(contentsOf: manifestURL))
+        } catch {
+            throw SkillLifecycleError.manifestCorrupted(path: manifestURL.path)
+        }
+
+        let disabledDir = destinationURL(agentID: agentID, name: name)
+        let original = URL(fileURLWithPath: record.originalPath, isDirectory: true)
+
+        guard fileManager.fileExists(atPath: disabledDir.path) else {
+            throw SkillLifecycleError.sourceMissing(path: disabledDir.path)
+        }
+        guard !fileManager.fileExists(atPath: original.path) else {
+            // 冲突面板核心诉求：禁用区与原路径占用明细一起呈现
+            throw SkillLifecycleError.destinationOccupied(path: original.path)
+        }
+        try fileManager.createDirectory(
+            at: original.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+
+        do {
+            let plan = try mover.planMove(source: disabledDir, destination: original)
+            try mover.execute(plan)
+        } catch {
+            throw translate(error, path: original.path)
+        }
+
+        try? FileManager.default.removeItem(at: manifestURL)
+        // disabled/<agent> 空了顺手清掉，保持禁用区整洁
+        let agentDisabledRoot = disabledRoot(agentID: agentID)
+        if (try? FileManager.default.contentsOfDirectory(atPath: agentDisabledRoot.path))?.isEmpty == true {
+            try? FileManager.default.removeItem(at: agentDisabledRoot)
+        }
+        return record
+    }
+
     // MARK: - 路径契约
 
     public func disabledRoot(agentID: AgentID) -> URL {
