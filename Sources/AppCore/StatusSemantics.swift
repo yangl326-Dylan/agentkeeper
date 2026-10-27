@@ -19,6 +19,12 @@ public struct StatusSemantics: Hashable, Sendable {
     /// 悬停释义（辅助功能朗读也用它）。
     public var explanation: String
 
+    public init(colorKey: String, symbol: String, explanation: String) {
+        self.colorKey = colorKey
+        self.symbol = symbol
+        self.explanation = explanation
+    }
+
     public static func resolve(_ token: StatusToken) -> StatusSemantics {
         switch token {
         case .enabled:
