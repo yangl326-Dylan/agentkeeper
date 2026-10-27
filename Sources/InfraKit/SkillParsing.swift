@@ -43,16 +43,14 @@ public enum Fingerprint {
     /// 对一组文件（相对路径+内容哈希）的规范化组合做 SHA256；
     /// 覆盖按"文件树"语义：路径或内容任一变化都会改变指纹。
     public static func sha256OfFiles(_ files: [(relativePath: String, data: Data)]) -> String {
-        let canonical = files
-            .sorted(by: { $0.relativePath < $1.relativePath })
-            .flatMap { file -> [UInt8] in
-                var bytes = Array(file.relativePath.utf8)
-                bytes.append(0x00)
-                bytes.append(contentsOf: [UInt8](file.data))
-                bytes.append(0x00)
-                return bytes
-            }
-        return SHA256.hash(data: Data(canonical)).map { String(format: "%02x", $0) }.joined()
+        var hasher = SHA256()
+        for file in files.sorted(by: { $0.relativePath < $1.relativePath }) {
+            hasher.update(data: Data(file.relativePath.utf8))
+            hasher.update(data: Data([0x00]))
+            hasher.update(data: file.data)
+            hasher.update(data: Data([0x00]))
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     /// 读入目录内所有常规文件并计算整树指纹（跳过隐藏与符号链接）。
