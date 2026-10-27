@@ -55,7 +55,7 @@ FileMonitor 监听每个 agent 的 skill 根目录（不是每个 skill），事
 ### D6. Adapter 体系
 `AgentAdapter` 协议:`detectInstallation() → AgentInstallState`、`skillRoots() → [SkillRoot]`、`discoverProjectRoots() → [ProjectRoot]`、`parseSkill(at:) → ParsedSkill?`。每个 adapter 内部声明它支持的结构版本,未知结构返回 `.unrecognized(path)` 而非错误。
 
-**MVP 内置 6 组适配器（按 2026-10 使用量数据排序）**:Claude Code、Codex CLI、Gemini CLI、OpenCode、OpenClaw（skills 最重度人群,3.2M MAU）、pi/oh-my-pi（单 adapter 双识别）。Phase 2:GitHub Copilot CLI、Antigravity CLI。落地注意:各 agent 的 skill 目录约定以实施时实测为准,adapter fixture 用真实环境采样目录结构。
+**MVP 内置 6 组适配器（按 2026-10 使用量数据排序）**:Claude Code、Codex CLI、Gemini CLI、OpenCode、OpenClaw（skills 最重度人群,3.2M MAU）、pi/oh-my-pi（同源 harness,一套引擎配置、两个轻量 adapter 实例双识别）。落地修订 2026-10-27:pi/oh-my-pi 未做成"检测多 agent 的单 adapter"——这与 AgentAdapter 协议的单一归属冲突,改为共享 `StandardAgentAdapter` 引擎配置的双实例,效果等价且调度器更简单。Phase 2:GitHub Copilot CLI、Antigravity CLI。落地注意:各 agent 的 skill 目录约定以实施时实测为准,adapter fixture 用真实环境采样目录结构。
 
 **项目级扫描策略**:MVP 只扫用户级 + agent 已知项目根;Claude Code 从其配置读取 projects 记录,其它 agent 无记录来源则依赖用户添加。绝不无条件递归扫描 home 目录——范围在设置页明示,变更触发重扫。
 
