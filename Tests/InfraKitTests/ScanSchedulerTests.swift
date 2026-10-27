@@ -102,9 +102,14 @@ struct FakeAdapter: AgentAdapter {
         // 测试环境特例：作为 root 或无权限强制时目录仍可读，则只有权限诊断被跳过——用标志说明
         let readable = FileManager.default.isReadableFile(atPath: locked.path)
         if !readable {
-            #expect(report.diagnostics.contains {
+            let diagnostic = report.diagnostics.first {
                 $0.kind == .permissionDenied && $0.path == locked.path
-            })
+            }
+            #expect(diagnostic != nil)
+            // 授权引导 key 供 UI 跳转
+            #expect(diagnostic?.remediation == .grantAccess)
+            // 诊断必须能定位到具体目录（不模糊）
+            #expect(diagnostic?.agentID == "victim")
         }
     }
 

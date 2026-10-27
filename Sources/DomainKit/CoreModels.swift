@@ -189,17 +189,36 @@ public enum ScanDiagnosticKind: Hashable, Codable, Sendable {
     case ioError
 }
 
+/// UI 的修复引导语义键。
+public enum ScanRemediation: Hashable, Codable, Sendable {
+    /// 引导用户到系统设置授权/检查目录权限。
+    case grantAccess
+    /// 引导用户重试扫描。
+    case retry
+    /// 无自动修复路径（如结构未知），仅展示。
+    case none
+}
+
 public struct ScanDiagnostic: Hashable, Codable, Sendable {
     public var path: String
     public var kind: ScanDiagnosticKind
     public var agentID: AgentID?
     public var message: String
+    /// UI 修复引导键。
+    public var remediation: ScanRemediation
 
-    public init(path: String, kind: ScanDiagnosticKind, agentID: AgentID?, message: String) {
+    public init(
+        path: String,
+        kind: ScanDiagnosticKind,
+        agentID: AgentID?,
+        message: String,
+        remediation: ScanRemediation = .none
+    ) {
         self.path = path
         self.kind = kind
         self.agentID = agentID
         self.message = message
+        self.remediation = remediation
     }
 }
 

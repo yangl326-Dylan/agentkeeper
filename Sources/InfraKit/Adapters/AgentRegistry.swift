@@ -87,7 +87,8 @@ public struct ScanScheduler: Sendable {
                         path: root.path.path,
                         kind: .permissionDenied,
                         agentID: adapter.id,
-                        message: "目录无法读取（权限受限）"
+                        message: "目录无法读取（权限受限）",
+                        remediation: .grantAccess
                     )
                 )
             }
