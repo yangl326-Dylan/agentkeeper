@@ -4,7 +4,7 @@
 
 - [x] 1.1 创建 Swift Package / Xcode 项目骨架：`AgentKeeper`（App target, SwiftUI App 生命周期, MenuBarExtra 入口）、`DomainKit`、`AppCore`、`InfraKit` target；组建 Product 多 target 结构；App 可空跑启动并显示占位三面板窗口；验证：`swift build` 通过、模拟器运行出现占位窗口
 - [x] 1.2 定义 DomainKit 核心模型与协议：`Agent`/`AgentInstallState`/`SkillRoot`/`ProjectRoot`/`Skill`/`SkillScope(.global/.agentOnly/.project/.multiAgent)`/`SkillStatus`/`ScanReport`/`ParsedSkill`，及 `AgentAdapter`、`FileMonitoring`（协议）等接口；项目标签由项目根派生校验逻辑入模型；验证：模型层单测（编码、作用域枚举语义）通过
-- [ ] 1.3 建立 AppCore 的 `AppUpdate` 消息流与 reducer 状态骨架（AppState: scanState/catalog/filters/uiState）；验证：reducer 纯函数单测（初始状态、示例 action 推进）通过
+- [x] 1.3 建立 AppCore 的 `AppUpdate` 消息流与 reducer 状态骨架（AppState: scanState/catalog/filters/uiState）；验证：reducer 纯函数单测（初始状态、示例 action 推进）通过
 - [ ] 1.4 Presentation 占位接线：三面板空视图 + AppUpdate 订阅渲染的 harness；验证：向消息流注入测试 action，视图状态变化可观测（Preview/截图或 UI 冒烟）
 
 ## 2. Agent 发现（agent-discovery）
