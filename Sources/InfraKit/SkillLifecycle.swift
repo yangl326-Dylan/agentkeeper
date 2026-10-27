@@ -35,11 +35,14 @@ public struct DisabledSkillRecord: Codable, Hashable, Sendable {
 public struct SkillLifecycle: @unchecked Sendable {
     /// 统一禁用区根（默认 ~/.agentkeeper；测试注入）。
     private let baseDirectory: URL
+    /// 巡检时需遍历的 agent 集合（默认内置 7 个 + unknown）。
+    private let knownAgentIDs: [String]
     private let mover: AtomicMover
     private let fileManager: FileManager
 
-    public init(baseDirectory: URL, mover: AtomicMover = AtomicMover()) {
+    public init(baseDirectory: URL, knownAgentIDs: [String] = ["claude-code", "codex", "gemini", "opencode", "openclaw", "pi", "oh-my-pi"], mover: AtomicMover = AtomicMover()) {
         self.baseDirectory = baseDirectory
+        self.knownAgentIDs = knownAgentIDs
         self.mover = mover
         self.fileManager = .default
     }
@@ -139,6 +142,59 @@ public struct SkillLifecycle: @unchecked Sendable {
             try? FileManager.default.removeItem(at: agentDisabledRoot)
         }
         return record
+    }
+
+    // MARK: - 崩溃演练（7.3）
+
+    /// 禁用区巡检：manifest 缺失的"未知禁用目录"（kill -9 搬入后 manifest 未写）。
+    /// 列表供 UI 引导用户处置，绝不自动删除（数据零丢失）。
+    public struct UnknownDisabledEntry: Hashable, Sendable {
+        public var agentID: AgentID
+        public var name: String
+        public var path: String
+    }
+
+    public func unknownDisabledEntries() -> [UnknownDisabledEntry] {
+        var unknown: [UnknownDisabledEntry] = []
+        let enabledAgents = knownAgentIDs + ["unknown"]
+        for agentID in enabledAgents {
+            let agentRoot = disabledRoot(agentID: agentID)
+            guard let children = try? FileManager.default.contentsOfDirectory(atPath: agentRoot.path) else {
+                continue
+            }
+            for child in children where !child.hasSuffix(".manifest.json") {
+                let url = agentRoot.appendingPathComponent(child, isDirectory: true)
+                var isDirectory: ObjCBool = false
+                guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+                    continue
+                }
+                let manifest = agentRoot.appendingPathComponent("\(child).manifest.json")
+                guard !FileManager.default.fileExists(atPath: manifest.path) else { continue }
+                unknown.append(UnknownDisabledEntry(agentID: agentID, name: child, path: url.path))
+            }
+        }
+        return unknown
+    }
+
+    /// 幂等清理孤儿 manifest：disabled 目录已不存在（恢复已完成/中断）时，manifest 残留即垃圾。
+    /// 返回清理数量；内容已回原位，零丢失。
+    public func cleanupOrphanManifests() throws -> Int {
+        var removed = 0
+        let allAgentIDs = Set<String>(knownAgentIDs + ["unknown"])
+        for agentID in allAgentIDs {
+            let agentRoot = disabledRoot(agentID: agentID)
+            guard let children = try? FileManager.default.contentsOfDirectory(atPath: agentRoot.path) else {
+                continue
+            }
+            for child in children where child.hasSuffix(".manifest.json") {
+                let name = String(child.dropLast(".manifest.json".count))
+                let disabledDir = agentRoot.appendingPathComponent(name, isDirectory: true)
+                guard !FileManager.default.fileExists(atPath: disabledDir.path) else { continue }
+                try FileManager.default.removeItem(at: agentRoot.appendingPathComponent(child))
+                removed += 1
+            }
+        }
+        return removed
     }
 
     // MARK: - 路径契约
