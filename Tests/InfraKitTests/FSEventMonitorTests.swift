@@ -45,7 +45,7 @@ import DomainKit
             if !received.paths.isEmpty { break }
             try await Task.sleep(nanoseconds: 200_000_000)
         }
-        #expect(received.paths.contains { $0.hasSuffix("watched") })
+        #expect(received.paths.contains { $0.contains("/watched/") })
     }
 }
 
