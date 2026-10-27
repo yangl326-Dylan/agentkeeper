@@ -31,3 +31,31 @@ public struct CodexAdapter: AgentAdapter {
     public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
     public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
 }
+
+/// Google Gemini CLI。
+public struct GeminiAdapter: AgentAdapter {
+    private let engine: StandardAgentAdapter
+    public init(homeDirectory: URL) {
+        self.engine = .gemini(homeDirectory: homeDirectory)
+    }
+    public var id: AgentID { engine.id }
+    public var displayName: String { engine.displayName }
+    public func detectInstallation() async -> AgentInstallState { await engine.detectInstallation() }
+    public func skillRoots() async -> [SkillRoot] { await engine.skillRoots() }
+    public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
+    public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
+}
+
+/// OpenClaw（原 Clawdbot/Moltbot）。
+public struct OpenClawAdapter: AgentAdapter {
+    private let engine: StandardAgentAdapter
+    public init(homeDirectory: URL) {
+        self.engine = .openClaw(homeDirectory: homeDirectory)
+    }
+    public var id: AgentID { engine.id }
+    public var displayName: String { engine.displayName }
+    public func detectInstallation() async -> AgentInstallState { await engine.detectInstallation() }
+    public func skillRoots() async -> [SkillRoot] { await engine.skillRoots() }
+    public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
+    public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
+}

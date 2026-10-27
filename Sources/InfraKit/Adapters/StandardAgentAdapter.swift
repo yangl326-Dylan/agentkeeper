@@ -118,4 +118,29 @@ extension StandardAgentAdapter {
             projectRootDiscovery: .none
         )
     }
+
+    /// Google Gemini CLI：检测 `~/.gemini`；skill 目录候选 `skills`（扩展体系另计）。
+    public static func gemini(homeDirectory: URL) -> StandardAgentAdapter {
+        StandardAgentAdapter(
+            id: "gemini",
+            displayName: "Gemini CLI",
+            homeDirectory: homeDirectory,
+            detectionSubpaths: [".gemini"],
+            skillRootCandidates: [".gemini/skills"],
+            projectRootDiscovery: .none
+        )
+    }
+
+    /// OpenClaw（原 Clawdbot/Moltbot）：检测 `~/.openclaw`；
+    /// skill 双候选：全局 `skills` 与工作区 `workspace/skills`。
+    public static func openClaw(homeDirectory: URL) -> StandardAgentAdapter {
+        StandardAgentAdapter(
+            id: "openclaw",
+            displayName: "OpenClaw",
+            homeDirectory: homeDirectory,
+            detectionSubpaths: [".openclaw"],
+            skillRootCandidates: [".openclaw/skills", ".openclaw/workspace/skills"],
+            projectRootDiscovery: .none
+        )
+    }
 }
