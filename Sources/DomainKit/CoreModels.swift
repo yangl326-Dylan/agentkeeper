@@ -39,7 +39,7 @@ public struct ProjectRoot: Hashable, Codable, Sendable {
 /// - 单一 agent 私有目录 → `.agentOnly`
 /// - 同名同指纹铺设在多个 agent 目录 → `.multiAgent`
 public enum SkillScope: Hashable, Codable, Sendable {
-    case global
+    case global(owners: [AgentID])
     case agentOnly(agentID: AgentID)
     case project(agentID: AgentID, root: ProjectRoot)
     case multiAgent([AgentID])
@@ -178,6 +178,15 @@ public struct ParsedSkill: Hashable, Codable, Sendable {
         self.frontmatterDescription = frontmatterDescription
         self.files = files
         self.sha256 = sha256
+    }
+}
+
+// MARK: - Skill 实体便利访问
+
+extension Skill {
+    /// 项目标签（仅项目级 skill 有）：由项目根路径派生。
+    public func projectTag() -> String? {
+        scope.projectRoot?.tagName
     }
 }
 

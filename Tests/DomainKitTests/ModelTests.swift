@@ -21,7 +21,7 @@ import Testing
 @Suite struct SkillScopeTests {
     @Test func scopesCodableRoundTrip() throws {
         let scopes: [SkillScope] = [
-            .global,
+            .global(owners: ["claude-code", "opencode"]),
             .agentOnly(agentID: "claude-code"),
             .project(agentID: "openclaw", root: ProjectRoot(path: "/tmp/demo")),
             .multiAgent(["claude-code", "opencode"]),
@@ -39,7 +39,7 @@ import Testing
     }
 
     @Test func nonProjectScopesHaveNoProjectRoot() {
-        #expect(SkillScope.global.projectRoot == nil)
+        #expect(SkillScope.global(owners: ["a"]).projectRoot == nil)
         #expect(SkillScope.agentOnly(agentID: "pi").projectRoot == nil)
         #expect(SkillScope.multiAgent(["a"]).projectRoot == nil)
     }

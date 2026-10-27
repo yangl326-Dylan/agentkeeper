@@ -64,12 +64,18 @@ public enum Fingerprint {
         ) else { return nil }
 
         var collected: [(relativePath: String, data: Data)] = []
-        let basePath = directory.standardizedFileURL.path
+        let basePath = directory.path
         for case let url as URL in enumerator {
             guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isHiddenKey, .isSymbolicLinkKey]),
                   values.isRegularFile == true, values.isSymbolicLink != true, values.isHidden != true
             else { continue }
-            let relative = String(url.path.dropFirst(basePath.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            // 相对路径必须基于同一路径表示形式；枚举器返回异常前缀时退回文件名
+            let relative: String
+            if url.path.hasPrefix(basePath) {
+                relative = String(url.path.dropFirst(basePath.count)).trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            } else {
+                relative = url.lastPathComponent
+            }
             guard let data = try? Data(contentsOf: url) else { continue }
             collected.append((relative, data))
         }
