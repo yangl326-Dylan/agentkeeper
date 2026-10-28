@@ -30,7 +30,7 @@ public struct DistributionConflict: Hashable, Codable, Sendable {
 // MARK: - git 候选
 
 /// 从 git 仓库发现的 skill 候选（物化目录：临时 clone 或本地只读路径）。
-public struct GitSkillCandidate: Hashable, Codable, Sendable {
+public struct GitSkillCandidate: Hashable, Codable, Sendable, Identifiable {
     /// 仓库来源标识（用户输入的 URL 形式）。
     public var repositoryURL: String
     /// 候选 skill 的物化目录。
@@ -39,6 +39,9 @@ public struct GitSkillCandidate: Hashable, Codable, Sendable {
     public var name: String
     /// 内容指纹（Fingerprint 规则）。
     public var sha256: String
+
+    /// 列表标识：物化目录唯一指向一个候选。
+    public var id: String { directory.path + ":" + name }
 
     public init(repositoryURL: String, directory: URL, name: String, sha256: String) {
         self.repositoryURL = repositoryURL

@@ -88,7 +88,11 @@ public final class TagService: @unchecked Sendable {
         return result
     }
 
-    // MARK: - orphan（spec：悬挂关联提示与一键清理）
+    // MARK: - orphan（spec：悬挂关联提示与一键清理）部分共用
+    /// 全部被参与关联的 skillID（转发 TagStore）。
+    public func allAssignedSkillIDs() -> [String] {
+        store.allAssignedSkillIDs()
+    }
 
     /// catalog 中不存在、且不在禁用区的关联条目数。
     public func orphanCount(catalog: [Skill]) -> Int {

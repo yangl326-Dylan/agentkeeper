@@ -64,7 +64,9 @@ import InfraKit
             history: history,
             distributor: SkillDistributor(git: GitInstaller(baseDirectory: base)),
             disabledRoot: base.appendingPathComponent("disabled", isDirectory: true),
-            catalogProvider: { [chosen, otherOne, bystander] as [Skill] },
+            catalogProvider: { [chosen, otherOne, bystander] in
+                [chosen, otherOne, bystander]
+            },
             rescan: { await rescanCounter.hit() }
         )
         let beforeOtherSha = otherOne.sha256
@@ -116,7 +118,7 @@ import InfraKit
             history: history,
             distributor: SkillDistributor(git: GitInstaller(baseDirectory: base)),
             disabledRoot: base.appendingPathComponent("disabled", isDirectory: true),
-            catalogProvider: { [chosen, disabledSkill] as [Skill] },
+            catalogProvider: { [chosen, disabledSkill] in [chosen, disabledSkill] },
             rescan: { await rescanCounter.hit() }
         )
         let disabledSha = disabledSkill.sha256
@@ -156,7 +158,7 @@ import InfraKit
                 copier: failingForCodex
             ),
             disabledRoot: base.appendingPathComponent("disabled", isDirectory: true),
-            catalogProvider: { [chosen, first, second] as [Skill] },
+            catalogProvider: { [chosen, first, second] in [chosen, first, second] },
             rescan: {}
         )
         let beforeSecondSha = second.sha256

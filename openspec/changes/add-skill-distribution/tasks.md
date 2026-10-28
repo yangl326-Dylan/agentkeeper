@@ -38,12 +38,12 @@
 - [x] 6.4 提交 group 6，tick 6.1–6.3。
 
 ## 7. UI 集成
-- [ ] 7.1 详情页「安装到其他 agent…」入口 + agent/skillRoot 选择弹窗 + 冲突面板（复用 RemediationPresentation）；手工走查脚本记录。
-- [ ] 7.2 工具栏「导入 skill…」（目录选择 NSOpenPanel）与「从 git 安装…」（URL 表单 + 多候选勾选面板 + 失败原因展示）。
-- [ ] 7.3 详情页铺设落点面板：落点清单、分歧标记、「以此版本更新所有落点…」确认框（列明将写落点）。
-- [ ] 7.4 标签 UI：详情页 chips 编辑 + 输入补全；导航树「标签」分组；筛选器标签维度。
-- [ ] 7.5 全部新操作接入 StatusSemantics/MotionPolicy（含「减少动态效果」降级）；错误的非阻断呈现。
-- [ ] 7.6 `swift build` 零警告提交；提交 group 7，tick 7.1–7.5。
+- [x] 7.1 详情页「安装到其他 agent…」入口 + agent/skillRoot 选择弹窗 + 冲突面板（复用 RemediationPresentation）；手工走查脚本记录。
+- [x] 7.2 工具栏「导入 skill…」（目录选择 NSOpenPanel）与「从 git 安装…」（URL 表单 + 多候选勾选面板 + 失败原因展示）。
+- [x] 7.3 详情页铺设落点面板：落点清单、分歧标记、「以此版本更新所有落点…」确认框（列明将写落点）。
+- [x] 7.4 标签 UI：详情页 chips 编辑 + 输入补全；导航树「标签」分组；筛选器标签维度。
+- [x] 7.5 全部新操作接入 StatusSemantics/MotionPolicy（含「减少动态效果」降级）；错误的非阻断呈现。
+- [x] 7.6 `swift build` 零警告提交；提交 group 7，tick 7.1–7.5。
 
 ## 8. 验收与收尾
 - [ ] 8.1 自动化 E2E：`DistributionE2EWorkflowTests`：git 安装 → 跨 agent 安装 → 铺设互链 → 外部改一处落点 → 分歧提示 → updateAllLandingPoints → 快照历史与前次一致；RED 先行。

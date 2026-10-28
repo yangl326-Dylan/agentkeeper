@@ -18,16 +18,23 @@ final class AppEnvironment {
     let snapshots: SnapshotStore
     let snapshotService: SnapshotService
     let lifecycle: SkillLifecycle
+    let tagService: TagService
+    let distributionService: DistributionService
 
     /// 列表选中态（三面板共享）。
     var selectedSkillID: String?
 
+    /// 当前标签筛选（Phase 2（标签））。
+    var selectedTag: String?
+
     /// 真实数据根（~；测试版可注入其它 home）。
     private let homeDirectory: URL
+    private let akBase: URL
 
     init(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) {
         self.homeDirectory = homeDirectory
-        let base = homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
+        self.akBase = homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
+        let base = self.akBase
         let store = AppStore()
         let catalogStore = CatalogStore(index: SkillIndex(databaseDirectory: base))
         let runner = CatalogSyncingRunner(
@@ -89,6 +96,25 @@ final class AppEnvironment {
             }
         )
         self.lifecycle = lifecycle
+        self.tagService = TagService(
+            store: TagStore(directory: base),
+            disabledRoot: base.appendingPathComponent("disabled", isDirectory: true)
+        )
+        let rescan: @Sendable () async -> Void = { [weak scanService] in
+            guard let scanService else { return }
+            await scanService.runScan(projectRoots: [])
+        }
+        self.distributionService = DistributionService(
+            store: store,
+            snapshotService: snapshotService,
+            history: history,
+            distributor: SkillDistributor(git: GitInstaller(baseDirectory: base)),
+            disabledRoot: base.appendingPathComponent("disabled", isDirectory: true),
+            catalogProvider: { [weak catalogStore] in
+                catalogStore?.current ?? []
+            },
+            rescan: rescan
+        )
     }
 
     /// 首启：全量扫描 + 挂载 FSEvents 监听。
@@ -108,6 +134,11 @@ final class AppEnvironment {
         await scanService.runScan(projectRoots: [])
     }
 
+    /// 合并 catalog + 禁用合成条目（标签筛选视图使用）。
+    func catalogForTagFilter() -> [Skill] {
+        catalogStore.current + tagService.disabledTaggedSkills(catalog: catalogStore.current)
+    }
+
     /// 操作 + 历史落账。
     func runOperation(skill: Skill, direction: OperationDirection) async {
         await operationService.run(skill: skill, direction: direction)
@@ -121,6 +152,94 @@ final class AppEnvironment {
     /// 快照恢复（先快照当前 → 重建旧内容；失败回滚不丢数据）。
     func restoreSnapshot(skill: Skill, sha: String) async {
         await snapshotService.restore(skill: skill, sha: sha)
+    }
+
+    // MARK: - Phase 2：分发门面
+
+    /// 把本机 skill 安装到目标 agent 的 skill 根目录（非破坏复制）。
+    func distributeInstall(skill: Skill, targetSkillRoot: URL) async {
+        await distributionService.install(
+            source: .existingSkill(
+                agentID: skill.owners.first ?? "unknown",
+                name: skill.name,
+                directoryPath: skill.directory.standardizedFileURL.path
+            ),
+            targetSkillRoot: targetSkillRoot,
+            displaySkillID: "distribute|\(skill.name)",
+            displayName: skill.name
+        )
+    }
+
+    /// 导入本地目录到目标 agent 的 skill 根目录。
+    func importSkill(from directory: URL, targetSkillRoot: URL) async {
+        await distributionService.install(
+            source: .localDirectory(path: directory.path),
+            targetSkillRoot: targetSkillRoot,
+            displaySkillID: "import|\(directory.lastPathComponent)",
+            displayName: directory.lastPathComponent
+        )
+    }
+
+    /// git 来源候选提案（clone 到临时区并列出合法 skill；零候选返回空数组）。
+    /// 失败时走 store 的标准错误呈现（不进入 inFlight 状态机——提案阶段）。
+    func proposeGitCandidates(url: String) async -> [GitSkillCandidate] {
+        let installer = GitInstaller(baseDirectory: akBase)
+        do {
+            let materialized = try await installer.materialize(url: url)
+            let candidates = installer.candidates(for: url, in: materialized)
+            if candidates.isEmpty {
+                await store.dispatch(.operationFailed(
+                    skillID: "git-proposal",
+                    direction: .distribute,
+                    message: DistributionService.friendly(
+                        .invalidSource(reason: "仓库中未发现合法 skill")
+                    )
+                ))
+            }
+            return candidates
+        } catch {
+            let message: String
+            if let distributionError = error as? DistributionError {
+                message = DistributionService.friendly(distributionError)
+            } else {
+                message = "\(error)"
+            }
+            await store.dispatch(.operationFailed(
+                skillID: "git-proposal", direction: .distribute, message: message
+            ))
+            return []
+        }
+    }
+
+    /// 勾选的 git 候选逐个安装（串行门内执行），装完清理临时区。
+    func installGitCandidates(_ candidates: [GitSkillCandidate], targetSkillRoot: URL) async {
+        let installer = GitInstaller(baseDirectory: akBase)
+        for candidate in candidates {
+            await distributionService.install(
+                source: .localDirectory(path: candidate.directory.path),
+                targetSkillRoot: targetSkillRoot,
+                displaySkillID: "git|\(candidate.name)",
+                displayName: candidate.name
+            )
+        }
+        for candidate in candidates {
+            installer.cleanup(candidate.directory)
+        }
+    }
+
+    /// 更新全部铺设落点（确认后调用）。
+    func updateAllLandingPoints(from skill: Skill) async -> LandingPointsUpdateSummary {
+        await distributionService.updateAllLandingPoints(from: skill)
+    }
+
+    /// 把任意 skill 安装到目标 agent 的 skill 根目录（非破坏复制）的状态机入口由 install 承担；
+    /// git 候选提案失败的错误呈现直接走 store（不进入 inFlight 状态机）。
+    func tagsBySkill() -> [String: [String]] {
+        var result: [String: [String]] = [:]
+        for skillID in tagService.allAssignedSkillIDs() {
+            result[skillID] = tagService.tags(forSkillID: skillID)
+        }
+        return result
     }
 
     /// Reduce Motion 策略（跟随系统辅助功能设置）。

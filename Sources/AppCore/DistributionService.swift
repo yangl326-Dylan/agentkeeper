@@ -47,7 +47,7 @@ public final class DistributionService {
     private let history: OperationHistory
     private let distributor: SkillDistributor
     private let disabledRoot: URL
-    private let catalogProvider: @Sendable () -> [Skill]
+    private let catalogProvider: () -> [Skill]
     private let rescan: @Sendable () async -> Void
     private let installGate: InstallSerialGate
 
@@ -57,7 +57,7 @@ public final class DistributionService {
         history: OperationHistory,
         distributor: SkillDistributor,
         disabledRoot: URL,
-        catalogProvider: @escaping @Sendable () -> [Skill] = { [] },
+        catalogProvider: @escaping () -> [Skill] = { [] },
         rescan: @escaping @Sendable () async -> Void
     ) {
         self.store = store
@@ -88,9 +88,7 @@ public final class DistributionService {
                     direction: .distribute,
                     result: .success
                 )
-                await MainActor.run {
-                    Task { await store.dispatch(.operationCompleted(skillID: displaySkillID, direction: .distribute)) }
-                }
+                await store.dispatch(.operationCompleted(skillID: displaySkillID, direction: .distribute))
                 await rescan()
             } catch {
                 let message: String
@@ -105,9 +103,7 @@ public final class DistributionService {
                     direction: .distribute,
                     result: .failure(message: message)
                 )
-                await MainActor.run {
-                    Task { await store.dispatch(.operationFailed(skillID: displaySkillID, direction: .distribute, message: message)) }
-                }
+                await store.dispatch(.operationFailed(skillID: displaySkillID, direction: .distribute, message: message))
                 // 失败不重扫（spec 状态机合同）
             }
         }

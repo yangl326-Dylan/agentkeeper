@@ -1,11 +1,12 @@
 import Foundation
 import DomainKit
 
-/// 导航树分组大类（spec app-ui：全局 / agent 专属 / 项目三类组织）。
+/// 导航树分组大类（spec app-ui：全局 / agent 专属 / 项目三类组织；Phase 2：标签）。
 public enum NavigationSectionKind: Hashable, Sendable {
     case global
     case agent
     case project
+    case tag
 }
 
 /// 导航树分组。
@@ -57,6 +58,25 @@ public enum NavigationModel {
         }
         return sections
     }
+
+    /// 标签节构建（Phase 2）：按标签名分组，count = 携带该标签的 skill 数。
+    /// catalog 无条目的标签不渲染（与三分类节的空节语义一致）。
+    public static func buildTagSections(
+        skills: [Skill],
+        tagsBySkill: [String: [String]]
+    ) -> [NavigationSection] {
+        var byTag: [String: [Skill]] = [:]
+        for skill in skills {
+            for tag in tagsBySkill[skill.id] ?? [] {
+                byTag[tag, default: []].append(skill)
+            }
+        }
+        return byTag.keys.sorted().compactMap { tag -> NavigationSection? in
+            let list = byTag[tag] ?? []
+            guard !list.isEmpty else { return nil }
+            return NavigationSection(kind: .tag, title: tag, count: list.count, skills: list)
+        }
+    }
 }
 
 private extension NavigationSectionKind {
@@ -65,6 +85,7 @@ private extension NavigationSectionKind {
         case .global: "global"
         case .agent: "agent"
         case .project: "project"
+        case .tag: "tag"
         }
     }
 }
