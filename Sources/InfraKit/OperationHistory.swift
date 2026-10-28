@@ -7,6 +7,10 @@ public enum OperationDirection: String, Codable, Hashable, Sendable {
     case enable
     case snapshotRestore
     case delete
+    /// 分发安装/导入/git 来源安装（Phase 2）。
+    case distribute
+    /// 以选定版本更新同名铺设的全部落点（Phase 2）。
+    case updateLandingPoints
 }
 
 /// 操作结果。

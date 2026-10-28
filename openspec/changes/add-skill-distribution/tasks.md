@@ -19,10 +19,10 @@
 - [x] 3.6 提交 group 3，tick 3.1–3.5。
 
 ## 4. 铺设落点与更新所有落点
-- [ ] 4.1 `AppCore.CatalogQuery.landingPoints(named:)`：按同名+指纹分组返回 `LandingPoint` 清单；RED：两 agent 同名同指纹 → 两落点互链；指纹分歧 → 分组拆分。
-- [ ] 4.2 `AppCore.SkillDistributor.updateAllLandingPoints(from:)`：每落点先自动快照再覆盖 copy+verify，落点在 disabled 区则跳过并列出；RED：更新后各落点指纹一致、disabled 落点未被触碰、每落点新增快照。
-- [ ] 4.3 逐落点回滚：任一落点覆盖失败 → 该落点恢复原状，其余已完成落点保持（并报告部分成功明细）；RED：注入失败 fixture。
-- [ ] 4.4 提交 group 4，tick 4.1–4.3。
+- [x] 4.1 `AppCore.CatalogQuery.landingPoints(named:)`：按同名+指纹分组返回 `LandingPoint` 清单；RED：两 agent 同名同指纹 → 两落点互链；指纹分歧 → 分组拆分。
+- [x] 4.2 `AppCore.SkillDistributor.updateAllLandingPoints(from:)`：每落点先自动快照再覆盖 copy+verify，落点在 disabled 区则跳过并列出；RED：更新后各落点指纹一致、disabled 落点未被触碰、每落点新增快照。
+- [x] 4.3 逐落点回滚：任一落点覆盖失败 → 该落点恢复原状，其余已完成落点保持（并报告部分成功明细）；RED：注入失败 fixture。
+- [x] 4.4 提交 group 4，tick 4.1–4.3。
 
 ## 5. TagStore 与 TagService
 - [ ] 5.1 `InfraKit.TagStore`：`~/.agentkeeper/tags.json` 读写（原子写 + rename）；RED：写后重读一致、损坏 JSON → 备份 `.corrupt-<ts>` 并空库自愈。

@@ -198,4 +198,56 @@ public struct SkillDistributor: Sendable {
             try data.write(to: destination, options: .atomic)
         }
     }
+
+    // MARK: - 落点覆盖
+
+    /// 覆盖既有落点内容（「更新所有落点」原语，design D2）：
+    /// staging 拷贝校验 → 旧内容原子让位（.ak-old-*）→ 新内容 rename 落位 → 清掉旧内容。
+    /// 任何失败回滚让位（落点回到原状），由上层先做 autoSnapshot 兜底。
+    public func replaceDirectoryContent(target: URL, sourceDirectory: URL) throws {
+        guard let parsed = SkillParsing.parseDirectory(sourceDirectory) else {
+            throw DistributionError.invalidSource(reason: "替换来源不是合法 skill：\(sourceDirectory.path)")
+        }
+        let parent = target.deletingLastPathComponent()
+        let staging = parent.appendingPathComponent(
+            ".ak-stage-\(target.lastPathComponent)-\(UUID().uuidString)", isDirectory: true
+        )
+        let displaced = parent.appendingPathComponent(
+            ".ak-old-\(target.lastPathComponent)-\(UUID().uuidString)", isDirectory: true
+        )
+
+        func rollback() {
+            try? FileManager.default.removeItem(at: staging)
+            if FileManager.default.fileExists(atPath: displaced.path) {
+                if !FileManager.default.fileExists(atPath: target.path) {
+                    try? FileManager.default.moveItem(at: displaced, to: target)
+                }
+                try? FileManager.default.removeItem(at: displaced)
+            }
+        }
+
+        do {
+            try copier(sourceDirectory, staging)
+            guard let stagedSha = Fingerprint.sha256OfDirectory(staging), stagedSha == parsed.sha256 else {
+                throw DistributionError.ioFailure(
+                    path: staging.path,
+                    underlyingDescription: "stage 校验失败（指纹与来源不一致）"
+                )
+            }
+            // 旧内容让位（原子 move），新内容落位
+            try FileManager.default.moveItem(at: target, to: displaced)
+        } catch {
+            rollback()
+            if let distributionError = error as? DistributionError { throw distributionError }
+            throw DistributionError.ioFailure(path: staging.path, underlyingDescription: "复制失败：\(error)")
+        }
+        do {
+            try FileManager.default.moveItem(at: staging, to: target)
+        } catch {
+            rollback()
+            throw DistributionError.ioFailure(path: target.path, underlyingDescription: "rename 失败：\(error)")
+        }
+        // 成功：清掉让位的旧内容（其内容已被上层 autoSnapshot 兜底）
+        try? FileManager.default.removeItem(at: displaced)
+    }
 }

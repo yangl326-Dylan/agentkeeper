@@ -463,6 +463,8 @@ struct SkillDetailView: View {
         case .enable: "恢复启用"
         case .snapshotRestore: "快照恢复"
         case .delete: "删除"
+        case .distribute: "分发安装"
+        case .updateLandingPoints: "更新铺设落点"
         }
     }
 
