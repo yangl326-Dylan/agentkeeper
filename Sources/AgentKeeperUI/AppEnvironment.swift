@@ -8,30 +8,30 @@ import AppKit
 /// 应用组装根：真实 InfraKit/AppCore 服务在此拼装，UI 只依赖本环境。
 @MainActor
 @Observable
-final class AppEnvironment {
-    let store: AppStore
-    let catalogStore: CatalogStore
-    let scanService: ScanService
-    let pipeline: ChangePipeline
-    let operationService: OperationService
-    let history: OperationHistory
-    let snapshots: SnapshotStore
-    let snapshotService: SnapshotService
-    let lifecycle: SkillLifecycle
-    let tagService: TagService
-    let distributionService: DistributionService
+public final class AppEnvironment {
+    public let store: AppStore
+    public let catalogStore: CatalogStore
+    public let scanService: ScanService
+    public let pipeline: ChangePipeline
+    public let operationService: OperationService
+    public let history: OperationHistory
+    public let snapshots: SnapshotStore
+    public let snapshotService: SnapshotService
+    public let lifecycle: SkillLifecycle
+    public let tagService: TagService
+    public let distributionService: DistributionService
 
     /// 列表选中态（三面板共享）。
-    var selectedSkillID: String?
+    public var selectedSkillID: String?
 
     /// 当前标签筛选（Phase 2（标签））。
-    var selectedTag: String?
+    public var selectedTag: String?
 
     /// 真实数据根（~；测试版可注入其它 home）。
     private let homeDirectory: URL
     private let akBase: URL
 
-    init(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) {
+    public init(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) {
         self.homeDirectory = homeDirectory
         self.akBase = homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
         let base = self.akBase
@@ -118,7 +118,7 @@ final class AppEnvironment {
     }
 
     /// 首启：全量扫描 + 挂载 FSEvents 监听。
-    func bootstrap() async {
+    public func bootstrap() async {
         await scanService.runScan(projectRoots: [])
         let monitor = FSEventMonitor(latencySeconds: 0.5) { [weak self] event in
             let path = event.rootPath
@@ -130,7 +130,7 @@ final class AppEnvironment {
     }
 
     /// 立即扫描（主窗口/菜单栏共用）。
-    func scanNow() async {
+    public func scanNow() async {
         await scanService.runScan(projectRoots: [])
     }
 

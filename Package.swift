@@ -21,9 +21,13 @@ let package = Package(
             name: "AppCore",
             dependencies: ["DomainKit", "InfraKit"]
         ),
+        .target(
+            name: "AgentKeeperUI",
+            dependencies: ["AppCore", "DomainKit", "InfraKit"]
+        ),
         .executableTarget(
             name: "AgentKeeper",
-            dependencies: ["AppCore", "DomainKit", "InfraKit"]
+            dependencies: ["AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
         ),
         .testTarget(
             name: "DomainKitTests",
@@ -36,6 +40,10 @@ let package = Package(
         .testTarget(
             name: "AppCoreTests",
             dependencies: ["AppCore", "DomainKit", "InfraKit"]
+        ),
+        .testTarget(
+            name: "AgentKeeperTests",
+            dependencies: ["AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
         )
     ],
     swiftLanguageModes: [.v6]

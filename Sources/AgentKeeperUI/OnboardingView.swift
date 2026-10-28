@@ -2,11 +2,15 @@ import SwiftUI
 import AppCore
 
 /// 首启引导页（6.6）：说明扫描机制、目录授权与 ~/.agentkeeper 数据目录契约。
-struct OnboardingView: View {
+public struct OnboardingView: View {
     @Environment(AppEnvironment.self) private var env
     @Binding var hasCompleted: Bool
 
-    var body: some View {
+    public init(hasCompleted: Binding<Bool>) {
+        self._hasCompleted = hasCompleted
+    }
+
+    public var body: some View {
         VStack(spacing: 28) {
             VStack(spacing: 10) {
                 Image(systemName: "shippingbox.and.arrow.backward.fill")
@@ -44,7 +48,7 @@ struct OnboardingView: View {
             .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14))
 
             Button {
-                hasCompleted = true
+                hasCompleted = true // @Binding 直写
                 Task { await env.scanNow() }
             } label: {
                 Text("开始扫描本机").controlSize(.large)

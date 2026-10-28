@@ -4,8 +4,10 @@ import DomainKit
 import InfraKit
 
 /// 三面板主壳：侧栏（导航树）→ 列表（筛选/搜索）→ 详情。
-struct RootView: View {
-    var body: some View {
+public struct RootView: View {
+    public init() {}
+
+    public var body: some View {
         NavigationSplitView {
             NavigationSidebar()
         } content: {
@@ -37,7 +39,7 @@ private extension String {
 struct NavigationSidebar: View {
     @Environment(AppEnvironment.self) private var env
 
-    var body: some View {
+    public var body: some View {
         List {
             Section("Agents") {
                 ForEach(env.store.state.agents) { agent in
@@ -154,7 +156,7 @@ struct NavigationSidebar: View {
 struct ScanStatusStrip: View {
     let scan: ScanPhaseState
 
-    var body: some View {
+    public var body: some View {
         HStack(spacing: 6) {
             Circle().fill(tint.colorKey.semanticColor)
                 .frame(width: 8, height: 8)
@@ -184,6 +186,57 @@ struct ScanStatusStrip: View {
     }
 }
 
+/// Skill 列表行内容（不含 List 容器：离屏快照可经 VStack 引用真实行像素）。
+struct SkillRowView: View {
+    let skill: Skill
+
+    var body: some View {
+        HStack(spacing: 8) {
+            let semantics = StatusSemantics.resolve(token(of: skill))
+            Image(systemName: semantics.symbol)
+                .foregroundStyle(semantics.colorKey.semanticColor)
+                .help(semantics.explanation)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(skill.name).font(.body)
+                Text(subtitle(skill))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Text(scopeLabel(skill))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(.quaternary.opacity(0.5)))
+        }
+    }
+
+    private func token(of skill: Skill) -> StatusToken {
+        if skill.status == .disabled { return .disabled }
+        return .enabled
+    }
+
+    private func subtitle(_ skill: Skill) -> String {
+        var parts: [String] = []
+        // 全局/同铺设 skill 拥有多个 owner——只显示第一个会誤导（看似专属）
+        let owners = skill.owners.joined(separator: "、")
+        if !owners.isEmpty { parts.append(owners) }
+        if let desc = skill.skillDescription, !desc.isEmpty { parts.append(desc) }
+        return parts.joined(separator: " · ")
+    }
+
+    private func scopeLabel(_ skill: Skill) -> String {
+        switch skill.scope {
+        case .global: "全局"
+        case .agentOnly: "专属"
+        case .project: "项目 \(skill.projectTag() ?? "")"
+        case .multiAgent: "同铺设"
+        }
+    }
+}
+
 // MARK: - 列表（筛选/搜索）
 
 struct SkillListView: View {
@@ -193,67 +246,30 @@ struct SkillListView: View {
     @State private var showGitInstall = false
     @State private var importError: String?
 
-    var body: some View {
-        let query = filtered()
-        List(selection: selectedSkillBinding) {
-            ForEach(query) { skill in
-                HStack(spacing: 8) {
-                    let semantics = StatusSemantics.resolve(token(of: skill))
-                    Image(systemName: semantics.symbol)
-                        .foregroundStyle(semantics.colorKey.semanticColor)
-                        .help(semantics.explanation)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(skill.name).font(.body)
-                        Text(subtitle(skill))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    Spacer()
-                    Text(scopeLabel(skill))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(.quaternary.opacity(0.5)))
-                }
-                .transition(.opacity)
+    public var body: some View {
+        listCore
+            .searchable(text: $searchText, placement: .automatic, prompt: "搜索名称 / 描述 / 项目")
+            .toolbar { toolbarContent }
+            .sheet(isPresented: $showGitInstall) {
+                GitInstallSheet()
             }
-        }
-        .overlay {
-            if query.isEmpty {
-                ContentUnavailableView(
-                    "没有匹配的 Skill",
-                    systemImage: "magnifyingglass",
-                    description: Text("调整筛选或重新扫描")
-                )
+            .alert("导入失败", isPresented: Binding(
+                get: { importError != nil },
+                set: { if !$0 { importError = nil } }
+            )) {
+                Button("好", role: .cancel) { }
+            } message: {
+                Text(importError ?? "")
             }
-        }
-        .searchable(text: $searchText, placement: .automatic, prompt: "搜索名称 / 描述 / 项目")
-        .navigationTitle("Skills")
-        .toolbar { toolbarContent }
-        .sheet(isPresented: $showGitInstall) {
-            GitInstallSheet()
-        }
-        .alert("导入失败", isPresented: Binding(
-            get: { importError != nil },
-            set: { if !$0 { importError = nil } }
-        )) {
-            Button("好", role: .cancel) { }
-        } message: {
-            Text(importError ?? "")
-        }
-        .animation(motion.animation(for: .listTransition), value: query.map({ $0.id }))
+            .animation(motion.animation(for: .listTransition), value: SkillListCore.filter(scopeFilter, searchText, env).map({ $0.id }))
     }
 
-    // MARK: 选择
-
-    private var selectedSkillBinding: Binding<String?> {
-        Binding(
-            get: { env.selectedSkillID },
-            set: { env.selectedSkillID = $0 }
-        )
+    /// 列表核心（独立节点视图：body 内使用 @Environment 的部分收敛于此，selection binding
+    /// 在求值期捕获具体 env 对象，避免捕获未解析的 Environment 包装器——离屏渲染也不会崩）。
+    var listCore: some View {
+        SkillListCore(searchText: $searchText, scopeFilter: $scopeFilter)
     }
+
 
     // MARK: 工具条
 
@@ -348,11 +364,41 @@ struct SkillListView: View {
         )
     }
 
-    private var motion: MotionPolicy { env.motionPolicy }
+    private var motion: MotionPolicy { env.motionPolicy }}
+
+struct SkillListCore: View {
+    @Environment(AppEnvironment.self) private var env
+    @Binding var searchText: String
+    @Binding var scopeFilter: Set<ScopeKind>
+
+    var body: some View {
+        // 捕获已解析的具体 env 对象（%@Environment 包装器在离屏/闭包拷贝中不可靠）
+        let env = self.env
+        let query = filtered()
+        return List(selection: Binding(
+            get: { env.selectedSkillID },
+            set: { env.selectedSkillID = $0 }
+        )) {
+            ForEach(query) { skill in
+                SkillRowView(skill: skill)
+                    .transition(.opacity)
+            }
+        }
+        .overlay {
+            if query.isEmpty {
+                ContentUnavailableView(
+                    "没有匹配的 Skill",
+                    systemImage: "magnifyingglass",
+                    description: Text("调整筛选或重新扫描")
+                )
+            }
+        }
+    }
 
     // MARK: 数据
 
-    private func filtered() -> [Skill] {
+    /// 筛选逻辑（static：父级 animation 亦需同一结果）。
+    static func filter(_ scopeFilter: Set<ScopeKind>, _ searchText: String, _ env: AppEnvironment) -> [Skill] {
         var query = CatalogQuery.initial
         query.scopeKinds = scopeFilter
         query.searchText = searchText
@@ -362,25 +408,8 @@ struct SkillListView: View {
         return query.apply(catalog: catalog, tagsBySkill: env.tagsBySkill())
     }
 
-    private func token(of skill: Skill) -> StatusToken {
-        if skill.status == .disabled { return .disabled }
-        return .enabled
-    }
-
-    private func subtitle(_ skill: Skill) -> String {
-        var parts: [String] = []
-        if let agent = skill.owners.first { parts.append(agent) }
-        if let desc = skill.skillDescription, !desc.isEmpty { parts.append(desc) }
-        return parts.joined(separator: " · ")
-    }
-
-    private func scopeLabel(_ skill: Skill) -> String {
-        switch skill.scope {
-        case .global: "全局"
-        case .agentOnly: "专属"
-        case .project: "项目 \(skill.projectTag() ?? "")"
-        case .multiAgent: "同铺设"
-        }
+    private func filtered() -> [Skill] {
+        Self.filter(scopeFilter, searchText, env)
     }
 }
 
@@ -393,22 +422,15 @@ struct SkillDetailView: View {
     @State private var showInstallSheet = false
     @State private var confirmUpdateAll = false
 
-    var body: some View {
+    public var body: some View {
         if let skill = selectedSkill {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    header(skill)
-                    scopeBadge(skill)
-                    tagsSection(skill)
-                    landingPointsSection(skill)
-                    Divider()
-                    previewSection(skill)
-                    Divider()
-                    filesSection(skill)
-                    Divider()
-                    historySection(skill)
-                    snapshotsSection(skill)
-                }
+                SkillDetailContent(
+                    env: env,
+                    skill: skill,
+                    showInstallSheet: $showInstallSheet,
+                    confirmUpdateAll: $confirmUpdateAll
+                )
                 .padding(24)
             }
             .frame(maxHeight: .infinity, alignment: .topLeading)
@@ -439,6 +461,39 @@ struct SkillDetailView: View {
     }
 
     private var motion: MotionPolicy { env.motionPolicy }
+
+}
+
+
+/// Skill 详情正文（不含 ScrollView：离屏快照可独立渲染；env 显式注入而非 @Environment）。
+@MainActor
+struct SkillDetailContent: View {
+    let env: AppEnvironment
+    let skill: Skill
+    @Binding var showInstallSheet: Bool
+    @Binding var confirmUpdateAll: Bool
+    @State private var newTagText = ""
+
+    var body: some View {
+        SwiftUI.Group {
+            VStack(alignment: .leading, spacing: 16) {
+                header(skill)
+                scopeBadge(skill)
+                tagsSection(skill)
+                landingPointsSection(skill)
+                Divider()
+                previewSection(skill)
+                Divider()
+                filesSection(skill)
+                Divider()
+                historySection(skill)
+                snapshotsSection(skill)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+// MARK: 区块
 
     // MARK: 区块
 
@@ -570,6 +625,8 @@ struct SkillDetailView: View {
             }
         }
     }
+
+    private var motion: MotionPolicy { env.motionPolicy }
 
     private func previewSection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -705,7 +762,7 @@ struct FlowChips: View {
     let onRemove: (String) -> Void
 
     /// 简化双列流式布局：标签量级小（个人 workset），取自然折行即可。
-    var body: some View {
+    public var body: some View {
         LazyVGrid(
             columns: [GridItem(.adaptive(minimum: 110), alignment: .leading)],
             alignment: .leading,
@@ -749,7 +806,7 @@ struct InstallToAgentSheet: View {
         var id: String { agentID + ":" + root.path }
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Label("安装「\(skill.name)」到其他 agent", systemImage: "arrow.up.circle")
                 .font(.headline)
@@ -832,7 +889,7 @@ struct GitInstallSheet: View {
     @State private var proposing = false
     @State private var targetRoot: URL?
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Label("从 git 安装 skill", systemImage: "arrow.down.circle")
                 .font(.headline)
