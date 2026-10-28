@@ -45,6 +45,7 @@ struct OnboardingView: View {
 
             Button {
                 hasCompleted = true
+                Task { await env.scanNow() }
             } label: {
                 Text("开始扫描本机").controlSize(.large)
             }

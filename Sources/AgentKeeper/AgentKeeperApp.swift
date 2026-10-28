@@ -8,7 +8,8 @@ struct AgentKeeperApp: App {
     @State private var showOnboarding = true
 
     var body: some Scene {
-        WindowGroup(id: "main") {
+        // 单例窗口：MenuBarExtra「打开主窗口」复用已有窗口，而不是新建多个。
+        Window("AgentKeeper", id: "main") {
             Group {
                 if showOnboarding {
                     OnboardingView(hasCompleted: onboardingBinding)

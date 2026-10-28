@@ -1,14 +1,14 @@
 # Tasks
 
 ## 1. 准备与契约
-- [ ] 1.1 在 DomainKit 新增分领域模型：`DistributionSource`（existingSkill / localDirectory / git）、`DistributionConflict`（targetPath/mine/theirs 指纹）、`InstallPlan`、`LandingPoint`；RED 先写 `Tests/DomainKitTests/DistributionModelTests.swift` 验证编码与哈希稳定。
-- [ ] 1.2 定义 `AppCore` 侧分发协议（`Distributing` 接口）与错误类型（conflict/invalidSource/cloneFailed/timeout），RED：协议契约测试（非法参数返回错误而非崩溃）。
+- [x] 1.1 在 DomainKit 新增分领域模型：`DistributionSource`（existingSkill / localDirectory / git）、`DistributionConflict`（targetPath/mine/theirs 指纹）、`InstallPlan`、`LandingPoint`；RED 先写 `Tests/DomainKitTests/DistributionModelTests.swift` 验证编码与哈希稳定。
+- [x] 1.2 定义 `AppCore` 侧分发协议（`Distributing` 接口）与错误类型（conflict/invalidSource/cloneFailed/timeout），RED：协议契约测试（非法参数返回错误而非崩溃）。
 
 ## 2. git 来源与临时区
-- [ ] 2.1 `InfraKit.GitInstaller`：`clone(url:)` 走 `git clone --depth 1`，本地路径（存在目录）直接返回该 URL 不 clone；RED：本地路径返回原目录、伪造 git URL 返回 cloneFailed。
-- [ ] 2.2 clone 超时 60s 与 stderr 摘要透传；失败清理 `~/.agentkeeper/tmp/clone-<uuid>/`；RED：无法访问 URL → 失败 + 临时目录不存在。
-- [ ] 2.3 候选发现：仓库根合法 → 单候选；否则一级子目录逐个用 SkillParsing 校验；RED：单 skill 仓库 / 多 skill 仓库 / 空仓库三 fixture。
-- [ ] 2.4 提交 group 2，tick 2.1–2.3。
+- [x] 2.1 `InfraKit.GitInstaller`：`clone(url:)` 走 `git clone --depth 1`，本地路径（存在目录）直接返回该 URL 不 clone；RED：本地路径返回原目录、伪造 git URL 返回 cloneFailed。
+- [x] 2.2 clone 超时 60s 与 stderr 摘要透传；失败清理 `~/.agentkeeper/tmp/clone-<uuid>/`；RED：无法访问 URL → 失败 + 临时目录不存在。
+- [x] 2.3 候选发现：仓库根合法 → 单候选；否则一级子目录逐个用 SkillParsing 校验；RED：单 skill 仓库 / 多 skill 仓库 / 空仓库三 fixture。
+- [x] 2.4 提交 group 2，tick 2.1–2.3。
 
 ## 3. SkillDistributor 安装管线
 - [ ] 3.1 `InfraKit.SkillDistributor.install(source:.existingSkill)`：复制到目标 skillRoot（AtomicMover 复制路径），来源不变；RED：装后源目录内容不变、目标出现且指纹一致。
