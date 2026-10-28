@@ -45,7 +45,7 @@ public struct OnboardingView: View {
                 )
             }
             .padding(24)
-            .background(.background.secondary, in: RoundedRectangle(cornerRadius: 14))
+            .background(ClaudePalette.card, in: RoundedRectangle(cornerRadius: 14))
 
             Button {
                 hasCompleted = true // @Binding 直写

@@ -477,7 +477,8 @@ struct SkillDetailView: View {
                 Text("即将覆盖同名铺设落点中被修改的版本；每个落点都会先自动保存快照。禁用区条目跳过。")
             }
         } else {
-            ContentUnavailableView("选择一个 Skill", systemImage: "square.on.rounded.square")
+            // MangoDisk 式：未选中时展示扫描产出总览（统计/分布/agent 卡片）
+            OverviewDashboard()
         }
     }
 

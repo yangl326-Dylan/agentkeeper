@@ -7,9 +7,17 @@ cd "$(dirname "$0")/.."
 CONFIG="${1:-debug}"
 swift build -c "$CONFIG"
 
+# 图标：引导页同款「带箭头的箱子」+ Claude 色系（母版变更时重生成）
+if [ ! -f build/AppIcon.icns ] || [ scripts/gen-icon.swift -nt build/AppIcon.icns ]; then
+    mkdir -p build
+    swift scripts/gen-icon.swift
+    iconutil -c icns build/AppIcon.iconset -o build/AppIcon.icns
+fi
+
 APP="AgentKeeper.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
 cp "$BIN_DIR/AgentKeeper" "$APP/Contents/MacOS/AgentKeeper"
@@ -24,6 +32,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleIdentifier</key><string>app.agentkeeper.mac</string>
     <key>CFBundleExecutable</key><string>AgentKeeper</string>
     <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleIconFile</key><string>AppIcon</string>
+    <key>CFBundleIconName</key><string>AppIcon</string>
     <key>CFBundleShortVersionString</key><string>0.1.0</string>
     <key>CFBundleVersion</key><string>1</string>
     <key>LSMinimumSystemVersion</key><string>15.0</string>

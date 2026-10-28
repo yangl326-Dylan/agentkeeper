@@ -36,7 +36,8 @@ struct AgentKeeperApp: App {
             }
         }
 
-        MenuBarExtra("AgentKeeper", systemImage: "sparkle.magnifyingglass") {
+        // 菜单栏与 App 图标同款「带箭头的箱子」
+        MenuBarExtra("AgentKeeper", systemImage: "shippingbox.and.arrow.backward.fill") {
             MenuSummarySection(env: env)
         }
     }

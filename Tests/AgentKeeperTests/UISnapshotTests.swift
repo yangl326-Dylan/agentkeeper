@@ -183,4 +183,18 @@ func makeFakeHomeCore(files: [String]) -> URL {
             size: CGSize(width: 320, height: 60)
         )
     }
+
+    /// 总览仪表盘（MangoDisk 式：统计卡 + 作用域分布 + agent 卡片）。
+    /// ScrollView 在离屏渲染为空白 → 直接渲染 body 内容（提出 content 子视图）。
+    @Test func renderOverviewDashboard() throws {
+        let wiring = UIWiring()
+        defer { try? FileManager.default.removeItem(at: wiring.home) }
+        wiring.env.tagService.addTag("写作", toSkillID: wiring.env.catalogStore.current[0].id)
+        try UISnapshot.render("overview", view:
+            OverviewContent()
+                .environment(wiring.env)
+                .background(Color.white),
+            size: CGSize(width: 640, height: 560)
+        )
+    }
 }
