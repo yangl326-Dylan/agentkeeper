@@ -8,6 +8,11 @@ struct AgentKeeperApp: App {
     @State private var env = AppEnvironment()
     @State private var showOnboarding = true
 
+    init() {
+        // 裸可执行形态兜底：强制常规前台应用（Dock 图标 + 应用菜单栏归属）
+        AppStartup.ensureRegularApp()
+    }
+
     var body: some Scene {
         // 单例窗口：MenuBarExtra「打开主窗口」复用已有窗口，而不是新建多个。
         Window("AgentKeeper", id: "main") {
