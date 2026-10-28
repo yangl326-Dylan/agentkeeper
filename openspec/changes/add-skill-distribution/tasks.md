@@ -46,8 +46,8 @@
 - [x] 7.6 `swift build` 零警告提交；提交 group 7，tick 7.1–7.5。
 
 ## 8. 验收与收尾
-- [ ] 8.1 自动化 E2E：`DistributionE2EWorkflowTests`：git 安装 → 跨 agent 安装 → 铺设互链 → 外部改一处落点 → 分歧提示 → updateAllLandingPoints → 快照历史与前次一致；RED 先行。
-- [ ] 8.2 性能：200 skill 目录下 100 次标签写 <2s；双 agent × 50 skill 铺设分组计算 <1s；RED 先行。
-- [ ] 8.3 边界演练：tags.json 损坏的 E2E 不影响扫描/分发；clone 超时不阻塞 UI；RED 先行。
-- [ ] 8.4 全量 `swift test --filter` 三连绿 + 完整 suite ×2 绿；`openspec validate add-skill-distribution` 通过。
-- [ ] 8.5 最终提交 + tasks.md 全部 tick。
+- [x] 8.1 自动化 E2E：`DistributionE2EWorkflowTests`：git 安装 → 跨 agent 安装 → 铺设互链 → 外部改一处落点 → 分歧提示 → updateAllLandingPoints → 快照历史与前次一致；RED 先行。
+- [x] 8.2 性能：200 skill 目录下 100 次标签写 <2s；双 agent × 50 skill 铺设分组计算 <1s；RED 先行。
+- [x] 8.3 边界演练：tags.json 损坏的 E2E 不影响扫描/分发；clone 超时不阻塞 UI；RED 先行。
+- [x] 8.4 全量 `swift test --filter` 三连绿 + 完整 suite ×2 绿；`openspec validate add-skill-distribution` 通过。
+- [x] 8.5 最终提交 + tasks.md 全部 tick。
