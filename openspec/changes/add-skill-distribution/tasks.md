@@ -25,11 +25,11 @@
 - [x] 4.4 提交 group 4，tick 4.1–4.3。
 
 ## 5. TagStore 与 TagService
-- [ ] 5.1 `InfraKit.TagStore`：`~/.agentkeeper/tags.json` 读写（原子写 + rename）；RED：写后重读一致、损坏 JSON → 备份 `.corrupt-<ts>` 并空库自愈。
-- [ ] 5.2 关联 key 用 skillID（禁用/启用后不变）；RED：禁用→启用循环后 assignment 保留。
-- [ ] 5.3 `AppCore.TagService`：标签增删/重命名（同步全部关联）、按 skillID 增删；RED：重命名后关联全部更新、删除标签不动 skill 文件。
-- [ ] 5.4 orphan 检测：重扫钩子对照 catalog，缺失且非 disabled 的 skillID 计入 orphanCount，一键清除；RED：删除 skill 目录后 orphan 计数 +1，清除后归零。
-- [ ] 5.5 提交 group 5，tick 5.1–5.4。
+- [x] 5.1 `InfraKit.TagStore`：`~/.agentkeeper/tags.json` 读写（原子写 + rename）；RED：写后重读一致、损坏 JSON → 备份 `.corrupt-<ts>` 并空库自愈。
+- [x] 5.2 关联 key 用 skillID（禁用/启用后不变）；RED：禁用→启用循环后 assignment 保留。
+- [x] 5.3 `AppCore.TagService`：标签增删/重命名（同步全部关联）、按 skillID 增删；RED：重命名后关联全部更新、删除标签不动 skill 文件。
+- [x] 5.4 orphan 检测：重扫钩子对照 catalog，缺失且非 disabled 的 skillID 计入 orphanCount，一键清除；RED：删除 skill 目录后 orphan 计数 +1，清除后归零。
+- [x] 5.5 提交 group 5，tick 5.1–5.4。
 
 ## 6. AppCore 操作编排
 - [ ] 6.1 `AppCore.DistributionService`：接入 OperationService 状态机（install/import/gitClone 走 started→completed→自动重扫；失败不重扫）；RED：成功后 catalog 自动刷新、失败 catalog 不动 + OperationHistory 有记录。
