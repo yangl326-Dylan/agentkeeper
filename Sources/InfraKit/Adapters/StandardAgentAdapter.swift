@@ -11,6 +11,9 @@ public struct StandardAgentAdapter: AgentAdapter {
     private let detectionSubpaths: [String]
     /// skill 根目录候选（相对家目录），仅报告实际存在者。
     private let skillRootCandidates: [String]
+    /// skill 根 glob 候选（相对家目录，`*` 恰匹配一层目录）——
+    /// 插件缓存类路径（如 OpenCode `npm/<pkg>/<ts>/node_modules/*/skills`）无法用固定子路径表达。
+    private let skillRootGlobs: [String]
     /// 项目根发现策略。
     private let projectRootDiscovery: ProjectRootDiscovery
 
@@ -22,6 +25,7 @@ public struct StandardAgentAdapter: AgentAdapter {
         homeDirectory: URL,
         detectionSubpaths: [String],
         skillRootCandidates: [String],
+        skillRootGlobs: [String] = [],
         projectRootDiscovery: ProjectRootDiscovery
     ) {
         self.id = id
@@ -29,6 +33,7 @@ public struct StandardAgentAdapter: AgentAdapter {
         self.homeDirectory = homeDirectory
         self.detectionSubpaths = detectionSubpaths
         self.skillRootCandidates = skillRootCandidates
+        self.skillRootGlobs = skillRootGlobs
         self.projectRootDiscovery = projectRootDiscovery
     }
 
@@ -50,10 +55,54 @@ public struct StandardAgentAdapter: AgentAdapter {
 
     public func skillRoots() async -> [SkillRoot] {
         let fileManager = FileManager.default
-        return skillRootCandidates
+        var paths = skillRootCandidates
             .map { homeDirectory.appendingPathComponent($0, isDirectory: true) }
             .filter { fileManager.fileExists(atPath: $0.path) }
-            .map { SkillRoot(path: $0, owners: [id], level: .user) }
+        for pattern in skillRootGlobs {
+            paths.append(contentsOf: Self.expandGlob(pattern, under: homeDirectory, fileManager: fileManager))
+        }
+        // 排序去重：结果确定性（侧栏/铺设比对依赖稳定顺序）
+        // 注意 contentsOfDirectory 在 macOS 上返回 /private/var 前缀——统一归一化后比较
+        let unique = Set(paths.map { Self.dropPrivatePrefix($0.path) })
+            .sorted()
+            .map { URL(fileURLWithPath: $0, isDirectory: true) }
+        return unique.map { SkillRoot(path: $0, owners: [id], level: .user) }
+    }
+
+    /// /private/var → /var 前缀归一（目录枚举与构造 URL 的拼写差异）。
+    static func dropPrivatePrefix(_ path: String) -> String {
+        if path.hasPrefix("/private/var/") {
+            return String(path.dropFirst("/private".count))
+        }
+        return path
+    }
+
+    /// 展开相对 glob：`*` 恰匹配一层目录组件；路径段逐层枚举，末段须实际存在。
+    static func expandGlob(_ pattern: String, under home: URL, fileManager: FileManager) -> [URL] {
+        var directories: [URL] = [home]
+        for component in pattern.split(separator: "/") {
+            let literal = String(component)
+            if literal == "*" {
+                var next: [URL] = []
+                for dir in directories {
+                    let entries = (try? fileManager.contentsOfDirectory(
+                        at: dir,
+                        includingPropertiesForKeys: [.isDirectoryKey],
+                        options: [.skipsHiddenFiles]
+                    )) ?? []
+                    next.append(contentsOf: entries.filter { entry in
+                        (try? entry.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+                    })
+                }
+                directories = next
+            } else {
+                directories = directories
+                    .map { $0.appendingPathComponent(literal, isDirectory: true) }
+                    .filter { fileManager.fileExists(atPath: $0.path) }
+            }
+            if directories.isEmpty { break }
+        }
+        return directories
     }
 
     public func discoverProjectRoots() async -> [ProjectRoot] {
@@ -96,6 +145,8 @@ public enum ProjectRootDiscovery: Sendable {
 
 extension StandardAgentAdapter {
     /// OpenCode：检测 `~/.config/opencode`；skill 目录候选 `skill` / `skills`。
+    /// v2 插件缓存（git 与 npm 插件各带 skills/dist-skills）以 glob 覆盖：
+    /// `~/.cache/opencode/npm/<pkg>/<ts>/node_modules/<pkg>/(dist/)?skills`。
     public static func openCode(homeDirectory: URL) -> StandardAgentAdapter {
         StandardAgentAdapter(
             id: "opencode",
@@ -103,6 +154,10 @@ extension StandardAgentAdapter {
             homeDirectory: homeDirectory,
             detectionSubpaths: [".config/opencode"],
             skillRootCandidates: [".config/opencode/skill", ".config/opencode/skills"],
+            skillRootGlobs: [
+                ".cache/opencode/npm/*/*/node_modules/*/skills",
+                ".cache/opencode/npm/*/*/node_modules/*/dist/skills",
+            ],
             projectRootDiscovery: .none
         )
     }
