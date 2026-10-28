@@ -53,22 +53,36 @@ struct NavigationSidebar: View {
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(rows) { row in
-                        HStack(spacing: 8) {
-                            Image(
-                                systemName: row.status == .available
-                                    ? "externaldrive.badge.checkmark" : "externaldrive.badge.exclamationmark"
+                        Button {
+                            // 点击 agent → 右侧列表按其筛选；再点同项取消
+                            env.selectedAgent = AgentSelection.toggle(
+                                current: env.selectedAgent,
+                                clicked: row.id
                             )
-                            .foregroundStyle(
-                                row.status == .available ? Color.green : Color.orange
-                            )
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(row.name)
-                                Text(row.statusText)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(
+                                    systemName: row.status == .available
+                                        ? "externaldrive.badge.checkmark" : "externaldrive.badge.exclamationmark"
+                                )
+                                .foregroundStyle(
+                                    row.status == .available ? Color.green : Color.orange
+                                )
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(row.name)
+                                    Text(row.statusText)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if env.selectedAgent == row.id {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
                             }
-                            Spacer()
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                         .padding(.vertical, 2)
                     }
                 }
@@ -176,20 +190,58 @@ enum ScanStatusText {
         case .failed: return "扫描失败：\(scan.failureMessage ?? "未知")"
         }
     }
+
+    /// 紧凑版（窄侧栏防换行）：保留 skill 数与时分，舍弃秒与 agent 数。
+    static func compact(scan: ScanPhaseState, skillsCount: Int) -> String {
+        switch scan.phase {
+        case .idle: return "尚未扫描"
+        case .running: return "扫描中…"
+        case .complete:
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            let time = scan.lastCompletedAt.map { formatter.string(from: $0) } ?? "--:--"
+            return "\(skillsCount) skills · \(time)"
+        case .failed: return "扫描失败"
+        }
+    }
 }
 
 struct ScanStatusStrip: View {
     let scan: ScanPhaseState
     let skillsCount: Int
+    @Environment(\.openWindow) private var openWindow
 
     public var body: some View {
+        // 窄侧栏（min 200pt）防换行：优先全文案，放不下用紧凑版；单行硬保证
+        ViewThatFits(in: .horizontal) {
+            label(text: ScanStatusText.build(scan: scan, skillsCount: skillsCount))
+            label(text: ScanStatusText.compact(scan: scan, skillsCount: skillsCount))
+        }
+        .help("点击打开主窗口 Skill 列表")
+        .onTapGesture {
+            // 点击 → 前置主窗口（Skill 列表随 RootView 常驻）
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            openWindow(id: "main")
+        }
+        .onHover { hovering in
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+
+    private func label(text: String) -> some View {
         HStack(spacing: 6) {
             Circle().fill(tint.colorKey.semanticColor)
                 .frame(width: 8, height: 8)
-            Text(ScanStatusText.build(scan: scan, skillsCount: skillsCount))
+            Text(text)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -269,6 +321,7 @@ struct SkillListView: View {
     public var body: some View {
         listCore
             .searchable(text: $searchText, placement: .automatic, prompt: "搜索名称 / 描述 / 项目")
+            .navigationTitle(env.selectedAgent.map { "Skills · \($0)" } ?? "Skills")
             .toolbar { toolbarContent }
             .sheet(isPresented: $showGitInstall) {
                 GitInstallSheet()
@@ -431,6 +484,7 @@ struct SkillListCore: View {
         query.scopeKinds = scopeFilter
         query.searchText = searchText
         query.tag = env.selectedTag
+        query.agentID = env.selectedAgent
         // 标签筛选需要合成禁用条目；普通视图只见可用 catalog
         let catalog = env.selectedTag == nil ? env.catalogStore.current : env.catalogForTagFilter()
         return query.apply(catalog: catalog, tagsBySkill: env.tagsBySkill())

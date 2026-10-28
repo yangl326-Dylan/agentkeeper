@@ -2,6 +2,13 @@ import Foundation
 import DomainKit
 import AppCore
 
+/// Agent 筛选切换（点同项取消，点异项切换）。
+enum AgentSelection {
+    static func toggle(current: AgentID?, clicked: AgentID) -> AgentID? {
+        current == clicked ? nil : clicked
+    }
+}
+
 /// 侧栏 Agents 分组模型：只显示本机实际安装的 agent（目录存在），未安装不进侧栏。
 @MainActor
 enum SidebarAgentModel {

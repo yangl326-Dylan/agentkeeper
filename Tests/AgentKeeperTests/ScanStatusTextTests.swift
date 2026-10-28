@@ -38,4 +38,18 @@ import AppCore
         let text = ScanStatusText.build(scan: scan, skillsCount: 0)
         #expect(text.contains("权限受限"))
     }
+
+    /// 窄侧栏（min 200pt）下全文案会换行——紧凑版必须更短且保留关键信息。
+    @Test func compactFitsNarrowSidebar() {
+        var scan = ScanPhaseState()
+        scan.phase = .complete
+        scan.agentCount = 1
+        scan.lastCompletedAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let full = ScanStatusText.build(scan: scan, skillsCount: 32)
+        let compact = ScanStatusText.compact(scan: scan, skillsCount: 32)
+        #expect(compact.count < full.count)
+        #expect(compact.contains("32"))
+        #expect(compact.contains(":"))  // 保留时间
+        #expect(!compact.contains("\n"))
+    }
 }
