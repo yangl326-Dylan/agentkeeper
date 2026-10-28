@@ -11,12 +11,12 @@
 - [x] 2.4 提交 group 2，tick 2.1–2.3。
 
 ## 3. SkillDistributor 安装管线
-- [ ] 3.1 `InfraKit.SkillDistributor.install(source:.existingSkill)`：复制到目标 skillRoot（AtomicMover 复制路径），来源不变；RED：装后源目录内容不变、目标出现且指纹一致。
-- [ ] 3.2 冲突检查：目标存在且指纹不一致 → 中止 + `DistributionConflict` 明细，零写入；一致 → 报告已铺设跳过；RED：三 fixture（空目标/一致/冲突）。
-- [ ] 3.3 接入 localDirectory 来源：校验 SKILL.md + frontmatter，非法 → invalidSource 且缺项说明；RED：合法导入成功、无 SKILL.md 拒绝、坏 frontmatter 拒绝、冲突拒绝四例。
-- [ ] 3.4 接入 git 来源：2.3 候选 × 3.1/3.2 管线，多候选逐个安装；RED：git 安装成功后临时区清空、目标重扫可见。
-- [ ] 3.5 失败回滚审计：安装中断不遗留半成品目标目录；RED：人为注入 copy 失败 → 目标目录不存在。
-- [ ] 3.6 提交 group 3，tick 3.1–3.5。
+- [x] 3.1 `InfraKit.SkillDistributor.install(source:.existingSkill)`：复制到目标 skillRoot（AtomicMover 复制路径），来源不变；RED：装后源目录内容不变、目标出现且指纹一致。
+- [x] 3.2 冲突检查：目标存在且指纹不一致 → 中止 + `DistributionConflict` 明细，零写入；一致 → 报告已铺设跳过；RED：三 fixture（空目标/一致/冲突）。
+- [x] 3.3 接入 localDirectory 来源：校验 SKILL.md + frontmatter，非法 → invalidSource 且缺项说明；RED：合法导入成功、无 SKILL.md 拒绝、坏 frontmatter 拒绝、冲突拒绝四例。
+- [x] 3.4 接入 git 来源：2.3 候选 × 3.1/3.2 管线，多候选逐个安装；RED：git 安装成功后临时区清空、目标重扫可见。
+- [x] 3.5 失败回滚审计：安装中断不遗留半成品目标目录；RED：人为注入 copy 失败 → 目标目录不存在。
+- [x] 3.6 提交 group 3，tick 3.1–3.5。
 
 ## 4. 铺设落点与更新所有落点
 - [ ] 4.1 `AppCore.CatalogQuery.landingPoints(named:)`：按同名+指纹分组返回 `LandingPoint` 清单；RED：两 agent 同名同指纹 → 两落点互链；指纹分歧 → 分组拆分。

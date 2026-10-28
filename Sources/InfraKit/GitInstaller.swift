@@ -57,6 +57,11 @@ public struct GitInstaller: Sendable {
         baseDirectory.appendingPathComponent("tmp/clone-\(UUID().uuidString)", isDirectory: true)
     }
 
+    /// 临时区基目录路径（SkillDistributor 判定物化目录是否在临时区内）。
+    public var baseDirectoryPath: String {
+        baseDirectory.path
+    }
+
     /// 清理临时 clone 目录（install 成功后的收尾）。
     public func cleanup(_ directory: URL) {
         // 仅清理属于临时 clone 语义的目录：位于 base/tmp 下才删
