@@ -77,7 +77,7 @@ struct NavigationSidebar: View {
         .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 340)
         .navigationTitle("AgentKeeper")
         .overlay(alignment: .bottom) {
-            ScanStatusStrip(scan: env.store.state.scan)
+            ScanStatusStrip(scan: env.store.state.scan, skillsCount: env.catalogStore.current.count)
                 .padding(.bottom, 8)
         }
         .animation(motion.animation(for: .listTransition), value: env.store.state.agents.count)
@@ -153,14 +153,41 @@ struct NavigationSidebar: View {
 
 // MARK: - 状态条（非阻断）
 
+/// 状态条文案构建（纯函数可测）：完成态必须带时间戳与 skill 数——
+/// 手动扫描前后状态一致时，用户仍能看到「本次扫描刚刚完成」的可见反馈。
+@MainActor
+enum ScanStatusText {
+    private static let clock = DateFormatter()
+
+    static func clockText(_ date: Date) -> String {
+        clock.dateFormat = "HH:mm:ss"
+        return clock.string(from: date)
+    }
+
+    static func build(scan: ScanPhaseState, skillsCount: Int) -> String {
+        switch scan.phase {
+        case .idle: return "尚未扫描"
+        case .running: return "正在扫描…"
+        case .complete:
+            let time = scan.lastCompletedAt.map { clockText($0) } ?? "--:--:--"
+            return "完成 · \(scan.agentCount) agents · \(skillsCount) skills · \(time)"
+        case .failed: return "扫描失败：\(scan.failureMessage ?? "未知")"
+        }
+    }
+}
+
 struct ScanStatusStrip: View {
     let scan: ScanPhaseState
+    let skillsCount: Int
 
     public var body: some View {
         HStack(spacing: 6) {
             Circle().fill(tint.colorKey.semanticColor)
                 .frame(width: 8, height: 8)
-            Text(text).font(.caption).foregroundStyle(.secondary)
+            Text(ScanStatusText.build(scan: scan, skillsCount: skillsCount))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
@@ -173,15 +200,6 @@ struct ScanStatusStrip: View {
         case .running: StatusSemantics(colorKey: "blue", symbol: "dot.radiowaves.left.and.right", explanation: "扫描中")
         case .complete: StatusSemantics(colorKey: "green", symbol: "checkmark.circle", explanation: "完成")
         case .failed: StatusSemantics(colorKey: "red", symbol: "xmark.circle", explanation: "失败")
-        }
-    }
-
-    private var text: String {
-        switch scan.phase {
-        case .idle: "空闲"
-        case .running: "正在扫描…"
-        case .complete: "完成 · \(scan.agentCount) agents · \(scan.diagnosticCount) 诊断"
-        case .failed: "扫描失败：\(scan.failureMessage ?? "未知")"
         }
     }
 }
@@ -289,7 +307,15 @@ struct SkillListView: View {
             Button {
                 Task { await env.scanNow() }
             } label: {
-                Label("立即扫描", systemImage: "arrow.clockwise")
+                // 运行中就地显示进度（与菜单栏一致）——否则手动扫描期间按钮无任何可感反馈
+                if env.store.state.scan.phase == .running {
+                    HStack(spacing: 4) {
+                        ProgressView().controlSize(.small)
+                        Text("正在扫描…")
+                    }
+                } else {
+                    Label("立即扫描", systemImage: "arrow.clockwise")
+                }
             }
             .disabled(env.store.state.scan.phase == .running)
             Button {

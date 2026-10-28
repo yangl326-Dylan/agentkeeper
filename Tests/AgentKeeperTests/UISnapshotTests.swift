@@ -169,4 +169,18 @@ func makeFakeHomeCore(files: [String]) -> URL {
         let skill = wiring.env.catalogStore.current.first { $0.name == "review" }!
         try UISnapshot.render("sheet-install", view: InstallToAgentSheet(skill: skill).environment(wiring.env))
     }
+
+    /// 状态条（手动扫描反馈：完成文案带时间戳 + skill 数）。
+    @Test func renderScanStatusStrip() throws {
+        var scan = ScanPhaseState()
+        scan.phase = .complete
+        scan.agentCount = 1
+        scan.lastCompletedAt = Date(timeIntervalSince1970: 1_800_000_123)
+        try UISnapshot.render("scan-strip", view:
+            ScanStatusStrip(scan: scan, skillsCount: 3)
+                .padding(12)
+                .background(Color.white),
+            size: CGSize(width: 320, height: 60)
+        )
+    }
 }
