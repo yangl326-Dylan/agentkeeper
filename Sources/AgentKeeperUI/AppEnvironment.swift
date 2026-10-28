@@ -27,13 +27,20 @@ public final class AppEnvironment {
     /// 当前标签筛选（Phase 2（标签））。
     public var selectedTag: String?
 
+    /// 首启引导完成标记（落盘：完成过不再出现，spec 6.6）。
+    public var firstRun: FirstRunStore
+
     /// 真实数据根（~；测试版可注入其它 home）。
     private let homeDirectory: URL
     private let akBase: URL
 
-    public init(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) {
+    public init(
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
+        defaults: UserDefaults = .standard
+    ) {
         self.homeDirectory = homeDirectory
         self.akBase = homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
+        self.firstRun = FirstRunStore(defaults: defaults)
         let base = self.akBase
         let store = AppStore()
         let catalogStore = CatalogStore(index: SkillIndex(databaseDirectory: base))
@@ -132,6 +139,11 @@ public final class AppEnvironment {
     /// 立即扫描（主窗口/菜单栏共用）。
     public func scanNow() async {
         await scanService.runScan(projectRoots: [])
+    }
+
+    /// 引导完成落盘（完成过不再出现）。
+    public func completeOnboarding() {
+        firstRun.completeOnboarding()
     }
 
     /// 合并 catalog + 禁用合成条目（标签筛选视图使用）。
