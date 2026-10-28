@@ -156,6 +156,43 @@ extension StandardAgentAdapter {
         )
     }
 
+    /// Agents 共享目录（跨 agent 标准 `~/.agents/skills`）：检测 `~/.agents`。
+    /// 多个 harness（OpenCode/pi/Amp 等）都会读取该共享目录——独立成源，缺它即「搜索不全」。
+    public static func sharedAgents(homeDirectory: URL) -> StandardAgentAdapter {
+        StandardAgentAdapter(
+            id: "agents-shared",
+            displayName: "Agents 共享目录",
+            homeDirectory: homeDirectory,
+            detectionSubpaths: [".agents"],
+            skillRootCandidates: [".agents/skills"],
+            projectRootDiscovery: .none
+        )
+    }
+
+    /// Qwen Code（Gemini CLI 系）：检测 `~/.qwen`；skill 目录候选 `skills`。
+    public static func qwen(homeDirectory: URL) -> StandardAgentAdapter {
+        StandardAgentAdapter(
+            id: "qwen",
+            displayName: "Qwen Code",
+            homeDirectory: homeDirectory,
+            detectionSubpaths: [".qwen"],
+            skillRootCandidates: [".qwen/skills"],
+            projectRootDiscovery: .none
+        )
+    }
+
+    /// Cursor：检测 `~/.cursor`；skill 目录候选 `skills`。
+    public static func cursor(homeDirectory: URL) -> StandardAgentAdapter {
+        StandardAgentAdapter(
+            id: "cursor",
+            displayName: "Cursor",
+            homeDirectory: homeDirectory,
+            detectionSubpaths: [".cursor"],
+            skillRootCandidates: [".cursor/skills"],
+            projectRootDiscovery: .none
+        )
+    }
+
     /// oh-my-pi（pi 的 fork，同源结构）：检测 `~/.omp` / `~/.config/oh-my-pi`；skill 目录候选 `skills`。
     public static func ohMyPi(homeDirectory: URL) -> StandardAgentAdapter {
         StandardAgentAdapter(

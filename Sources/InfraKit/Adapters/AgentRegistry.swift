@@ -15,6 +15,9 @@ public struct AgentRegistry: Sendable {
             OpenClawAdapter(homeDirectory: homeDirectory),
             PiAdapter(homeDirectory: homeDirectory),
             OhMyPiAdapter(homeDirectory: homeDirectory),
+            SharedAgentsAdapter(homeDirectory: homeDirectory),
+            QwenAdapter(homeDirectory: homeDirectory),
+            CursorAdapter(homeDirectory: homeDirectory),
         ]
     }
 

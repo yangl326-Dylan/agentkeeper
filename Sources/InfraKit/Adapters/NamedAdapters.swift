@@ -87,3 +87,45 @@ public struct OhMyPiAdapter: AgentAdapter {
     public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
     public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
 }
+
+/// Agents 共享目录（跨 agent 标准 `~/.agents/skills`）。
+public struct SharedAgentsAdapter: AgentAdapter {
+    private let engine: StandardAgentAdapter
+    public init(homeDirectory: URL) {
+        self.engine = .sharedAgents(homeDirectory: homeDirectory)
+    }
+    public var id: AgentID { engine.id }
+    public var displayName: String { engine.displayName }
+    public func detectInstallation() async -> AgentInstallState { await engine.detectInstallation() }
+    public func skillRoots() async -> [SkillRoot] { await engine.skillRoots() }
+    public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
+    public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
+}
+
+/// Qwen Code（Gemini CLI 系）。
+public struct QwenAdapter: AgentAdapter {
+    private let engine: StandardAgentAdapter
+    public init(homeDirectory: URL) {
+        self.engine = .qwen(homeDirectory: homeDirectory)
+    }
+    public var id: AgentID { engine.id }
+    public var displayName: String { engine.displayName }
+    public func detectInstallation() async -> AgentInstallState { await engine.detectInstallation() }
+    public func skillRoots() async -> [SkillRoot] { await engine.skillRoots() }
+    public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
+    public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
+}
+
+/// Cursor。
+public struct CursorAdapter: AgentAdapter {
+    private let engine: StandardAgentAdapter
+    public init(homeDirectory: URL) {
+        self.engine = .cursor(homeDirectory: homeDirectory)
+    }
+    public var id: AgentID { engine.id }
+    public var displayName: String { engine.displayName }
+    public func detectInstallation() async -> AgentInstallState { await engine.detectInstallation() }
+    public func skillRoots() async -> [SkillRoot] { await engine.skillRoots() }
+    public func discoverProjectRoots() async -> [ProjectRoot] { await engine.discoverProjectRoots() }
+    public func parseSkill(at directory: URL) async -> ParsedSkill? { await engine.parseSkill(at: directory) }
+}

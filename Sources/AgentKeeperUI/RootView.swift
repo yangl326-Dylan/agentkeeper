@@ -42,16 +42,35 @@ struct NavigationSidebar: View {
     public var body: some View {
         List {
             Section("Agents") {
-                ForEach(env.store.state.agents) { agent in
-                    Label(
-                        agentLabel(agent),
-                        systemImage: agentIcon(agent)
-                    )
-                    .foregroundStyle(
-                        StatusSemantics.resolve(
-                            agentStatusToken(agent)
-                        ).colorKey.semanticColor
-                    )
+                // 只显示本机实际安装过的 agent；未安装的 harness 不进侧栏
+                let rows = SidebarAgentModel.build(
+                    agents: env.store.state.agents,
+                    skills: env.catalogStore.current
+                )
+                if rows.isEmpty {
+                    Text("尚未发现已安装 agent——安装 Claude Code / Codex 等后自动识别")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(rows) { row in
+                        HStack(spacing: 8) {
+                            Image(
+                                systemName: row.status == .available
+                                    ? "externaldrive.badge.checkmark" : "externaldrive.badge.exclamationmark"
+                            )
+                            .foregroundStyle(
+                                row.status == .available ? Color.green : Color.orange
+                            )
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(row.name)
+                                Text(row.statusText)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 2)
+                    }
                 }
             }
             Section("Skills") {
@@ -122,23 +141,6 @@ struct NavigationSidebar: View {
 
     private var motion: MotionPolicy {
         MotionPolicy(reduceMotion: env.motionPolicy.reduceMotion)
-    }
-
-    private func agentLabel(_ agent: Agent) -> String {
-        if case .unrecognizedStructure = agent.installState {
-            return agent.name + "（结构未知）"
-        }
-        return agent.name
-    }
-
-    private func agentIcon(_ agent: Agent) -> String {
-        if case .installed = agent.installState { return "externaldrive.badge.checkmark" }
-        return "externaldrive.badge.exclamationmark"
-    }
-
-    private func agentStatusToken(_ agent: Agent) -> StatusToken {
-        if case .unrecognizedStructure = agent.installState { return .unrecognized }
-        return .enabled
     }
 
     private func sectionIcon(_ kind: NavigationSectionKind) -> String {

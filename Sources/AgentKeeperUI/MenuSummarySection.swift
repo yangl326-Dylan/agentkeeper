@@ -16,9 +16,9 @@ public struct MenuSummarySection: View {
             state: env.store.state,
             skills: env.catalogStore.current
         )
-        // 摘要：agent 列表 + 各自 skill 数
+        // 摘要：只列本机实际安装的 agent（未安装的 harness 不占菜单行）
         Section {
-            ForEach(summary.agentEntries) { entry in
+            ForEach(summary.agentEntries.filter(\.installed)) { entry in
                 HStack {
                     Image(systemName: entry.installed ? "checkmark.circle.fill" : "circle.slash")
                         .foregroundStyle(entry.installed ? Color.green : Color.secondary)
