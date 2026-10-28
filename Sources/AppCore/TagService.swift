@@ -50,6 +50,44 @@ public final class TagService: @unchecked Sendable {
         store.tags(forSkillID: skillID)
     }
 
+    /// catalog 中失踪、但在禁用区 manifest 可查证且带有标签的 skill → 合成 disabled 条目。
+    /// 供标签筛选（spec：禁用条目同样可携带标签出现在分组中）。
+    public func disabledTaggedSkills(catalog: [Skill]) -> [Skill] {
+        let alive = Set(catalog.map(\.id))
+        let tagged = Set(
+            store.allAssignedSkillIDs()
+                .filter { !alive.contains($0) && !store.tags(forSkillID: $0).isEmpty }
+        )
+        guard !tagged.isEmpty else { return [] }
+
+        let fileManager = FileManager.default
+        guard let agentDirectories = try? fileManager.contentsOfDirectory(
+            at: disabledRoot, includingPropertiesForKeys: [.isDirectoryKey]
+        ) else { return [] }
+
+        var result: [Skill] = []
+        for agentDirectory in agentDirectories
+        where (try? agentDirectory.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
+            let manifests = (try? fileManager.contentsOfDirectory(at: agentDirectory, includingPropertiesForKeys: nil)) ?? []
+            for manifest in manifests where manifest.lastPathComponent.hasSuffix(".manifest.json") {
+                guard let data = try? Data(contentsOf: manifest),
+                      let record = try? JSONDecoder().decode(DisabledSkillRecord.self, from: data)
+                else { continue }
+                let key = record.originalPath.standardizedPath
+                guard tagged.contains(key) else { continue }
+                result.append(Skill(
+                    id: key,
+                    name: record.name,
+                    directory: URL(fileURLWithPath: record.originalPath, isDirectory: true),
+                    scope: .agentOnly(agentID: record.agentID),
+                    status: .disabled,
+                    sha256: record.sha256
+                ))
+            }
+        }
+        return result
+    }
+
     // MARK: - orphan（spec：悬挂关联提示与一键清理）
 
     /// catalog 中不存在、且不在禁用区的关联条目数。

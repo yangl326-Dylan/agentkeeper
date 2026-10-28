@@ -32,10 +32,10 @@
 - [x] 5.5 提交 group 5，tick 5.1–5.4。
 
 ## 6. AppCore 操作编排
-- [ ] 6.1 `AppCore.DistributionService`：接入 OperationService 状态机（install/import/gitClone 走 started→completed→自动重扫；失败不重扫）；RED：成功后 catalog 自动刷新、失败 catalog 不动 + OperationHistory 有记录。
-- [ ] 6.2 分发操作串行化：同一时刻最多一个分发任务；RED：并发两次安装按序完成且无交错写入。
-- [ ] 6.3 `CatalogQuery` 增加标签筛选维度（tagFilter 参数）与标签分组枚举；RED：按标签筛选结果正确、禁用条目带标记出现。
-- [ ] 6.4 提交 group 6，tick 6.1–6.3。
+- [x] 6.1 `AppCore.DistributionService`：接入 OperationService 状态机（install/import/gitClone 走 started→completed→自动重扫；失败不重扫）；RED：成功后 catalog 自动刷新、失败 catalog 不动 + OperationHistory 有记录。
+- [x] 6.2 分发操作串行化：同一时刻最多一个分发任务；RED：并发两次安装按序完成且无交错写入。
+- [x] 6.3 `CatalogQuery` 增加标签筛选维度（tagFilter 参数）与标签分组枚举；RED：按标签筛选结果正确、禁用条目带标记出现。
+- [x] 6.4 提交 group 6，tick 6.1–6.3。
 
 ## 7. UI 集成
 - [ ] 7.1 详情页「安装到其他 agent…」入口 + agent/skillRoot 选择弹窗 + 冲突面板（复用 RemediationPresentation）；手工走查脚本记录。

@@ -81,25 +81,40 @@ extension CatalogQuery {
 
 // MARK: - 查询
 
-/// Catalog 统一查询：agent / 作用域大类 / 名称与描述搜索（大小写不敏感）。
+/// Catalog 统一查询：agent / 作用域大类 / 名称与描述搜索（大小写不敏感）/ 自定义标签。
 public struct CatalogQuery: Sendable {
     public var agentID: AgentID?
     public var scopeKinds: Set<ScopeKind>
     public var searchText: String
+    /// 自定义标签筛选（与 tagsBySkill 索引配合）。
+    public var tag: String?
 
-    public init(agentID: AgentID? = nil, scopeKinds: Set<ScopeKind> = [], searchText: String = "") {
+    public init(
+        agentID: AgentID? = nil,
+        scopeKinds: Set<ScopeKind> = [],
+        searchText: String = "",
+        tag: String? = nil
+    ) {
         self.agentID = agentID
         self.scopeKinds = scopeKinds
         self.searchText = searchText
+        self.tag = tag
     }
 
     public static let initial = CatalogQuery()
 
-    public func apply(catalog: [Skill]) -> [Skill] {
+    public func apply(
+        catalog: [Skill],
+        tagsBySkill: [String: [String]] = [:]
+    ) -> [Skill] {
         let keyword = searchText.trimmingCharacters(in: .whitespaces).lowercased()
         return catalog.filter { skill in
             if let agentID, !skill.owners.contains(agentID) { return false }
             if !scopeKinds.isEmpty, !scopeKinds.contains(ScopeKind.of(skill)) { return false }
+            if let tag {
+                let skillTags = Set(tagsBySkill[skill.id] ?? tagsBySkill[skill.directory.path] ?? [])
+                guard skillTags.contains(tag) else { return false }
+            }
             if !keyword.isEmpty {
                 let haystacks = [skill.name, skill.skillDescription ?? "", skill.projectTag() ?? ""]
                 let match = haystacks.contains { $0.lowercased().contains(keyword) }
