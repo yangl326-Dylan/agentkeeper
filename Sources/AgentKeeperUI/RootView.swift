@@ -737,22 +737,15 @@ struct SkillDetailContent: View {
 
     private var motion: MotionPolicy { env.motionPolicy }
 
+    @ViewBuilder
     private func previewSection(_ skill: Skill) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("SKILL.md 预览", systemImage: "doc.text")
-                .font(.headline)
-            if let markdown {
-                // 文档卡片式预览：md 渲染 + ClaudePalette 卡底
-                Text((try? AttributedString(markdown: markdown)) ?? AttributedString(markdown))
-                    .font(.body)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(ClaudePalette.card)
-                    )
-            } else {
+        if let markdown {
+            // 块级 markdown 渲染器：标题层级/代码块/列表/引用 + 可折叠 + 卡内滚动
+            MarkdownDocumentView(markdown: markdown, motion: motion)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("SKILL.md 预览", systemImage: "doc.text")
+                    .font(.headline)
                 loadingPlaceholder("正在读取 SKILL.md…")
             }
         }
