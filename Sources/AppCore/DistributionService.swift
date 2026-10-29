@@ -115,7 +115,7 @@ public final class DistributionService {
         case let .conflict(conflict):
             return "目标已存在且内容不同：\(conflict.targetPath)（现有 \(conflict.existingSha256?.prefix(8) ?? "—")，新装 \(conflict.incomingSha256.prefix(8))）"
         case .alreadyDistributed(let path):
-            return "同名同内容已铺设：\(path)"
+            return "目标已存在且内容一致，已跳过：\(path)"
         case let .invalidSource(reason):
             return "来源不合法：\(reason)"
         case let .cloneFailed(detail):
@@ -149,7 +149,7 @@ public final class DistributionService {
                 continue
             }
             guard let skillEntity = byDirectory[point.directory.standardizedFileURL.path] else {
-                summary.failures.append(FailedLandingPoint(point: point, message: "落点不在 catalog 中"))
+                summary.failures.append(FailedLandingPoint(point: point, message: "该副本未出现在扫描结果中"))
                 continue
             }
             do {

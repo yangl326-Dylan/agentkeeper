@@ -30,7 +30,7 @@ public struct StatusSemantics: Hashable, Sendable {
         case .enabled:
             StatusSemantics(colorKey: "green", symbol: "checkmark.circle.fill", explanation: "已启用，正常可用")
         case .disabled:
-            StatusSemantics(colorKey: "amber", symbol: "pause.circle.fill", explanation: "已禁用，存放于统一禁用区，可随时恢复")
+            StatusSemantics(colorKey: "amber", symbol: "pause.circle.fill", explanation: "已停用（移入统一停用目录），可随时恢复")
         case .changed:
             StatusSemantics(colorKey: "amber", symbol: "arrow.triangle.2.circlepath", explanation: "内容有变更，可查看快照历史")
         case .conflict:

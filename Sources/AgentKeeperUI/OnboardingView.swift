@@ -17,7 +17,7 @@ public struct OnboardingView: View {
                     .font(.system(size: 56))
                     .foregroundStyle(.tint)
                 Text("欢迎使用 AgentKeeper").font(.title).bold()
-                Text("扫描本机 AI agent 的 skills，标记作用域，安全禁用与快照。")
+                Text("扫描本机 AI agent 的 skill 目录，标记来源作用域，支持安全停用与快照。")
                     .foregroundStyle(.secondary)
             }
             .padding(.top, 32)
@@ -36,12 +36,12 @@ public struct OnboardingView: View {
                 explainRow(
                     icon: "tray.full",
                     title: "~/.agentkeeper 数据目录",
-                    detail: "禁用区、快照、历史与缓存都会存放在这里；文件系统是唯一真相，任何时刻都可以从磁盘重建。"
+                    detail: "停用的 skill、快照、操作历史与缓存都存放在这里；文件系统是唯一真相，任何时刻都可以从磁盘重建。"
                 )
                 explainRow(
                     icon: "hand.raised",
                     title: "不覆盖不打扰",
-                    detail: "冲突一律中止并展示明细；禁用/恢复使用原子搬移 + 失败回滚。"
+                    detail: "遇到冲突一律中止并逐条列出明细；停用/恢复使用原子搬移，失败自动回滚。"
                 )
             }
             .padding(24)

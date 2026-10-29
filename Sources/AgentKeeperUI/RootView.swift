@@ -316,7 +316,7 @@ struct SkillRowView: View {
         case .global: "全局"
         case .agentOnly: "专属"
         case .project: "项目 \(skill.projectTag() ?? "")"
-        case .multiAgent: "同铺设"
+        case .multiAgent: "多 Agent 共用"
         }
     }
 }
@@ -364,7 +364,7 @@ struct SkillListView: View {
                 Toggle("全局", isOn: scopeToggle(.global))
                 Toggle("Agent 专属", isOn: scopeToggle(.agentOnly))
                 Toggle("项目级", isOn: scopeToggle(.project))
-                Toggle("同铺设", isOn: scopeToggle(.multiAgent))
+                Toggle("多 Agent 共用", isOn: scopeToggle(.multiAgent))
                 Divider()
                 tagFilterMenu
             } label: {
@@ -536,16 +536,16 @@ struct SkillDetailView: View {
                 InstallToAgentSheet(skill: skill)
             }
             .confirmationDialog(
-                "以此版本更新所有落点？",
+                "用此版本更新全部安装副本？",
                 isPresented: $confirmUpdateAll,
                 titleVisibility: .visible
             ) {
-                Button("更新（先自动快照各落点）") {
+                Button("更新（覆盖前自动保存快照）") {
                     Task { _ = await env.updateAllLandingPoints(from: skill) }
                 }
                 Button("取消", role: .cancel) { }
             } message: {
-                Text("即将覆盖同名铺设落点中被修改的版本；每个落点都会先自动保存快照。禁用区条目跳过。")
+                Text("将用当前版本覆盖内容不一致的副本；覆盖前每个副本自动保存一份快照。已停用的副本跳过。")
             }
         } else {
             // MangoDisk 式：未选中时展示扫描产出总览（统计/分布/agent 卡片）
@@ -649,10 +649,10 @@ struct SkillDetailContent: View {
         Button {
             Task { await env.runOperation(skill: skill, direction: isDisabled ? .enable : .disable) }
         } label: {
-            Label(isDisabled ? "恢复启用" : "禁用", systemImage: isDisabled ? "checkmark.circle" : "pause.circle")
+            Label(isDisabled ? "重新启用" : "停用", systemImage: isDisabled ? "checkmark.circle" : "pause.circle")
         }
         .disabled(pending.inFlight != nil)
-        .help(pending.failureMessage ?? (isDisabled ? "按 manifest 回原路径" : "移至统一禁用区"))
+        .help(pending.failureMessage ?? (isDisabled ? "停用时记录了原路径，恢复时原样放回" : "移入统一停用目录，可随时恢复"))
         if !isDisabled {
             Button {
                 showInstallSheet = true
@@ -660,7 +660,7 @@ struct SkillDetailContent: View {
                 Label("安装到其他 agent…", systemImage: "arrow.up.circle")
             }
             .disabled(pending.inFlight != nil)
-            .help("复制到其他 agent 的 skill 目录（同名冲突不覆盖）")
+            .help("把此 skill 复制安装到其他 agent 的目录（同名目标不覆盖）")
         }
     }
 
@@ -692,7 +692,7 @@ struct SkillDetailContent: View {
         }
     }
 
-    /// 同名铺设落点面板（spec 4.x：落点互链 / 分歧提示 / 更新所有落点入口）。
+    /// 同名安装面板（spec 4.x：各 agent 副本互查 / 分歧提示 / 一键用当前版本更新全部副本）。
     private func landingPointsSection(_ skill: Skill) -> some View {
         let points = CatalogQuery.namedLandingPoints(named: skill.name, catalog: env.catalogStore.current)
         let diverged = CatalogQuery.isDiverged(name: skill.name, catalog: env.catalogStore.current)
@@ -700,7 +700,7 @@ struct SkillDetailContent: View {
             if points.count > 1 || diverged {
                 VStack(alignment: .leading, spacing: 8) {
                     Label(
-                        diverged ? "同名铺设（已分歧）" : "同名铺设",
+                        diverged ? "同名安装（内容不一致）" : "同名安装",
                         systemImage: diverged ? "exclamationmark.triangle" : "link"
                     )
                     .font(.headline)
@@ -725,7 +725,7 @@ struct SkillDetailContent: View {
                         }
                     }
                     HStack {
-                        Button("以此版本更新所有落点…") {
+                        Button("用此版本更新全部副本…") {
                             confirmUpdateAll = true
                         }
                         .disabled(env.store.state.operation.inFlight != nil)
@@ -817,11 +817,11 @@ struct SkillDetailContent: View {
 
     private func snapshotsSection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("快照历史", systemImage: "camera.on.rectangle")
+            Label("历史快照", systemImage: "camera.on.rectangle")
                 .font(.headline)
             let snapshots = env.snapshots.snapshots(skillID: skill.id)
             if snapshots.isEmpty {
-                Text("暂无快照（内容变化时自动记录）").font(.caption).foregroundStyle(.tertiary)
+                Text("暂无快照（skill 内容变化时自动记录）").font(.caption).foregroundStyle(.tertiary)
             } else {
                 ForEach(Array(snapshots.enumerated()), id: \.element.sha) { index, snapshot in
                     Button {
@@ -836,7 +836,7 @@ struct SkillDetailContent: View {
                         .font(.caption)
                     }
                     .buttonStyle(.link)
-                    .help("恢复此版本（恢复前会先快照当前内容）")
+                    .help("恢复此版本（当前内容会先自动存一份快照）")
                 }
             }
         }
@@ -849,18 +849,18 @@ struct SkillDetailContent: View {
         case let .global(owners): "全局（\(owners.joined(separator: "、"))）"
         case let .agentOnly(agentID): "Agent 专属（\(agentID)）"
         case let .project(agentID, root): "项目（\(agentID) · \(root.tagName)）"
-        case let .multiAgent(ids): "同铺设（\(ids.joined(separator: "、"))）"
+        case let .multiAgent(ids): "多 Agent 共用（\(ids.joined(separator: "、"))）"
         }
     }
 
     private func directionText(_ direction: OperationDirection) -> String {
         switch direction {
-        case .disable: "禁用"
-        case .enable: "恢复启用"
-        case .snapshotRestore: "快照恢复"
+        case .disable: "停用"
+        case .enable: "重新启用"
+        case .snapshotRestore: "从快照恢复"
         case .delete: "删除"
         case .distribute: "分发安装"
-        case .updateLandingPoints: "更新铺设落点"
+        case .updateLandingPoints: "更新全部副本"
         }
     }
 
@@ -931,7 +931,7 @@ struct InstallToAgentSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             Label("安装「\(skill.name)」到其他 agent", systemImage: "arrow.up.circle")
                 .font(.headline)
-            Text("复制语义：来源不动；同名冲突不覆盖（一致则提示已铺设）。")
+            Text("安装方式：复制，源文件保持不动；同名目标不会覆盖，内容一致时自动跳过并说明。")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 

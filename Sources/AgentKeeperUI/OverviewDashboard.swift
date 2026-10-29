@@ -120,7 +120,7 @@ struct OverviewContent: View {
 
     private func scopeSection(_ model: OverviewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("作用域分布", systemImage: "scope")
+            Label("Skill 来源分布", systemImage: "scope")
                 .font(.headline)
             let total = max(model.totalSkills, 1)
             ForEach([ScopeKind.global, .agentOnly, .project, .multiAgent], id: \.self) { kind in
@@ -187,7 +187,7 @@ extension ScopeKind {
         case .global: "全局"
         case .agentOnly: "Agent 专属"
         case .project: "项目级"
-        case .multiAgent: "同铺设"
+        case .multiAgent: "多 Agent 共用"
         }
     }
 }
