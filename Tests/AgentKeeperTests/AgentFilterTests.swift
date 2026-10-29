@@ -14,12 +14,12 @@ import AppCore
         env.catalogStore.sync(with: UIWiring.demoSkills(home: home)) // agent-0: 专属2+全局1
 
         env.selectedAgent = "agent-0"
-        let filtered = SkillListCore.filter([], "", env)
+        let filtered = SkillListCore.filter("", env)
         #expect(filtered.count == 3)
         #expect(filtered.allSatisfy { $0.owners.contains("agent-0") })
 
         env.selectedAgent = nil
-        #expect(SkillListCore.filter([], "", env).count == 5)
+        #expect(SkillListCore.filter("", env).count == 5)
     }
 
     @Test func agentAndTagFiltersCoexist() throws {
@@ -32,7 +32,7 @@ import AppCore
 
         env.selectedAgent = "agent-0"
         env.selectedTag = "写作"
-        let filtered = SkillListCore.filter([], "", env)
+        let filtered = SkillListCore.filter("", env)
         // 标签只打在 agent-0 的 review 上；agent 筛选不排斥它
         #expect(filtered.map(\.name) == ["review"])
     }

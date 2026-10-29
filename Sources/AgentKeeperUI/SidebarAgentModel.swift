@@ -9,6 +9,23 @@ enum AgentSelection {
     }
 }
 
+/// 侧栏 Skills 节 → 作用域筛选切换（点同节取消；全局节含同铺设）。
+@MainActor
+enum SectionSelection {
+    static func kinds(for section: NavigationSection) -> Set<ScopeKind> {
+        switch section.kind {
+        case .global: return Set<ScopeKind>([.global, .multiAgent])
+        case .project: return Set<ScopeKind>([.project])
+        case .agent, .tag: return [] // agent→Agents 区；tag→tagSections（各自路径）
+        }
+    }
+
+    static func toggle(current: Set<ScopeKind>, section: NavigationSection) -> Set<ScopeKind> {
+        let kinds = kinds(for: section)
+        return current == kinds ? [] : kinds
+    }
+}
+
 /// 侧栏 Agents 分组模型：只显示本机实际安装的 agent（目录存在），未安装不进侧栏。
 @MainActor
 enum SidebarAgentModel {

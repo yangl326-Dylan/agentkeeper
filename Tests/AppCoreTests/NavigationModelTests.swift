@@ -15,16 +15,17 @@ import DomainKit
         )
     }
 
-    @Test func threeSectionKindsInCanonicalOrder() {
+    /// Skills 区只保留作用域维度（全局/项目）——agent 维度由侧栏 Agents 区承担（可点击筛选），
+    /// 不再产出 .agent 分组（曾与 Agents 区重复且按钮无筛选作用）。
+    @Test func scopeSectionsWithoutAgentDuplication() {
         let sections = NavigationModel.buildSections(skills: [
             skill("proj-skill", scope: .project(agentID: "claude-code", root: ProjectRoot(path: "/users/x/code/atlas"))),
             skill("only-pi", scope: .agentOnly(agentID: "pi")),
             skill("shared", scope: .global(owners: ["claude-code", "pi"])),
         ])
-        #expect(sections.map({ $0.kind }) == [.global, .agent, .project])
+        #expect(sections.map({ $0.kind }) == [.global, .project])
         #expect(sections[0].title == "全局")
-        #expect(sections[1].title == "pi")
-        #expect(sections[2].title == "atlas")
+        #expect(sections[1].title == "atlas")
     }
 
     @Test func projectSkillsGroupByProjectNameWithCounts() {
@@ -55,16 +56,13 @@ import DomainKit
         #expect(NavigationModel.buildSections(skills: []).isEmpty)
     }
 
-    @Test func agentOnlyGroupsByOwnerAgent() {
+    /// agent 专属 skill 不进 Skills 区（经 Agents 区点击进入）——纯 agentOnly catalog 无节。
+    @Test func agentOnlySkillsYieldNoSections() {
         let sections = NavigationModel.buildSections(skills: [
             skill("a", scope: .agentOnly(agentID: "opencode")),
             skill("b", scope: .agentOnly(agentID: "opencode")),
             skill("c", scope: .agentOnly(agentID: "claude-code")),
         ])
-        let agentSections = sections.filter { $0.kind == .agent }
-        #expect(agentSections.count == 2)
-        #expect(agentSections.first { $0.title == "opencode" }?.count == 2)
-        // 无全局 skill 时无"全局"节（空节不占位）
-        #expect(!sections.contains { $0.kind == .global })
+        #expect(sections.isEmpty)
     }
 }

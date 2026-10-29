@@ -30,6 +30,9 @@ public final class AppEnvironment {
     /// 当前 agent 筛选（侧栏 Agents 点击；nil = 全部）。
     public var selectedAgent: AgentID?
 
+    /// 当前作用域筛选（侧栏 Skills 节点击 + 工具栏筛选菜单共用；空 = 全部）。
+    public var selectedScopes: Set<ScopeKind> = []
+
     /// 首启引导完成标记（落盘：完成过不再出现，spec 6.6）。
     public var firstRun: FirstRunStore
 

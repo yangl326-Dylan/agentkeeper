@@ -113,7 +113,9 @@ public actor LocalFakeMonitor: FileMonitoring {
             store: store,
             catalogStore: catalogStore,
             scanService: scanService,
-            debounceNanos: 150_000_000
+            // 测试窗 600ms：并行套件共享 MainActor，串行 await 循环在负载下可能拖过
+            // 150ms 防抖窗而合法开出第二窗（物理正确）；600ms 留 4× 余量
+            debounceNanos: 600_000_000
         )
         for index in 0..<5 {
             await pipeline.onEvent(rootPath: "/tmp/probe-\(index)")

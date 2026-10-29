@@ -89,8 +89,15 @@ struct NavigationSidebar: View {
             }
             Section("Skills") {
                 ForEach(sections) { section in
+                    let isSelected = !env.selectedScopes.isEmpty
+                        && SectionSelection.kinds(for: section) == env.selectedScopes
                     Button {
                         env.selectedTag = nil
+                        // 作用域筛选：点同节取消，点异节切换（agent 维度由上方 Agents 区承担）
+                        env.selectedScopes = SectionSelection.toggle(
+                            current: env.selectedScopes,
+                            section: section
+                        )
                     } label: {
                         HStack {
                             Image(systemName: sectionIcon(section.kind))
@@ -100,7 +107,12 @@ struct NavigationSidebar: View {
                             Text("\(section.count)")
                                 .foregroundStyle(.secondary)
                                 .font(.callout.monospacedDigit())
+                            if isSelected {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
@@ -314,7 +326,6 @@ struct SkillRowView: View {
 struct SkillListView: View {
     @Environment(AppEnvironment.self) private var env
     @State private var searchText = ""
-    @State private var scopeFilter: Set<ScopeKind> = []
     @State private var showGitInstall = false
     @State private var importError: String?
 
@@ -334,13 +345,13 @@ struct SkillListView: View {
             } message: {
                 Text(importError ?? "")
             }
-            .animation(motion.animation(for: .listTransition), value: SkillListCore.filter(scopeFilter, searchText, env).map({ $0.id }))
+            .animation(motion.animation(for: .listTransition), value: SkillListCore.filter(searchText, env).map({ $0.id }))
     }
 
     /// 列表核心（独立节点视图：body 内使用 @Environment 的部分收敛于此，selection binding
     /// 在求值期捕获具体 env 对象，避免捕获未解析的 Environment 包装器——离屏渲染也不会崩）。
     var listCore: some View {
-        SkillListCore(searchText: $searchText, scopeFilter: $scopeFilter)
+        SkillListCore(searchText: $searchText)
     }
 
 
@@ -438,9 +449,9 @@ struct SkillListView: View {
 
     private func scopeToggle(_ kind: ScopeKind) -> Binding<Bool> {
         Binding(
-            get: { scopeFilter.contains(kind) },
+            get: { env.selectedScopes.contains(kind) },
             set: { on in
-                if on { scopeFilter.insert(kind) } else { scopeFilter.remove(kind) }
+                if on { env.selectedScopes.insert(kind) } else { env.selectedScopes.remove(kind) }
             }
         )
     }
@@ -450,7 +461,6 @@ struct SkillListView: View {
 struct SkillListCore: View {
     @Environment(AppEnvironment.self) private var env
     @Binding var searchText: String
-    @Binding var scopeFilter: Set<ScopeKind>
 
     var body: some View {
         // 捕获已解析的具体 env 对象（%@Environment 包装器在离屏/闭包拷贝中不可靠）
@@ -478,10 +488,11 @@ struct SkillListCore: View {
 
     // MARK: 数据
 
-    /// 筛选逻辑（static：父级 animation 亦需同一结果）。
-    static func filter(_ scopeFilter: Set<ScopeKind>, _ searchText: String, _ env: AppEnvironment) -> [Skill] {
+    /// 筛选逻辑（static：父级 animation 亦需同一结果）。作用域维度读 env.selectedScopes
+    /// （侧栏 Skills 节与工具栏筛选菜单共用同一真源）。
+    static func filter(_ searchText: String, _ env: AppEnvironment) -> [Skill] {
         var query = CatalogQuery.initial
-        query.scopeKinds = scopeFilter
+        query.scopeKinds = env.selectedScopes
         query.searchText = searchText
         query.tag = env.selectedTag
         query.agentID = env.selectedAgent
@@ -491,7 +502,7 @@ struct SkillListCore: View {
     }
 
     private func filtered() -> [Skill] {
-        Self.filter(scopeFilter, searchText, env)
+        Self.filter(searchText, env)
     }
 }
 
