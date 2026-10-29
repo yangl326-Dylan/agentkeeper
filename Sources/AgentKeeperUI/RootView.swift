@@ -87,7 +87,7 @@ struct NavigationSidebar: View {
                     }
                 }
             }
-            Section("Skills") {
+            Section("作用域") {
                 ForEach(sections) { section in
                     let isSelected = !env.selectedScopes.isEmpty
                         && SectionSelection.kinds(for: section) == env.selectedScopes
