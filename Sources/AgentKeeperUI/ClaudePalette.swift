@@ -1,17 +1,19 @@
 import SwiftUI
 import AppKit
 
-/// Claude（Anthropic）品牌色系：陶土橙 accent + 象牙底 + 暖炭黑。
+/// 品牌色系：陶土橙 accent + **macOS 系统语义色**（标杆软件同款——Finder/系统设置/邮件）。
+/// 日夜间全部取系统标准值：windowBackgroundColor 底、controlBackgroundColor 卡片、
+/// textColor 主文字——不再自造近似 hex，保证各外观下对比度与系统一致。
 @MainActor
 public enum ClaudePalette {
-    /// 陶土橙（Claude accent，#D97757）。
+    /// 陶土橙（Claude accent，#D97757）。全 App 唯一品牌定制色。
     public static let accent = Color(hex: 0xD97757)
-    /// 象牙底（亮 #F0EEE6）/ 暖炭底（暗 #262624）。
-    public static let background = Color(dynamicLight: 0xF0EEE6, dark: 0x262624)
-    /// 卡片/面板底（亮 #FAF9F5 / 暗 #30302E）。
-    public static let card = Color(dynamicLight: 0xFAF9F5, dark: 0x30302E)
-    /// 主文字（亮 #1F1E1D / 暗 #F0EEE6）。
-    public static let textPrimary = Color(dynamicLight: 0x1F1E1D, dark: 0xF0EEE6)
+    /// 窗口底（日间系统灰白档 / 夜间系统深档）。
+    public static let background = Color(nsColor: .windowBackgroundColor)
+    /// 卡片/面板底（日间白档 / 夜间抬升深档）。
+    public static let card = Color(nsColor: .controlBackgroundColor)
+    /// 主文字（日间近纯黑,不再发浅；夜间白）。
+    public static let textPrimary = Color(nsColor: .textColor)
 }
 
 // MARK: - 颜色构造
@@ -23,16 +25,6 @@ extension Color {
         let g = Double((hex >> 8) & 0xFF) / 255
         let b = Double(hex & 0xFF) / 255
         self.init(.sRGB, red: r, green: g, blue: b, opacity: 1)
-    }
-
-    /// 亮/暗外观自适应色。
-    init(dynamicLight: UInt32, dark: UInt32) {
-        let light = NSColor(hex: dynamicLight)
-        let darkColor = NSColor(hex: dark)
-        self.init(nsColor: NSColor(name: nil) { appearance in
-            let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            return isDark ? darkColor : light
-        })
     }
 }
 
