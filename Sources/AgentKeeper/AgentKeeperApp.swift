@@ -15,12 +15,12 @@ struct AgentKeeperApp: App {
     var body: some Scene {
         // 单例窗口：MenuBarExtra「打开主窗口」复用已有窗口，而不是新建多个。
         Window("AgentKeeper", id: "main") {
-            // 引导切换状态在 AppRootView（View 级 @State）——App 级 @State 从
-            // Window 内容写入不会触发场景重评估，曾致引导页卡死。
+            // 引导与主题均由 env（@Observable）驱动——Settings 场景改配置即时生效
             AppRootView(initialHasCompleted: env.firstRun.hasCompletedOnboarding)
                 .environment(env)
                 .tint(ClaudePalette.accent)
                 .background(ClaudePalette.background)
+                .preferredColorScheme(env.settings.effectiveColorScheme)
                 .frame(minWidth: 1000, minHeight: 640)
                 .task {
                     await env.bootstrap()
@@ -34,6 +34,14 @@ struct AgentKeeperApp: App {
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(env.store.state.scan.phase == .running)
             }
+        }
+
+        // 官方设置窗口（⌘, 自动接入 app 菜单）
+        Settings {
+            AppSettingsView()
+                .environment(env)
+                .tint(ClaudePalette.accent)
+                .preferredColorScheme(env.settings.effectiveColorScheme)
         }
 
         // 菜单栏与 App 图标同款「带箭头的箱子」

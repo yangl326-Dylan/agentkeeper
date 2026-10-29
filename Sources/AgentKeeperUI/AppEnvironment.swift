@@ -36,6 +36,12 @@ public final class AppEnvironment {
     /// 首启引导完成标记（落盘：完成过不再出现，spec 6.6）。
     public var firstRun: FirstRunStore
 
+    /// 引导页可见性（可观察；初始由落盘标记决定，「重新显示引导」/完成切换）。
+    public var isOnboardingVisible: Bool
+
+    /// 常见配置（外观/动效，落盘 defaults；Settings 场景读写这里）。
+    public let settings: AppSettingsStore
+
     /// 真实数据根（~；测试版可注入其它 home）。
     private let homeDirectory: URL
     private let akBase: URL
@@ -47,6 +53,7 @@ public final class AppEnvironment {
         self.homeDirectory = homeDirectory
         self.akBase = homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
         self.firstRun = FirstRunStore(defaults: defaults)
+        self.settings = AppSettingsStore(defaults: defaults)
         let base = self.akBase
         let store = AppStore()
         let catalogStore = CatalogStore(index: SkillIndex(databaseDirectory: base))
@@ -128,6 +135,8 @@ public final class AppEnvironment {
             },
             rescan: rescan
         )
+        // 可观察属性在 init 完成前不走宏生成的 getter——用独立局部实例判断
+        self.isOnboardingVisible = !FirstRunStore(defaults: defaults).hasCompletedOnboarding
     }
 
     /// 首启：全量扫描 + 挂载 FSEvents 监听。
@@ -147,9 +156,15 @@ public final class AppEnvironment {
         await scanService.runScan(projectRoots: [])
     }
 
-    /// 引导完成落盘（完成过不再出现）。
+    /// 引导完成落盘 + 当次会话切回主界面。
     public func completeOnboarding() {
         firstRun.completeOnboarding()
+        isOnboardingVisible = false
+    }
+
+    /// 设置页「重新显示引导页」：当次会话立即回到引导（落盘标记不变，完成后再消失）。
+    public func requestOnboarding() {
+        isOnboardingVisible = true
     }
 
     /// 合并 catalog + 禁用合成条目（标签筛选视图使用）。
@@ -260,9 +275,11 @@ public final class AppEnvironment {
         return result
     }
 
-    /// Reduce Motion 策略（跟随系统辅助功能设置）。
+    /// Reduce Motion 策略：用户设置覆盖优先，未覆盖时跟随系统辅助功能设置。
     var motionPolicy: MotionPolicy {
-        MotionPolicy(reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        MotionPolicy(reduceMotion: settings.effectiveReduceMotion(
+            accessibility: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        ))
     }
 }
 

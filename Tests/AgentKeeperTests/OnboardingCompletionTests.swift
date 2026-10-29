@@ -36,5 +36,24 @@ import AppCore
         defer { try? FileManager.default.removeItem(at: home) }
         let env = AppEnvironment(homeDirectory: home, defaults: defaults)
         #expect(env.firstRun.hasCompletedOnboarding)
+        #expect(!env.isOnboardingVisible)
+    }
+
+    /// 设置页「重新显示引导」→ 引导页当次会话立即出现；再完成即消失并仍不写盘变化。
+    @Test func requestOnboardingShowsAgain() throws {
+        let suite = "ak-test-onboarding-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(true, forKey: "hasCompletedOnboarding.v1")
+        let home = makeFakeHomeCore(files: ["d"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        let env = AppEnvironment(homeDirectory: home, defaults: defaults)
+
+        env.requestOnboarding()
+        #expect(env.isOnboardingVisible)
+
+        env.completeOnboarding()
+        #expect(!env.isOnboardingVisible)
+        #expect(FirstRunStore(defaults: defaults).hasCompletedOnboarding)
     }
 }

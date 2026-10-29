@@ -16,4 +16,9 @@ public struct FirstRunStore: @unchecked Sendable {
     public mutating func completeOnboarding() {
         defaults.set(true, forKey: Self.key)
     }
+
+    /// 设置页「重新显示引导页」配套：清除落盘完成标记（下次启动也会再出引导）。
+    public mutating func reset() {
+        defaults.removeObject(forKey: Self.key)
+    }
 }

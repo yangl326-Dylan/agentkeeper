@@ -394,6 +394,10 @@ struct SkillListView: View {
             } label: {
                 Label("从 git 安装…", systemImage: "arrow.down.circle")
             }
+            // 设置（⌘,）：macOS 官方 SettingsLink 打开 Settings 场景窗口
+            SettingsLink {
+                Label("设置…", systemImage: "gearshape")
+            }
         }
     }
 

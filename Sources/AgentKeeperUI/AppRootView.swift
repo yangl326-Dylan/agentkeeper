@@ -1,29 +1,25 @@
 import SwiftUI
 
 /// 应用根视图：引导页 ↔ 主界面切换。
-/// 状态必须放在 View 级 @State（App struct 的 @State 从 Window 内容写入不会可靠触发
-/// 场景重评估——SwiftUI 已知坑，曾导致引导页卡死）；完成态经 FirstRunStore 落盘，
-/// 跨启动由 env.firstRun 决定初始值（完成过直接进主界面）。
+/// 状态收敛到 AppEnvironment（@Observable；曾用 App struct 级 @State——从 Window 内容
+/// 写入不触发场景重评估，引导页卡死）。可见性有两路：首启由落盘标记决定；
+/// 设置页「重新显示引导」→ requestOnboarding() 当次会话立即弹出。
 @MainActor
 public struct AppRootView: View {
     @Environment(AppEnvironment.self) private var env
-    @State private var hasCompletedOnboarding: Bool
 
-    public init(initialHasCompleted: Bool) {
-        _hasCompletedOnboarding = State(initialValue: initialHasCompleted)
-    }
+    public init(initialHasCompleted: Bool) {}
 
     public var body: some View {
         Group {
-            if hasCompletedOnboarding {
-                RootView()
+            if env.isOnboardingVisible {
+                OnboardingView(hasCompleted: Binding(
+                    get: { !env.isOnboardingVisible },
+                    set: { _ in env.completeOnboarding() }
+                ))
             } else {
-                OnboardingView(hasCompleted: $hasCompletedOnboarding)
+                RootView()
             }
-        }
-        // 完成即落盘：即使当次会话状态异常，下次启动也不再弹引导
-        .onChange(of: hasCompletedOnboarding) { _, completed in
-            if completed { env.completeOnboarding() }
         }
     }
 }
