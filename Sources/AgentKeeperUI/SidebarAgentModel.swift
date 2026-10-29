@@ -2,10 +2,17 @@ import Foundation
 import DomainKit
 import AppCore
 
-/// Agent 筛选切换（点同项取消，点异项切换）。
+/// 导航选择切换（侧栏 Agents / Skills 节 / 标签共用）：点同项取消，点异项切换。
+enum SelectionToggle {
+    static func toggle<T: Equatable>(current: T?, clicked: T) -> T? {
+        current == clicked ? nil : clicked
+    }
+}
+
+/// Agent 筛选切换（兼容旧名，语义同 SelectionToggle）。
 enum AgentSelection {
     static func toggle(current: AgentID?, clicked: AgentID) -> AgentID? {
-        current == clicked ? nil : clicked
+        SelectionToggle.toggle(current: current, clicked: clicked)
     }
 }
 

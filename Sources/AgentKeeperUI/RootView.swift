@@ -92,8 +92,7 @@ struct NavigationSidebar: View {
                     let isSelected = !env.selectedScopes.isEmpty
                         && SectionSelection.kinds(for: section) == env.selectedScopes
                     Button {
-                        env.selectedTag = nil
-                        // 作用域筛选：点同节取消，点异节切换（agent 维度由上方 Agents 区承担）
+                        // 作用域筛选：点同节取消，点异节切换（agent/标签维度各自独立叠加）
                         env.selectedScopes = SectionSelection.toggle(
                             current: env.selectedScopes,
                             section: section
@@ -143,7 +142,11 @@ struct NavigationSidebar: View {
             Section("标签") {
                 ForEach(tagSections) { section in
                     Button {
-                        env.selectedTag = section.title
+                        // 点同项取消，点异项切换（与 Agents 区同套语义）
+                        env.selectedTag = SelectionToggle.toggle(
+                            current: env.selectedTag,
+                            clicked: section.title
+                        )
                     } label: {
                         HStack {
                             Image(systemName: "tag")
