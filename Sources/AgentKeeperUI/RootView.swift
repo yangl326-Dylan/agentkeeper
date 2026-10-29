@@ -567,6 +567,9 @@ struct SkillDetailContent: View {
     @Binding var showInstallSheet: Bool
     @Binding var confirmUpdateAll: Bool
     @State private var newTagText = ""
+    // 预览数据异步加载（task(id:) 切换 skill 时先清空 → 加载效果，I/O 不占主线程）
+    @State private var markdown: String?
+    @State private var files: [String]?
 
     var body: some View {
         SwiftUI.Group {
@@ -585,6 +588,14 @@ struct SkillDetailContent: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .task(id: skill.id) {
+            // 切换 skill：立即清空旧数据（避免停留在上一个），再后台并行加载
+            markdown = nil
+            files = nil
+            async let md = SkillPreviewModel.loadMarkdown(skillDir: skill.directory)
+            async let fs = SkillPreviewModel.loadFiles(skillDir: skill.directory)
+            (markdown, files) = await (md, fs)
+        }
     }
 
 // MARK: 区块
@@ -726,28 +737,55 @@ struct SkillDetailContent: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("SKILL.md 预览", systemImage: "doc.text")
                 .font(.headline)
-            if let attributed = try? AttributedString(markdown: previewMarkdown(skill)) {
-                Text(attributed)
+            if let markdown {
+                // 文档卡片式预览：md 渲染 + ClaudePalette 卡底
+                Text((try? AttributedString(markdown: markdown)) ?? AttributedString(markdown))
                     .font(.body)
-                    .animation(motion.animation(for: .detailTransition), value: skill.id)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(ClaudePalette.card)
+                    )
+            } else {
+                loadingPlaceholder("正在读取 SKILL.md…")
             }
         }
     }
 
     private func filesSection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("文件清单（\(skill.fileCount)）", systemImage: "doc.on.doc")
+            Label("文件清单", systemImage: "doc.on.doc")
                 .font(.headline)
-            let subpaths = (try? FileManager.default.subpathsOfDirectory(atPath: skill.directory.path)) ?? []
-            ForEach(Array(subpaths.prefix(40)), id: \.self) { entry in
-                Text(entry)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-            }
-            if subpaths.count > 40 {
-                Text("…共 \(subpaths.count) 项").font(.caption).foregroundStyle(.tertiary)
+            if let files {
+                Text("（\(files.count)）")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                ForEach(files.prefix(40), id: \.self) { entry in
+                    Text(entry)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
+                if files.count > 40 {
+                    Text("…共 \(files.count) 项").font(.caption).foregroundStyle(.tertiary)
+                }
+            } else {
+                loadingPlaceholder("正在列出文件…")
             }
         }
+    }
+
+    /// 异步加载中的占位（切换 skill 的加载效果）。
+    private func loadingPlaceholder(_ text: String) -> some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .controlSize(.small)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 6)
     }
 
     private func historySection(_ skill: Skill) -> some View {
@@ -808,14 +846,6 @@ struct SkillDetailContent: View {
     }
 
     // MARK: 辅助
-
-    private func previewMarkdown(_ skill: Skill) -> String {
-        let url = skill.directory.appendingPathComponent("SKILL.md")
-        if let content = try? String(contentsOf: url, encoding: .utf8) {
-            return content
-        }
-        return "（SKILL.md 不存在）"
-    }
 
     private func scopeText(_ skill: Skill) -> String {
         switch skill.scope {
