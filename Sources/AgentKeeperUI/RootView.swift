@@ -576,7 +576,7 @@ struct SkillDetailContent: View {
     @State private var newTagText = ""
     // 预览数据异步加载（task(id:) 切换 skill 时先清空 → 加载效果，I/O 不占主线程）
     @State private var markdown: String?
-    @State private var files: [String]?
+    @State private var files: [SkillPreviewModel.FileListEntry]?
 
     var body: some View {
         SwiftUI.Group {
@@ -754,23 +754,15 @@ struct SkillDetailContent: View {
         }
     }
 
+    @ViewBuilder
     private func filesSection(_ skill: Skill) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("文件清单", systemImage: "doc.on.doc")
-                .font(.headline)
-            if let files {
-                Text("（\(files.count)）")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                ForEach(files.prefix(40), id: \.self) { entry in
-                    Text(entry)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                }
-                if files.count > 40 {
-                    Text("…共 \(files.count) 项").font(.caption).foregroundStyle(.tertiary)
-                }
-            } else {
+        if let files {
+            // Finder 风格：图标/缩进/点选；双击或菜单在 Finder 中定位
+            FileListView(baseDirectory: skill.directory, entries: files)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("文件清单", systemImage: "doc.on.doc")
+                    .font(.headline)
                 loadingPlaceholder("正在列出文件…")
             }
         }

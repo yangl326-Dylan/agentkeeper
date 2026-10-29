@@ -3,7 +3,7 @@ import Testing
 import DomainKit
 @testable import AgentKeeperUI
 
-/// Skill 预览异步加载（markdown 内容 + 文件清单）——磁盘 I/O 不得阻塞主线程 body。
+/// Skill 预览异步加载（markdown 内容 + Finder 式文件清单）——磁盘 I/O 不得阻塞主线程 body。
 @MainActor
 @Suite struct SkillPreviewModelTests {
     private func makeSkillDir() throws -> URL {
@@ -31,17 +31,20 @@ import DomainKit
         #expect(md.contains("SKILL.md 不存在"))
     }
 
-    @Test func loadsFileListAsync() async throws {
+    @Test func loadsFileEntriesWithDirectoryFlag() async throws {
         let dir = try makeSkillDir()
         defer { try? FileManager.default.removeItem(at: dir.deletingLastPathComponent()) }
         try "x".write(to: dir.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)
         try FileManager.default.createDirectory(at: dir.appendingPathComponent("sub"), withIntermediateDirectories: true)
         try "y".write(to: dir.appendingPathComponent("sub/b.txt"), atomically: true, encoding: .utf8)
-        let files = await SkillPreviewModel.loadFiles(skillDir: dir)
-        #expect(files.contains("a.txt"))
-        #expect(files.contains("sub/b.txt"))
-        #expect(files.contains("sub")) // subpathsOfDirectory 含子目录条目
-        #expect(files.count == 3)
-        #expect(files == files.sorted()) // 确定性排序
+        let entries = await SkillPreviewModel.loadFiles(skillDir: dir)
+        let byPath = Dictionary(uniqueKeysWithValues: entries.map { ($0.path, $0) })
+        #expect(byPath["a.txt"]?.isDirectory == false)
+        #expect(byPath["sub"]?.isDirectory == true)
+        #expect(byPath["sub/b.txt"]?.isDirectory == false)
+        #expect(entries.count == 3)
+        // 确定性排序：同目录内容相接、父目录在前（Finder 风格展示前置条件）
+        let paths = entries.map { entry in entry.path }
+        #expect(paths == ["a.txt", "sub", "sub/b.txt"])
     }
 }
