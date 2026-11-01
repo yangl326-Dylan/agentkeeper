@@ -7,7 +7,8 @@ let package = Package(
         .macOS(.v15)
     ],
     products: [
-        .executable(name: "AgentKeeper", targets: ["AgentKeeper"])
+        .executable(name: "AgentKeeper", targets: ["AgentKeeper"]),
+        .executable(name: "ak", targets: ["ak"]),
     ],
     targets: [
         .target(
@@ -28,6 +29,10 @@ let package = Package(
         .executableTarget(
             name: "AgentKeeper",
             dependencies: ["AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
+        ),
+        .executableTarget(
+            name: "ak",
+            dependencies: ["AppCore", "DomainKit", "InfraKit"]
         ),
         .testTarget(
             name: "DomainKitTests",

@@ -1,0 +1,146 @@
+# AgentKeeper
+
+[中文](#中文) | [English](#english)
+
+---
+
+<a id="中文"></a>
+
+**跨 agent 的 skill 管理工具。** 你的 skill 装在哪、谁在用、版本一不一致——一屏说清，一个按钮摆平。
+
+> 核心管理功能永久免费。开源协议 MIT。
+
+## 为什么需要它
+
+用多个 AI agent（Claude Code / OpenCode / Codex / Cursor / Gemini CLI…）的人，skill 散落在 7+ 个目录里，还有 npm 插件缓存这种深水区：
+
+- 装了什么 skill？哪些 agent 能用？——没人说得清
+- 同一个 skill 拷到多个 agent 后，改了一处，其他处悄悄过时
+- 想停用一个 skill 又怕搞坏 agent 配置
+
+AgentKeeper 解决这三件事：**统一目录 → 分歧检测 → 安全停用/回滚**。
+
+## 功能
+
+- 🔍 **全机扫描**：10 个 adapter 覆盖主流 agent 的标准目录、共享目录与插件缓存（含 OpenCode v2 npm 缓存）
+- 🧭 **三维度筛选**：按 agent（谁能用）× 作用域（在哪生效：全局/Agent 专属/项目级/多 Agent 共用）× 标签（做什么用），任意叠加成交集
+- ⚠️ **同名安装检测**：跨 agent 副本内容指纹对比，一键「用当前版本更新全部副本」（覆盖前自动快照）
+- 🛡️ **安全停用**：原子搬移到统一停用目录 + manifest 记录原路径 + 快照 + 操作历史，随时恢复
+- 📦 **Git 安装**：直接从 git 仓库安装 skill 集
+- 📄 **SKILL.md 预览**：块级 markdown 渲染（标题/代码块/列表/引用），可折叠、可滚动
+- 📁 **Finder 式文件清单**：双击/右键在 Finder 中定位
+- 🌗 **日夜间主题**：系统语义色，默认跟随系统
+- 🧑‍💻 **CLI 伴随**：`ak` 命令——GUI 管人，CLI 管 agent（agent 也可以自己调用）
+
+## 安装
+
+```bash
+# 暂未上架 Homebrew，先从源码构建（需 Swift 6.0+ / macOS 15+）
+git clone https://github.com/yangl326-Dylan/agentkeeper.git
+cd agentkeeper
+scripts/build-app.sh debug   # 构建 AgentKeeper.app
+swift build                  # 构建 CLI
+.build/debug/ak doctor       # 检查本机 agent 安装状态
+```
+
+## CLI 速览
+
+```console
+$ ak list
+NAME                SCOPE         AGENTS                       PATH
+brainstorming       agent-only    claude-code                  /Users/you/.claude/skills/...
+...
+共 86 个 skill · 7 个 agent
+
+$ ak doctor
+AGENT                STATUS         SKILLS
+claude-code          installed      53
+opencode             installed      32
+```
+
+## 开发
+
+```bash
+swift test        # 276 个测试（TDD 全覆盖）
+swift build       # 全部 target（GUI + ak CLI）
+```
+
+技术栈：Swift 6 / SwiftUI / Swift Testing；模块化 Package（DomainKit / InfraKit / AppCore / AgentKeeperUI / ak）。
+
+## Roadmap
+
+- [ ] 同名副本 diff 查看器
+- [ ] Git 真源持续同步（drift 可视化 + 一键拉平）
+- [ ] ⌘K 全局搜索 + Quick Look
+- [ ] 启动包（一键安装精选 skill 集）
+- [ ] Skill 健康检查（frontmatter / 体积警告）
+- [ ] Adapter 声明式协议（社区 10 行配置接入新 agent）
+- [ ] Homebrew cask + 公证构建
+
+详见 [docs/superpowers/specs/2026-11-01-oss-strategy-design.md](docs/superpowers/specs/2026-11-01-oss-strategy-design.md)。
+
+## Contributing
+
+Issue / PR 欢迎——尤其是给新 agent 加 adapter（将来会是纯配置 PR）。
+
+## License
+
+[MIT](LICENSE)
+
+---
+
+<a id="english"></a>
+
+# AgentKeeper
+
+**Skill management across AI agents.** Where your skills live, who can use them, whether copies drifted apart — one screen to see it, one click to fix it.
+
+> Core features are free forever. MIT licensed.
+
+## Why
+
+If you run multiple AI agents (Claude Code / OpenCode / Codex / Cursor / Gemini CLI…), your skills are scattered across 7+ directories — including npm plugin caches:
+
+- Nobody can answer "what skills do I have, and which agents see them?"
+- Copy a skill to several agents, edit one copy, the others silently drift
+- Disabling a skill feels risky — you might break your agent setup
+
+AgentKeeper fixes exactly this: **unified catalog → drift detection → safe disable/rollback**.
+
+## Features
+
+- 🔍 **Full-machine scan**: 10 adapters covering mainstream agents' standard paths, shared dirs and plugin caches (including OpenCode v2 npm cache)
+- 🧭 **Three filter dimensions**: agent × scope (global / agent-only / project / multi-agent) × tags — stack them freely
+- ⚠️ **Same-name copy detection**: content fingerprints across agents; update every copy from the current version (auto-snapshot first)
+- 🛡️ **Safe disable**: atomic move + manifest + snapshots + operation history
+- 📦 **Git install**: pull skill sets straight from git repos
+- 📄 **SKILL.md preview**: block-level markdown renderer, collapsible and scrollable
+- 📁 **Finder-style file list**: reveal in Finder via double-click or context menu
+- 🌗 **Light/dark theme**: system semantic colors, follows system by default
+- 🧑‍💻 **CLI companion**: `ak` — the GUI is for humans, the CLI is for agents (agents can invoke it too)
+
+## Install
+
+Requires Swift 6.0+ / macOS 15+. (Homebrew cask coming soon.)
+
+```bash
+git clone https://github.com/yangl326-Dylan/agentkeeper.git
+cd agentkeeper
+scripts/build-app.sh debug   # GUI app
+swift build                  # CLI
+.build/debug/ak doctor
+```
+
+## Development
+
+```bash
+swift test   # 276 tests, full TDD coverage
+```
+
+## Contributing
+
+Issues and PRs welcome — especially new agent adapters (will become pure config PRs).
+
+## License
+
+[MIT](LICENSE)
