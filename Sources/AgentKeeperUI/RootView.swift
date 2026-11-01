@@ -42,11 +42,9 @@ struct NavigationSidebar: View {
     public var body: some View {
         List {
             Section("Agents") {
-                // 只显示本机实际安装过的 agent；未安装的 harness 不进侧栏
-                let rows = SidebarAgentModel.build(
-                    agents: env.store.state.agents,
-                    skills: env.catalogStore.current
-                )
+                // 只显示本机实际安装过的 agent；未安装的 harness 不进侧栏。
+                // 行模型由 env memoize（catalog version 键控）——body 不再逐帧重算。
+                let rows = env.sidebarRows()
                 if rows.isEmpty {
                     Text("尚未发现已安装 agent——安装 Claude Code / Codex 等后自动识别")
                         .font(.caption)
@@ -578,6 +576,10 @@ struct SkillDetailContent: View {
     // 预览数据异步加载（task(id:) 切换 skill 时先清空 → 加载效果，I/O 不占主线程）
     @State private var markdown: String?
     @State private var files: [SkillPreviewModel.FileListEntry]?
+    // history/snapshots 同法异步（曾每次 body 求值同步读盘/遍历 manifest——
+    // 列表滚动 + 面板渲染的次级卡顿源）
+    @State private var historyRecords: [OperationRecord]?
+    @State private var snapshotsList: [SnapshotMetadata]?
 
     var body: some View {
         SwiftUI.Group {
@@ -600,11 +602,27 @@ struct SkillDetailContent: View {
             // 切换 skill：立即清空旧数据（避免停留在上一个），再后台并行加载
             markdown = nil
             files = nil
+            historyRecords = nil
+            snapshotsList = nil
             async let md = SkillPreviewModel.loadMarkdown(skillDir: skill.directory)
             async let fs = SkillPreviewModel.loadFiles(skillDir: skill.directory)
             (markdown, files) = await (md, fs)
+            // 历史/快照走各自的读区（快照要枚举快照目录 manifest）；store 均 @unchecked Sendable
+            let historyStore = env.history
+            let snapshotStore = env.snapshots
+            let recentLimit = Self.envLimit
+            let loadedHistory: [OperationRecord] = await Task.detached(priority: .utility) { [name = skill.name] in
+                historyStore.recent(limit: recentLimit).filter { $0.name == name }
+            }.value
+            let loadedSnapshots: [SnapshotMetadata] = await Task.detached(priority: .utility) { [skillID = skill.id] in
+                snapshotStore.snapshots(skillID: skillID)
+            }.value
+            historyRecords = loadedHistory
+            snapshotsList = loadedSnapshots
         }
     }
+
+    private static let envLimit = 8
 
 // MARK: 区块
 
@@ -795,9 +813,12 @@ struct SkillDetailContent: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("操作历史", systemImage: "clock.arrow.circlepath")
                 .font(.headline)
-            let records = env.history.recent(limit: 8).filter { $0.name == skill.name }
+            // 异步加载中占位；历史记录随操作刷新（runOperation 后重扫触发 task(id:) 重载）
+            let records = historyRecords ?? []
             if records.isEmpty {
-                Text("暂无操作记录").font(.caption).foregroundStyle(.tertiary)
+                Text(historyRecords == nil ? "加载中…" : "暂无操作记录")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             } else {
                 ForEach(records, id: \.performedAt) { record in
                     HStack {
@@ -825,9 +846,12 @@ struct SkillDetailContent: View {
         VStack(alignment: .leading, spacing: 8) {
             Label("历史快照", systemImage: "camera.on.rectangle")
                 .font(.headline)
-            let snapshots = env.snapshots.snapshots(skillID: skill.id)
+            // 异步加载中占位（曾每次 body 求值同步枚举快照 manifest 全表）
+            let snapshots = snapshotsList ?? []
             if snapshots.isEmpty {
-                Text("暂无快照（skill 内容变化时自动记录）").font(.caption).foregroundStyle(.tertiary)
+                Text(snapshotsList == nil ? "加载中…" : "暂无快照（skill 内容变化时自动记录）")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             } else {
                 ForEach(Array(snapshots.enumerated()), id: \.element.sha) { index, snapshot in
                     Button {

@@ -65,11 +65,10 @@ struct OverviewContent: View {
     @Environment(AppEnvironment.self) private var env
 
     var body: some View {
-        let model = OverviewModel.build(
-            state: env.store.state,
-            skills: env.catalogStore.current,
-            tagCount: env.tagService.tags().count
-        )
+        // 模型由 env memoize（catalog version + agent 数 + tag revision + 最近扫描 键控）——
+        // body 不再逐帧做 skills×agents 全量统计
+        let env = self.env
+        let model = env.overviewModel()
         return VStack(alignment: .leading, spacing: 20) {
             header(model)
             statCards(model)

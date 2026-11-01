@@ -29,9 +29,11 @@ import DomainKit
         let root = home.appendingPathComponent("watched", isDirectory: true)
 
         let received = ReceiveBox()
-        let monitor = FSEventMonitor(latencySeconds: 0.2) { event in
+        let monitor = FSEventMonitor(latencySeconds: 0.2) { paths in
             await MainActor.run {
-                received.record(event.rootPath)
+                for path in paths {
+                    received.record(path)
+                }
             }
         }
         await monitor.start(watchingRoots: [root])

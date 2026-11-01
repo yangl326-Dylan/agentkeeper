@@ -56,7 +56,8 @@ public final class AppEnvironment {
         self.settings = AppSettingsStore(defaults: defaults)
         let base = self.akBase
         let store = AppStore()
-        let catalogStore = CatalogStore(index: SkillIndex(databaseDirectory: base))
+        // loadCacheEagerly=false：装配零 IO（SQLite 首读不再阻塞首屏）；bootstrap 后台 warmup
+        let catalogStore = CatalogStore(index: SkillIndex(databaseDirectory: base), loadCacheEagerly: false)
         let runner = CatalogSyncingRunner(
             upstream: InfraScanRunner(homeDirectory: homeDirectory, scopeBaseDirectory: base),
             catalogStore: catalogStore
@@ -139,13 +140,14 @@ public final class AppEnvironment {
         self.isOnboardingVisible = !FirstRunStore(defaults: defaults).hasCompletedOnboarding
     }
 
-    /// 首启：全量扫描 + 挂载 FSEvents 监听。
+    /// 首启：后台预热缓存（UI 立即有内容）→ 全量扫描 + 挂载 FSEvents 监听（整批回调 → 一次 MainActor hop）。
     public func bootstrap() async {
+        async let warmup: Void = catalogStore.warmupFromCache()
         await scanService.runScan(projectRoots: [])
-        let monitor = FSEventMonitor(latencySeconds: 0.5) { [weak self] event in
-            let path = event.rootPath
+        _ = await warmup
+        let monitor = FSEventMonitor(latencySeconds: 0.5) { [weak self] paths in
             Task { @MainActor in
-                await self?.pipeline.onEvent(rootPath: path)
+                await self?.pipeline.onEvents(paths: paths)
             }
         }
         await pipeline.attach(monitor: monitor)
@@ -280,6 +282,50 @@ public final class AppEnvironment {
     }
 
     private var tagsSnapshot: (revision: Int, map: [String: [String]])?
+
+    /// 侧栏 agent 行模型（catalog version + agent 数 键控 memoize）——
+    /// @ObservationIgnored：缓存本身不进 observable 通道，避免 getter 写缓存引发再渲染循环。
+    @ObservationIgnored private var sidebarCache: (version: Int, agentCount: Int, rows: [SidebarAgentModel.Row])?
+
+    func sidebarRows() -> [SidebarAgentModel.Row] {
+        let version = catalogStore.version
+        let agentCount = store.state.agents.count
+        if let cache = sidebarCache, cache.version == version, cache.agentCount == agentCount {
+            return cache.rows
+        }
+        let rows = SidebarAgentModel.build(agents: store.state.agents, skills: catalogStore.current)
+        sidebarCache = (version, agentCount, rows)
+        return rows
+    }
+
+    /// 总览仪表盘模型（catalog version + agent 数 + tag revision + 最近扫描时刻 键控 memoize）。
+    @ObservationIgnored private var overviewCache: (key: OverviewCacheKey, model: OverviewModel)?
+
+    struct OverviewCacheKey: Equatable {
+        let catalogVersion: Int
+        let agentCount: Int
+        let lastScanAt: TimeInterval?
+        let tagRevision: Int
+    }
+
+    func overviewModel() -> OverviewModel {
+        let key = OverviewCacheKey(
+            catalogVersion: catalogStore.version,
+            agentCount: store.state.agents.count,
+            lastScanAt: store.state.scan.lastCompletedAt?.timeIntervalSince1970,
+            tagRevision: tagService.storeRevision()
+        )
+        if let cache = overviewCache, cache.key == key {
+            return cache.model
+        }
+        let model = OverviewModel.build(
+            state: store.state,
+            skills: catalogStore.current,
+            tagCount: tagService.tags().count
+        )
+        overviewCache = (key, model)
+        return model
+    }
 
     /// Reduce Motion 策略：用户设置覆盖优先，未覆盖时跟随系统辅助功能设置。
     var motionPolicy: MotionPolicy {

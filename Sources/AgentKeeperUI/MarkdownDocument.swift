@@ -159,11 +159,14 @@ public enum MarkdownBlockParser {
 // MARK: - 渲染视图
 
 /// 折叠 + 内滚动限高的 markdown 文档预览。
+/// 解析一次缓存（@State）——曾每次 body 求值重新全量解析 markdown；
+/// LazyVStack 让长文档块按需渲染。
 @MainActor
 struct MarkdownDocumentView: View {
     let markdown: String
     let motion: MotionPolicy
     @State private var collapsed = false
+    @State private var cachedBlocks: [MarkdownBlockParser.MarkdownBlock]?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -194,7 +197,7 @@ struct MarkdownDocumentView: View {
                     .lineLimit(2)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
+                    LazyVStack(alignment: .leading, spacing: 10) {
                         ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
                             blockView(block)
                         }
@@ -210,15 +213,30 @@ struct MarkdownDocumentView: View {
             }
         }
         .textSelection(.enabled)
+        .task(id: markdown) {
+            // markdown 变更：后台重新解析一次（detached——解析是纯 CPU，不占 MainActor）
+            cachedBlocks = await Task.detached(priority: .utility) { [markdown] in
+                MarkdownBlockParser.parse(markdown)
+            }.value
+        }
     }
 
+    /// nil（解析中）时暂给空列表——首帧用 markdown 直接算个兜底（首帧无 task 竞争）
     private var blocks: [MarkdownBlockParser.MarkdownBlock] {
-        MarkdownBlockParser.parse(markdown)
+        if let cached = cachedBlocks { return cached }
+        return []
     }
 
     private var firstParagraph: String {
-        if case let .paragraph(text)? = blocks.first { return text }
-        if case let .heading(_, text)? = blocks.first { return text }
+        if cachedBlocks == nil {
+            // 首帧兜底（task 尚未跑完时）：轻量解析仅首段
+            let parsed = MarkdownBlockParser.parse(markdown)
+            if case let .paragraph(text)? = parsed.first { return text }
+            if case let .heading(_, text)? = parsed.first { return text }
+            return markdown
+        }
+        if case let .paragraph(text)? = cachedBlocks?.first { return text }
+        if case let .heading(_, text)? = cachedBlocks?.first { return text }
         return markdown
     }
 

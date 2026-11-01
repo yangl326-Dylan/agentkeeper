@@ -47,11 +47,13 @@ public final class ChangePipeline {
         }
     }
 
-    /// 单个事件入口（monitor 回调）。
-    public func onEvent(rootPath: String) async {
-        guard !Self.isTransientEvent(rootPath) else { return }
-        pendingEvents.append(rootPath)
-        await store.dispatch(.externalChangeDetected(paths: [rootPath]))
+    /// FSEvents 整批入口（monitor 单批回调）：一次 pending 记账 + 一次 dispatch +
+    /// 一次防抖重挂（曾每路径一枚 Task + 一次 dispatch——风暴时数百 Task/秒）。
+    public func onEvents(paths: [String]) async {
+        let filtered = paths.filter { !Self.isTransientEvent($0) }
+        guard !filtered.isEmpty else { return }
+        pendingEvents.append(contentsOf: filtered)
+        await store.dispatch(.externalChangeDetected(paths: filtered))
         rescanTask?.cancel()
         rescanTask = Task { [weak self] in
             guard let self else { return }
@@ -62,6 +64,12 @@ public final class ChangePipeline {
             }
             await self.rescanNow()
         }
+    }
+
+    /// 单个事件入口（monitor 回调）——兼容单参（fake monitor / 测试用 ; 生产走 onEvents）。
+    public func onEvent(rootPath: String) async {
+        guard !Self.isTransientEvent(rootPath) else { return }
+        await onEvents(paths: [rootPath])
     }
 
     /// 测试/同步等待：等待进行中的 rescan 或没有进行者。

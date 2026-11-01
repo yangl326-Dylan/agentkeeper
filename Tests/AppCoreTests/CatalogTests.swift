@@ -109,4 +109,57 @@ import InfraKit
         #expect(store.current.count == 1)
         #expect(store.current[0].name == "two")
     }
+
+    /// 启动异步缓存加载：init 不读盘（loadCacheEagerly: false），
+    /// warmupFromCache 后台回填（启动不再被 SQLite 首读阻塞）；同步版本默认行为不变。
+    @Test func deferredCacheLoadBackfillsWithoutBlockingInit() async {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ak-catalog-\(UUID().uuidString)", isDirectory: true)
+        let alpha = Skill(id: "alpha|claude-code", name: "alpha", directory: URL(fileURLWithPath: "/tmp/a"), scope: .agentOnly(agentID: "claude-code"), sha256: "s")
+        let writer = CatalogStore(index: SkillIndex(databaseDirectory: dir))
+        writer.sync(with: [alpha])
+        typealias AwaitableVoid = Void
+        func waitIndex(_ index: SkillIndex, count: Int, timeout: TimeInterval = 2) {
+            let deadline = Date().addingTimeInterval(timeout)
+            while Date() < deadline, index.all().count != count {
+                Thread.sleep(forTimeInterval: 0.01)
+            }
+        }
+
+        // 新 init：不立即读缓存
+        let index = SkillIndex(databaseDirectory: dir)
+        waitIndex(index, count: 1)
+        let deferred = CatalogStore(index: index, loadCacheEagerly: false)
+        #expect(deferred.current.isEmpty)
+
+        // warmup 后台回填
+        await deferred.warmupFromCache()
+        #expect(deferred.current.count == 1)
+        #expect(deferred.current[0].name == "alpha")
+
+        // 默认参数保持同步加载（既有测试语义）
+        let eager = CatalogStore(index: SkillIndex(databaseDirectory: dir))
+        #expect(eager.current.count == 1)
+    }
+
+    /// version 单调递增：sync 每次自增、warmup 自增、init 后为 0——派生缓存失效键。
+    @Test func versionTracksSnapshotChanges() async {
+        let store = CatalogStore()
+        #expect(store.version == 0)
+        let one = Skill(id: "one|claude-code", name: "one", directory: URL(fileURLWithPath: "/tmp/1"), scope: .agentOnly(agentID: "claude-code"), sha256: "s1")
+        store.sync(with: [one])
+        let v1 = store.version
+        #expect(v1 > 0)
+        store.sync(with: [one])
+        let v2 = store.version
+        #expect(v2 > v1)
+
+        // warmup 分支：空 current 回填会自增
+        let writer = CatalogStore()
+        writer.sync(with: [one])
+        let deferred = CatalogStore()
+        let before = deferred.version
+        await deferred.warmupFromCache()
+        #expect(deferred.version == before, "无 index 的 warmup 是 no-op——version 不应动")
+    }
 }

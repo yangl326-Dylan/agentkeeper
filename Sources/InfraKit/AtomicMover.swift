@@ -37,7 +37,9 @@ public struct AtomicMover: @unchecked Sendable {
     // MARK: - 计划
 
     /// 制定计划；冲突检测在此把守：目标被占用即拒绝，绝不覆盖。
-    public func planMove(source: URL, destination: URL) throws -> MovePlan {
+    /// 平面搬移计划。expectedSha256 可选传入：调用方已持有源指纹时免二次全树哈希
+    ///（disable/enable 流程曾算两遍——manifest 一遍、planMove 一遍）。
+    public func planMove(source: URL, destination: URL, expectedSha256: String? = nil) throws -> MovePlan {
         guard fileManager.fileExists(atPath: source.path) else {
             throw AtomicMoverError.sourceMissing(path: source.path)
         }
@@ -58,7 +60,7 @@ public struct AtomicMover: @unchecked Sendable {
             source: source,
             destination: destination,
             strategy: strategy,
-            expectedSha256: Fingerprint.sha256OfDirectory(source) ?? ""
+            expectedSha256: expectedSha256 ?? Fingerprint.sha256OfDirectory(source) ?? ""
         )
     }
 

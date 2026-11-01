@@ -67,7 +67,8 @@ public struct SkillLifecycle: @unchecked Sendable {
         )
 
         do {
-            let plan = try mover.planMove(source: skillDirectory, destination: destination)
+            // disable 已算好 manifest sha——planMove 复用（免第二次全树哈希）
+            let plan = try mover.planMove(source: skillDirectory, destination: destination, expectedSha256: sha)
             try mover.execute(plan)
         } catch {
             // 冲突明细透传给 UI（AtomicMoverError 与 LifecycleError 语义一致时）

@@ -199,6 +199,67 @@ public actor LocalFakeMonitor: FileMonitoring {
         #expect(runsBox.value == 0)
         #expect(store.state.changePendingCount == 0)
     }
+
+    /// FSEvents 整批聚合：一批 N 个路径 → 单次 pending 记账 + 单次防抖重挂
+    ///（曾每路径一次 dispatch + 一枚 Task——风暴时数百 Task/秒压爆 MainActor）。
+    @Test func batchEventsAggregateIntoSingleRescan() async {
+        let store = AppStore()
+        let catalogStore = CatalogStore()
+        let runsBox = IntegerBox()
+        let scanService = ScanService(
+            store: store,
+            runner: ConfiguredRunner { _ in
+                runsBox.increment()
+                return ScanReport.empty
+            }
+        )
+        let pipeline = ChangePipeline(
+            store: store,
+            catalogStore: catalogStore,
+            scanService: scanService,
+            debounceNanos: 50_000_000
+        )
+
+        await pipeline.onEvents(paths: [
+            "/root/claude/skills/alpha",
+            "/root/claude/skills/beta",
+            "/root/claude/skills/gamma",
+            "/root/claude/skills/delta",
+        ])
+        #expect(store.state.changePendingCount == 4)
+        await pipeline.flushForTesting()
+        #expect(runsBox.value == 1)
+        #expect(store.state.changePendingCount == 0)
+    }
+
+    /// 批内混合过渡路径：过滤后记账（过渡路径不进入 pending，也不触发重扫）。
+    @Test func batchWithTransientPathsFiltersThem() async {
+        let store = AppStore()
+        let catalogStore = CatalogStore()
+        let runsBox = IntegerBox()
+        let scanService = ScanService(
+            store: store,
+            runner: ConfiguredRunner { _ in
+                runsBox.increment()
+                return ScanReport.empty
+            }
+        )
+        let pipeline = ChangePipeline(
+            store: store,
+            catalogStore: catalogStore,
+            scanService: scanService,
+            debounceNanos: 50_000_000
+        )
+
+        await pipeline.onEvents(paths: [
+            "/root/claude/.ak-stage-abc/skill",
+            "/root/claude/skills/alpha",
+            "/root/claude/skills/.keeper-backup-1/alpha",
+        ])
+        #expect(store.state.changePendingCount == 1)
+        await pipeline.flushForTesting()
+        #expect(runsBox.value == 1)
+    }
 }
 
 final class IntegerBox: @unchecked Sendable {

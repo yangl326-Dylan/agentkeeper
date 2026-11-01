@@ -6,14 +6,15 @@ import DomainKit
 /// 交给消费方（AppCore）做增量重扫。失焦降频由消费方调用方控制监控节律。
 public actor FSEventMonitor: FileMonitoring {
     private let latencySeconds: Double
-    private let handler: @Sendable (FileChangeEvent) async -> Void
+    /// 整批回调：FSEvents 单批的全部路径一次交割（消费方自行聚合/过滤）。
+    private let handler: @Sendable ([String]) async -> Void
     private var stream: FSEventStreamRef?
     private var callbackBox: CallbackBox?
     private let callbackQueue: DispatchQueue
 
     public init(
         latencySeconds: Double = 0.5,
-        handler: @escaping @Sendable (FileChangeEvent) async -> Void
+        handler: @escaping @Sendable ([String]) async -> Void
     ) {
         self.latencySeconds = latencySeconds
         self.handler = handler
@@ -39,11 +40,10 @@ public actor FSEventMonitor: FileMonitoring {
         let callback: FSEventStreamCallback = { _, clientInfo, count, eventPaths, _, _ in
             let box = Unmanaged<CallbackBox>.fromOpaque(clientInfo!).takeUnretainedValue()
             let paths = unsafeBitCast(eventPaths, to: NSArray.self) as! [String]
-            for path in paths {
-                let event = FileChangeEvent(rootPath: path)
-                Task.detached(priority: .utility) {
-                    await box.dispatch(event)
-                }
+            guard !paths.isEmpty else { return }
+            // 整批一次 Task：曾每路径一枚 Task——风暴时数百 Task/秒压爆并发池与 MainActor
+            Task.detached(priority: .utility) {
+                await box.dispatch(paths)
             }
         }
 
@@ -85,14 +85,14 @@ public actor FSEventMonitor: FileMonitoring {
         }
     }
 
-    /// C 回调 → actor 边界装箱。
+    /// C 回调 → actor 边界装箱（整批路径一次交割）。
     private final class CallbackBox: @unchecked Sendable {
-        let handler: @Sendable (FileChangeEvent) async -> Void
-        init(handler: @escaping @Sendable (FileChangeEvent) async -> Void) {
+        let handler: @Sendable ([String]) async -> Void
+        init(handler: @escaping @Sendable ([String]) async -> Void) {
             self.handler = handler
         }
-        func dispatch(_ event: FileChangeEvent) async {
-            await handler(event)
+        func dispatch(_ paths: [String]) async {
+            await handler(paths)
         }
     }
 }
