@@ -72,3 +72,23 @@ public struct MenuBarSummary: Hashable, Sendable {
         return MenuBarSummary(agentEntries: entries, totalSkills: skills.count)
     }
 }
+
+/// 菜单栏 agent 行的语义 SF Symbol（Raycast 式面板）。未知 ID 统一回落 terminal。
+public enum MenuBarIcons {
+    private static let mapping: [AgentID: String] = [
+        "claude-code": "chevron.left.forwardslash.chevron.right",
+        "opencode": "chevron.left.forwardslash.chevron.right",
+        "codex": "chevron.left.forwardslash.chevron.right",
+        "cursor": "cursorarrow.rays",
+        "gemini": "sparkles",
+        "qwen": "sparkles",
+        "pi": "terminal",
+        "oh-my-pi": "terminal",
+        "openclaw": "terminal",
+        "agents-shared": "person.2",
+    ]
+
+    public static func icon(for agentID: AgentID) -> String {
+        mapping[agentID] ?? "terminal"
+    }
+}
