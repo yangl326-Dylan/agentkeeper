@@ -36,7 +36,7 @@
   - `MenuBarAgentRow`：agent 行（icon / 名称 / 数量 / hover / 点击打开目录）。
   - `MenuPanelActions`：操作区（主按钮 / 扫描 / 退出）。
 - 复用 `MenuBarSummary.build(state:skills:)`（AppCore，不变）；agent 目录取 `agent.skillRoots.first?.path`。
-- 图标映射为纯函数 `menuBarIcon(for agentID: AgentID) -> String`，放 AppCore（可测），UI 只消费。
+- 图标映射为纯函数 `MenuBarIcons.icon(for agentID: AgentID) -> String`，放 AppCore（可测），UI 只消费。
 
 ## 错误处理
 
