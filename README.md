@@ -3,7 +3,7 @@
 [![CI](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%2015+-black)
-![Tests](https://img.shields.io/badge/tests-279%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-291%20passing-brightgreen)
 
 [中文](#中文) | [English](#english)
 
@@ -78,7 +78,7 @@ opencode             installed      32
 ## 开发
 
 ```bash
-swift test        # 279 个测试（TDD 全覆盖）
+swift test        # 291 个测试（TDD 全覆盖）
 swift build       # 全部 target（GUI + ak CLI）
 ```
 
@@ -162,7 +162,7 @@ swift build -c release         # ak CLI
 ## Development
 
 ```bash
-swift test   # 279 tests, full TDD coverage
+swift test   # 291 tests, full TDD coverage
 ```
 
 ## Contributing

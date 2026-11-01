@@ -10,7 +10,7 @@ ARCH_FLAGS=()
 if [ "${UNIVERSAL:-0}" = "1" ]; then
     ARCH_FLAGS=(--arch arm64 --arch x86_64)
 fi
-swift build -c "$CONFIG" "${ARCH_FLAGS[@]}"
+swift build -c "$CONFIG" ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}
 
 # 图标：引导页同款「带箭头的箱子」+ Claude 色系（母版变更时重生成）
 if [ ! -f build/AppIcon.icns ] || [ scripts/gen-icon.swift -nt build/AppIcon.icns ]; then
@@ -24,7 +24,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-BIN_DIR="$(swift build -c "$CONFIG" "${ARCH_FLAGS[@]}" --show-bin-path)"
+BIN_DIR="$(swift build -c "$CONFIG" ${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"} --show-bin-path)"
 cp "$BIN_DIR/AgentKeeper" "$APP/Contents/MacOS/AgentKeeper"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
@@ -39,7 +39,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleIconName</key><string>AppIcon</string>
-    <key>CFBundleShortVersionString</key><string>0.1.0</string>
+    <key>CFBundleShortVersionString</key><string>0.1.2</string>
     <key>CFBundleVersion</key><string>1</string>
     <key>LSMinimumSystemVersion</key><string>15.0</string>
     <key>LSUIElement</key><false/>
