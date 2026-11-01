@@ -49,11 +49,14 @@ jobs:
 
       - name: Build release binaries
         run: |
+          set -euo pipefail
           swift build -c release
           scripts/build-app.sh release
           mkdir -p dist
-          cp .build/release/ak dist/ak
-          zip -qry AgentKeeper-cli-macos.zip ak -x '*.DS_Store'
+          # 产物路径随三元组变化（CI 为 arm64-apple-macosx），必须用 --show-bin-path 取
+          BIN_DIR="$(swift build -c release --show-bin-path)"
+          cp "$BIN_DIR/ak" dist/ak
+          (cd dist && zip -qry ../AgentKeeper-cli-macos.zip ak -x '*.DS_Store')
           zip -qry AgentKeeper-app-macos.zip AgentKeeper.app
 
       - name: Create GitHub Release
