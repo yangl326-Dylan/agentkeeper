@@ -8,6 +8,7 @@ public actor FSEventMonitor: FileMonitoring {
     private let latencySeconds: Double
     private let handler: @Sendable (FileChangeEvent) async -> Void
     private var stream: FSEventStreamRef?
+    private var callbackBox: CallbackBox?
     private let callbackQueue: DispatchQueue
 
     public init(
@@ -23,7 +24,9 @@ public actor FSEventMonitor: FileMonitoring {
         stopAllInternal()
 
         guard !watchingRoots.isEmpty else { return }
-        let context = Unmanaged.passRetained(CallbackBox(handler: handler)).toOpaque()
+        let box = CallbackBox(handler: handler)
+        callbackBox = box
+        let context = Unmanaged.passRetained(box).toOpaque()
 
         var contextStruct = FSEventStreamContext(
             version: 0,
@@ -55,6 +58,7 @@ public actor FSEventMonitor: FileMonitoring {
             FSEventStreamCreateFlags(kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer | kFSEventStreamCreateFlagUseCFTypes)
         ) else {
             Unmanaged<CallbackBox>.fromOpaque(context).release()
+            callbackBox = nil
             return
         }
 
@@ -73,6 +77,11 @@ public actor FSEventMonitor: FileMonitoring {
             FSEventStreamInvalidate(stream)
             FSEventStreamRelease(stream)
             self.stream = nil
+            // start 时 passRetained 的 box 找回并 release（invalidated 后不会再有回调）——曾每次 re-attach 泄漏一条捕获链
+            if let box = callbackBox {
+                Unmanaged.passUnretained(box).release()
+                self.callbackBox = nil
+            }
         }
     }
 

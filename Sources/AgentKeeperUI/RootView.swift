@@ -189,6 +189,7 @@ struct NavigationSidebar: View {
 @MainActor
 enum ScanStatusText {
     private static let clock = DateFormatter()
+    private static let compactClock = DateFormatter()
 
     static func clockText(_ date: Date) -> String {
         clock.dateFormat = "HH:mm:ss"
@@ -212,9 +213,8 @@ enum ScanStatusText {
         case .idle: return "尚未扫描"
         case .running: return "扫描中…"
         case .complete:
-            let formatter = DateFormatter()
-            formatter.dateFormat = "HH:mm"
-            let time = scan.lastCompletedAt.map { formatter.string(from: $0) } ?? "--:--"
+            compactClock.dateFormat = "HH:mm"
+            let time = scan.lastCompletedAt.map { compactClock.string(from: $0) } ?? "--:--"
             return "\(skillsCount) skills · \(time)"
         case .failed: return "扫描失败"
         }
@@ -333,7 +333,9 @@ struct SkillListView: View {
     @State private var importError: String?
 
     public var body: some View {
-        listCore
+        // 筛选结果本帧只算一次：animation value 与列表使用同一份（曾每帧/每击键跑两条全量管线）
+        let query = SkillListCore.filter(searchText, env)
+        listCore(query)
             .searchable(text: $searchText, placement: .automatic, prompt: "搜索名称 / 描述 / 项目")
             .navigationTitle(env.selectedAgent.map { "Skills · \($0)" } ?? "Skills")
             .toolbar { toolbarContent }
@@ -348,13 +350,13 @@ struct SkillListView: View {
             } message: {
                 Text(importError ?? "")
             }
-            .animation(motion.animation(for: .listTransition), value: SkillListCore.filter(searchText, env).map({ $0.id }))
+            .animation(motion.animation(for: .listTransition), value: query.map({ $0.id }))
     }
 
     /// 列表核心（独立节点视图：body 内使用 @Environment 的部分收敛于此，selection binding
     /// 在求值期捕获具体 env 对象，避免捕获未解析的 Environment 包装器——离屏渲染也不会崩）。
-    var listCore: some View {
-        SkillListCore(searchText: $searchText)
+    func listCore(_ query: [Skill]) -> some View {
+        SkillListCore(searchText: $searchText, query: query)
     }
 
 
@@ -468,11 +470,12 @@ struct SkillListView: View {
 struct SkillListCore: View {
     @Environment(AppEnvironment.self) private var env
     @Binding var searchText: String
+    /// 父级（SkillListView）本帧已算好的筛选结果——不再重复全量管线。
+    let query: [Skill]
 
     var body: some View {
         // 捕获已解析的具体 env 对象（%@Environment 包装器在离屏/闭包拷贝中不可靠）
         let env = self.env
-        let query = filtered()
         return List(selection: Binding(
             get: { env.selectedSkillID },
             set: { env.selectedSkillID = $0 }
@@ -505,11 +508,9 @@ struct SkillListCore: View {
         query.agentID = env.selectedAgent
         // 标签筛选需要合成禁用条目；普通视图只见可用 catalog
         let catalog = env.selectedTag == nil ? env.catalogStore.current : env.catalogForTagFilter()
-        return query.apply(catalog: catalog, tagsBySkill: env.tagsBySkill())
-    }
-
-    private func filtered() -> [Skill] {
-        Self.filter(searchText, env)
+        // 无标签筛选时不取标签映射（曾每次 filter 都做 N 次串行队列锁往返）
+        let tags = env.selectedTag == nil ? [:] : env.tagsBySkill()
+        return query.apply(catalog: catalog, tagsBySkill: tags)
     }
 }
 
@@ -696,9 +697,18 @@ struct SkillDetailContent: View {
     }
 
     /// 同名安装面板（spec 4.x：各 agent 副本互查 / 分歧提示 / 一键用当前版本更新全部副本）。
+    /// 指纹比对用 catalog 已缓存的 sha256（零磁盘 IO）——目录树哈希曾写在 body 里，
+    /// 每次视图求值对每个落点做全树读盘+SHA256，是详情面板顿挫的最大单点。
     private func landingPointsSection(_ skill: Skill) -> some View {
-        let points = CatalogQuery.namedLandingPoints(named: skill.name, catalog: env.catalogStore.current)
-        let diverged = CatalogQuery.isDiverged(name: skill.name, catalog: env.catalogStore.current)
+        let catalog = env.catalogStore.current
+        let points = CatalogQuery.namedLandingPoints(named: skill.name, catalog: catalog)
+        let diverged = CatalogQuery.isDiverged(name: skill.name, catalog: catalog)
+        // 落点目录 → 该目录对应 skill 的指纹（同名 skill 与落点目录一一对应）
+        let shaByPath: [String: String] = Dictionary(
+            uniqueKeysWithValues: catalog
+                .filter { $0.name == skill.name }
+                .map { ($0.directory.standardizedFileURL.path, $0.sha256) }
+        )
         return Group {
             if points.count > 1 || diverged {
                 VStack(alignment: .leading, spacing: 8) {
@@ -710,14 +720,15 @@ struct SkillDetailContent: View {
                     .foregroundStyle(diverged ? Color.orange : .primary)
                     ForEach(Array(points.enumerated()), id: \.element.agentID) { entry in
                         let point = entry.element
+                        let pointSha = shaByPath[point.directory.standardizedFileURL.path]
+                        let matches = pointSha == skill.sha256
                         HStack(spacing: 6) {
                             Image(
-                                systemName: Fingerprint.sha256OfDirectory(point.directory) == skill.sha256
+                                systemName: matches
                                     ? "checkmark.circle" : "exclamationmark.triangle"
                             )
                             .foregroundStyle(
-                                Fingerprint.sha256OfDirectory(point.directory) == skill.sha256
-                                    ? Color.green : Color.orange
+                                matches ? Color.green : Color.orange
                             )
                             Text(point.agentID).font(.callout)
                             Text(point.directory.path)

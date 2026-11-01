@@ -267,13 +267,19 @@ public final class AppEnvironment {
 
     /// 把任意 skill 安装到目标 agent 的 skill 根目录（非破坏复制）的状态机入口由 install 承担；
     /// git 候选提案失败的错误呈现直接走 store（不进入 inFlight 状态机）。
+    /// skillID → 标签名集合（按 TagStore.revision 缓存；曾每次 filter 调用重建整表、
+    /// 逐 skillID N 次串行队列锁往返）。
     func tagsBySkill() -> [String: [String]] {
-        var result: [String: [String]] = [:]
-        for skillID in tagService.allAssignedSkillIDs() {
-            result[skillID] = tagService.tags(forSkillID: skillID)
+        let revision = tagService.storeRevision()
+        if let cache = tagsSnapshot, cache.revision == revision {
+            return cache.map
         }
-        return result
+        let map = tagService.assignedTagsBySkill()
+        tagsSnapshot = (revision: revision, map: map)
+        return map
     }
+
+    private var tagsSnapshot: (revision: Int, map: [String: [String]])?
 
     /// Reduce Motion 策略：用户设置覆盖优先，未覆盖时跟随系统辅助功能设置。
     var motionPolicy: MotionPolicy {
@@ -300,24 +306,4 @@ private func translateLifecycle(_ error: SkillLifecycleError) -> OperationError 
     }
 }
 
-/// 扫描后同步 catalog 快照的 runner 装饰器（ChangePipeline 与操作完成共用一条路径）。
-final class CatalogSyncingRunner: ScanRunning, @unchecked Sendable {
-    private let upstream: InfraScanRunner
-    private let catalogStore: CatalogStore
 
-    init(upstream: InfraScanRunner, catalogStore: CatalogStore) {
-        self.upstream = upstream
-        self.catalogStore = catalogStore
-    }
-
-    func run(projectRoots: [ProjectRoot]) async throws -> ScanReport {
-        let report = try await upstream.run(projectRoots: projectRoots)
-        let skills = CatalogBuilder().build(agents: report.agents)
-        let store = catalogStore
-        let snapshot = skills
-        Task { @MainActor in
-            store.sync(with: snapshot)
-        }
-        return report
-    }
-}

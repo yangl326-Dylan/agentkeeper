@@ -35,3 +35,26 @@ public struct InfraScanRunner: ScanRunning {
         return await scheduler.scanAll(knownProjectRoots: mergedRoots)
     }
 }
+
+/// 扫描后同步 catalog 快照的 runner 装饰器（ChangePipeline 与操作完成共用一条路径）。
+public final class CatalogSyncingRunner: ScanRunning, @unchecked Sendable {
+    private let upstream: ScanRunning
+    private let catalogStore: CatalogStore
+
+    public init(upstream: ScanRunning, catalogStore: CatalogStore) {
+        self.upstream = upstream
+        self.catalogStore = catalogStore
+    }
+
+    public func run(projectRoots: [ProjectRoot]) async throws -> ScanReport {
+        let report = try await upstream.run(projectRoots: projectRoots)
+        let skills = CatalogBuilder().build(agents: report.agents)
+        let store = catalogStore
+        let snapshot = skills
+        // 确定性同步 hop（Task 脱管会让 sync 与下游断言/读取产生竞态；sync 本身写库走索引队列不阻塞主线程）
+        await MainActor.run {
+            store.sync(with: snapshot)
+        }
+        return report
+    }
+}

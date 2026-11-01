@@ -174,10 +174,11 @@ struct OverviewContent: View {
 }
 
 extension OverviewDashboard {
+    private static let clockFormatter = DateFormatter()
+
     static func clockText(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.string(from: date)
+        clockFormatter.dateFormat = "HH:mm:ss"
+        return clockFormatter.string(from: date)
     }
 }
 

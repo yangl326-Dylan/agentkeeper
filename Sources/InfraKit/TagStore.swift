@@ -19,6 +19,8 @@ public final class TagStore: @unchecked Sendable {
     private let fileURL: URL
     private let queue = DispatchQueue(label: "agentkeeper.tagstore")
     private var payload: Payload
+    /// 每次写盘后自增（UI/派生数据缓存失效用）。
+    public private(set) var revision: Int = 0
 
     public init(directory: URL) {
         self.fileURL = directory.appendingPathComponent("tags.json")
@@ -144,10 +146,18 @@ public final class TagStore: @unchecked Sendable {
     }
 
     private func persistLocked() {
+        revision += 1
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         if let data = try? encoder.encode(payload) {
             try? data.write(to: fileURL, options: .atomic)
+        }
+    }
+
+    /// 全表标签映射快照（一次进队取完——供缓存派生，避免逐 skillID N 次锁往返）。
+    public func assignedTagsBySkill() -> [String: [String]] {
+        queue.sync {
+            payload.assignments.mapValues { Array($0).sorted() }
         }
     }
 }

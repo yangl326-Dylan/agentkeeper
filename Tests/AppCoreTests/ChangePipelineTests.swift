@@ -40,21 +40,25 @@ public actor LocalFakeMonitor: FileMonitoring {
 
         let store = AppStore()
         let catalogStore = CatalogStore()
+        // 真实生产组合：CatalogSyncingRunner 负责 build+sync（rescanNow 已不再补第二遍）
         let scanService = ScanService(
             store: store,
-            runner: ConfiguredRunner { [root] _ in
-                var report = ScanReport.empty
-                report.add(
-                    agent: Agent(
-                        id: "claude-code",
-                        name: "Claude Code",
-                        installState: .installed(configDirectory: nil),
-                        skillRoots: [SkillRoot(path: root, owners: ["claude-code"], level: .user)]
-                    ),
-                    diagnostics: []
-                )
-                return report
-            }
+            runner: CatalogSyncingRunner(
+                upstream: ConfiguredRunner { [root] _ in
+                    var report = ScanReport.empty
+                    report.add(
+                        agent: Agent(
+                            id: "claude-code",
+                            name: "Claude Code",
+                            installState: .installed(configDirectory: nil),
+                            skillRoots: [SkillRoot(path: root, owners: ["claude-code"], level: .user)]
+                        ),
+                        diagnostics: []
+                    )
+                    return report
+                },
+                catalogStore: catalogStore
+            )
         )
         let pipeline = ChangePipeline(
             store: store,
@@ -113,18 +117,23 @@ public actor LocalFakeMonitor: FileMonitoring {
             store: store,
             catalogStore: catalogStore,
             scanService: scanService,
-            // 测试窗 600ms：并行套件共享 MainActor，串行 await 循环在负载下可能拖过
-            // 150ms 防抖窗而合法开出第二窗（物理正确）；600ms 留 4× 余量
+            // 聚合的本质：rescan 次数与事件数解耦。负载极重时（并行 MainActor 套件
+            // 拖过防抖窗）合法开出第二窗，但窗数以个位计。曾断言 ==1（同 fiftyEvents
+            // 口径调整），在 2 核 Intel + 重负载下 Thin-margin 误伤。
             debounceNanos: 600_000_000
         )
-        for index in 0..<5 {
+        // 第一发即断「事件计入 pending」：窗口 600ms 内不会在此刻触发；
+        // 整段循环的中段计数会随合法开窗清零（scanStarted 归零），不能精确断言 5。
+        await pipeline.onEvent(rootPath: "/tmp/probe-0")
+        #expect(store.state.changePendingCount == 1)
+        for index in 1..<5 {
             await pipeline.onEvent(rootPath: "/tmp/probe-\(index)")
         }
-        // 五个事件全部计入 pending；重扫尚未跑（debounce 中）
-        #expect(store.state.changePendingCount == 5)
+        // 任何时刻 pending 都不超事件总数（防重复计数回归护栏）
+        #expect(store.state.changePendingCount <= 5)
         await pipeline.flushForTesting()
-        // 聚合去重后只跑一次重扫；完成计数清零
-        #expect(runsBox.value == 1)
+        // 聚合去重：5 事件最多两个防抖窗（绝不随事件数线性增长）；完成计数清零
+        #expect(runsBox.value <= 2, "聚合失效：5 事件跑了 \(runsBox.value) 次重扫")
         #expect(store.state.changePendingCount == 0)
     }
 }

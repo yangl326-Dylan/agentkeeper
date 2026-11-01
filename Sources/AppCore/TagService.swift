@@ -94,6 +94,16 @@ public final class TagService: @unchecked Sendable {
         store.allAssignedSkillIDs()
     }
 
+    /// 标签存储版本号（缓存失效用，转发 TagStore）。
+    public func storeRevision() -> Int {
+        store.revision
+    }
+
+    /// 全表标签映射快照（一次进队取完，转发 TagStore）。
+    public func assignedTagsBySkill() -> [String: [String]] {
+        store.assignedTagsBySkill()
+    }
+
     /// catalog 中不存在、且不在禁用区的关联条目数。
     public func orphanCount(catalog: [Skill]) -> Int {
         orphanSkillIDs(catalog: catalog).count

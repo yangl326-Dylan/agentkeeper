@@ -9,7 +9,6 @@ public final class ChangePipeline {
     private let store: AppStore
     private let catalogStore: CatalogStore
     private let scanService: ScanService
-    private let builder: CatalogBuilder
     private let debounceNanos: UInt64
 
     private var rescanTask: Task<Void, Never>?
@@ -19,13 +18,11 @@ public final class ChangePipeline {
         store: AppStore,
         catalogStore: CatalogStore,
         scanService: ScanService,
-        builder: CatalogBuilder = CatalogBuilder(),
         debounceNanos: UInt64 = 500_000_000
     ) {
         self.store = store
         self.catalogStore = catalogStore
         self.scanService = scanService
-        self.builder = builder
         self.debounceNanos = debounceNanos
     }
 
@@ -63,10 +60,10 @@ public final class ChangePipeline {
     }
 
     /// 立即重扫并按磁盘真相同步 catalog。
+    /// runner（CatalogSyncingRunner）内部已做 build + sync——这里不再重复第二遍
+    /// 全树遍历/哈希（曾使每次外部变更的全量成本 ×2，且第二遍压在 MainActor）。
     public func rescanNow() async {
         pendingEvents.removeAll()
         await scanService.runScan(projectRoots: [])
-        let skills = builder.build(agents: store.state.agents)
-        catalogStore.sync(with: skills)
     }
 }
