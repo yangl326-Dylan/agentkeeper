@@ -222,12 +222,6 @@ public enum Fingerprint {
             )
         }
         return DirectoryFingerprint(sha256: sha, regularFiles: sortedFiles)
-        cache.miss(
-            directoryPath: directoryPath,
-            signature: signature,
-            sha256: sha
-        )
-        return DirectoryFingerprint(sha256: sha, regularFiles: sortedFiles)
     }
 
     private static func hasherHex(_ hasher: SHA256) -> String {
