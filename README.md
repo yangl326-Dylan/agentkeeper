@@ -3,7 +3,7 @@
 [![CI](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%2015+-black)
-![Tests](https://img.shields.io/badge/tests-276%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-279%20passing-brightgreen)
 
 [中文](#中文) | [English](#english)
 
@@ -39,14 +39,26 @@ AgentKeeper 解决这三件事：**统一目录 → 分歧检测 → 安全停�
 
 ## 安装
 
+**(1) 一键安装 Release 产物（推荐，universal 双架构）**：直接下载 [v0.1.0 Release](https://github.com/yangl326-Dylan/agentkeeper/releases/latest) 或复制命令块——
+
 ```bash
-# 暂未上架 Homebrew，先从源码构建（需 Swift 6.0+ / macOS 15+）
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-macos.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+**(2) 从源码构建**（需要 Swift 6.0+ / macOS 15+）：
+
+```bash
 git clone https://github.com/yangl326-Dylan/agentkeeper.git
 cd agentkeeper
-scripts/build-app.sh debug   # 构建 AgentKeeper.app
-swift build                  # 构建 CLI
-.build/debug/ak doctor       # 检查本机 agent 安装状态
+scripts/build-app.sh release   # 构建 AgentKeeper.app
+swift build -c release         # 构建 ak CLI
+.build/release/ak doctor       # 检查本机 agent 安装状态
 ```
+
+📄 完整安装文档（含 App 安装、未公证构建的处理）：[INSTALL.md](INSTALL.md)
+🤖 给 AI agent 的安装与使用说明：[AGENTS.md](AGENTS.md)
 
 ## CLI 速览
 
@@ -66,7 +78,7 @@ opencode             installed      32
 ## 开发
 
 ```bash
-swift test        # 276 个测试（TDD 全覆盖）
+swift test        # 279 个测试（TDD 全覆盖）
 swift build       # 全部 target（GUI + ak CLI）
 ```
 
@@ -126,20 +138,31 @@ AgentKeeper fixes exactly this: **unified catalog → drift detection → safe d
 
 ## Install
 
-Requires Swift 6.0+ / macOS 15+. (Homebrew cask coming soon.)
+**(1) One-shot release install (recommended, universal binary)** — grab the [latest release](https://github.com/yangl326-Dylan/agentkeeper/releases/latest) or paste:
+
+```bash
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-macos.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+**(2) Build from source** — Swift 6.0+ / macOS 15+. (Homebrew cask coming soon.)
 
 ```bash
 git clone https://github.com/yangl326-Dylan/agentkeeper.git
 cd agentkeeper
-scripts/build-app.sh debug   # GUI app
-swift build                  # CLI
-.build/debug/ak doctor
+scripts/build-app.sh release   # GUI app
+swift build -c release         # ak CLI
+.build/release/ak doctor
 ```
+
+📄 Full install guide (App setup, Gatekeeper workaround): [INSTALL.md](INSTALL.md)
+🤖 Instructions for AI agents installing/using `ak`: [AGENTS.md](AGENTS.md)
 
 ## Development
 
 ```bash
-swift test   # 276 tests, full TDD coverage
+swift test   # 279 tests, full TDD coverage
 ```
 
 ## Contributing

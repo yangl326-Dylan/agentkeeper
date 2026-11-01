@@ -61,11 +61,13 @@ jobs:
       - name: Build release binaries
         run: |
           set -euo pipefail
-          swift build -c release
+          # UNIVERSAL=1:发布产物 arm64+x86_64 双架构(所有 Mac 用户可用)
+          export UNIVERSAL=1
+          swift build -c release --arch arm64 --arch x86_64
           scripts/build-app.sh release
           mkdir -p dist
-          # 产物路径随三元组变化（CI 为 arm64-apple-macosx），必须用 --show-bin-path 取
-          BIN_DIR="$(swift build -c release --show-bin-path)"
+          # universal 产物在 .build/apple/Products/Release；路径必须用 --show-bin-path 取
+          BIN_DIR="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)"
           cp "$BIN_DIR/ak" dist/ak
           (cd dist && zip -qry ../AgentKeeper-cli-macos.zip ak -x '*.DS_Store')
           zip -qry AgentKeeper-app-macos.zip AgentKeeper.app

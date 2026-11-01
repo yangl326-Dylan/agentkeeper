@@ -5,7 +5,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 CONFIG="${1:-debug}"
-swift build -c "$CONFIG"
+# UNIVERSAL=1:构建 arm64+x86_64 双架构产物(发布用;本地默认走原生单架构更快)
+ARCH_FLAGS=()
+if [ "${UNIVERSAL:-0}" = "1" ]; then
+    ARCH_FLAGS=(--arch arm64 --arch x86_64)
+fi
+swift build -c "$CONFIG" "${ARCH_FLAGS[@]}"
 
 # 图标：引导页同款「带箭头的箱子」+ Claude 色系（母版变更时重生成）
 if [ ! -f build/AppIcon.icns ] || [ scripts/gen-icon.swift -nt build/AppIcon.icns ]; then
@@ -19,7 +24,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-BIN_DIR="$(swift build -c "$CONFIG" --show-bin-path)"
+BIN_DIR="$(swift build -c "$CONFIG" "${ARCH_FLAGS[@]}" --show-bin-path)"
 cp "$BIN_DIR/AgentKeeper" "$APP/Contents/MacOS/AgentKeeper"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
