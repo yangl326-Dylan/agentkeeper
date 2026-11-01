@@ -25,9 +25,15 @@ jobs:
         run: "! grep -E 'warning:' build.log"
 
       - name: Test
-        # --serialize：规避 CI（macos-15 2 vCPU + runner 工具链）上 MainActor 测试偶发
-        # 调度死锁（OperationServiceTests 首挂实证，本机并行恒过）。串行全量约 +1min。
-        run: swift test --verbose
+        # macos-15 runner 上 swift-testing 执行器偶发整进程楔死（曾实证两轮挂起，
+        # 且楔死集合横跨纯同步测试——执行器级 flake，非测试缺陷）。自动重试一次，
+        # 重开进程即恢复；timeout_minutes 内未完成按失败处理。
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 2
+          retry_wait_seconds: 5
+          timeout_minutes: 12
+          command: swift test --verbose
 
       - name: Build GUI app bundle
         run: scripts/build-app.sh release
