@@ -1,5 +1,10 @@
 name: CI
 
+# Release 用 softprops/action-gh-release 创建 Release 需要 contents 写权限
+# （默认 GITHUB_TOKEN 只读 → "Resource not accessible by integration"）。
+permissions:
+  contents: write
+
 on:
   push:
     branches: [main]
