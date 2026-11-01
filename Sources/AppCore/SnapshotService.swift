@@ -21,8 +21,11 @@ public final class SnapshotService {
     }
 
     /// 指纹变化才落快照；重复同指纹是幂等 no-op。
+    /// record 内部做整树指纹+拷贝（I/O）——与 restore 同法移出 MainActor（曾压在主线程）。
     public func autoSnapshot(skill: Skill, directory: URL) async throws {
-        let metadata = try snapshots.record(skillID: skill.id, directory: directory)
+        let metadata = try await Task.detached(priority: .userInitiated) { [snapshots] in
+            try snapshots.record(skillID: skill.id, directory: directory)
+        }.value
         if metadata == nil {
             // 同指纹已有快照：不重复记录历史
             return

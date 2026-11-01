@@ -21,8 +21,10 @@ public final class CatalogStore {
     }
 
     /// 与最近一次扫描结果对齐（磁盘真相下发到快照与缓存）。
+    /// 内存快照同步即回（主线程）；索引写盘走后台队列（不阻塞 MainActor——
+    /// 曾此处同步写 SQLite 每次外部变更都钉住主线程）。
     public func sync(with skills: [Skill]) {
         current = skills
-        index?.replaceAll(skills)
+        index?.replace(skills)
     }
 }

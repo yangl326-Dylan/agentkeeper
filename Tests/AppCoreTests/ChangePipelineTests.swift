@@ -136,6 +136,69 @@ public actor LocalFakeMonitor: FileMonitoring {
         #expect(runsBox.value <= 2, "聚合失效：5 事件跑了 \(runsBox.value) 次重扫")
         #expect(store.state.changePendingCount == 0)
     }
+
+    /// 自反馈扫描过滤：staging/让位/备份区事件不触发重扫也不想 pending 计数——
+    /// install/禁用/快照流程写自己的过渡目录曾被 FSEvents 弹回全量重扫（风暴循环）。
+    @Test func stagingPrefixEventsDoNotTriggerRescan() async {
+        let store = AppStore()
+        let catalogStore = CatalogStore()
+        let runsBox = IntegerBox()
+        let scanService = ScanService(
+            store: store,
+            runner: ConfiguredRunner { _ in
+                runsBox.increment()
+                return ScanReport.empty
+            }
+        )
+        let pipeline = ChangePipeline(
+            store: store,
+            catalogStore: catalogStore,
+            scanService: scanService,
+            debounceNanos: 50_000_000
+        )
+
+        let skipped = [
+            "/root/claude/.ak-stage-abc123/skill",
+            "/root/claude/skills/.ak-old-alpha-claude-code",
+            "/root/claude/skills/.keeper-backup-xyz/alpha",
+        ]
+        for path in skipped {
+            await pipeline.onEvent(rootPath: path)
+        }
+        await pipeline.flushForTesting()
+        #expect(runsBox.value == 0, "过渡目录事件触发了重扫 (\(runsBox.value))")
+        #expect(store.state.changePendingCount == 0)
+
+        // 正常事件照旧触发
+        await pipeline.onEvent(rootPath: "/root/claude/skills/alpha")
+        await pipeline.flushForTesting()
+        #expect(runsBox.value == 1)
+        #expect(store.state.changePendingCount == 0)
+    }
+
+    /// 边沿：多组件路径嵌在深层也要拦（前缀匹配按路径组件 basename 判）。
+    @Test func stagingPrefixMatchesDeepComponents() async {
+        let store = AppStore()
+        let catalogStore = CatalogStore()
+        let runsBox = IntegerBox()
+        let scanService = ScanService(
+            store: store,
+            runner: ConfiguredRunner { _ in
+                runsBox.increment()
+                return ScanReport.empty
+            }
+        )
+        let pipeline = ChangePipeline(
+            store: store,
+            catalogStore: catalogStore,
+            scanService: scanService,
+            debounceNanos: 50_000_000
+        )
+        await pipeline.onEvent(rootPath: "/root/a/b/c/.ak-stage-987/sub/deeper")
+        await pipeline.flushForTesting()
+        #expect(runsBox.value == 0)
+        #expect(store.state.changePendingCount == 0)
+    }
 }
 
 final class IntegerBox: @unchecked Sendable {

@@ -66,7 +66,46 @@ import DomainKit
         await service.rescanAfterScopeChange(added: [ProjectRoot(path: "/Users/x/code/beta")])
         #expect(runs == 2)
     }
+
+    /// 并发重入门禁：首次扫描进行中的第二次 runScan 不再触发第二个 runner run
+    ///（menu 快捷键 + FSEvents 防抖窗外扫描曾双开；全树哈希双倍成本 + 状态抖动）。
+    @Test func concurrentRunScanCollapsesToSingleRunnerRun() async {
+        let store = AppStore()
+        let reports = sampleReport
+        final class RunsBox: @unchecked Sendable {
+            private let lock = NSLock()
+            private var value_ = 0
+            var value: Int {
+                lock.withLock { value_ }
+            }
+            func increment() {
+                lock.withLock { value_ += 1 }
+            }
+        }
+        let runs = RunsBox()
+        let runner = ConfiguredRunner { _ in
+            runs.increment()
+            // 首跑挂起，给并发第二调用开窗
+            try? await Task.sleep(nanoseconds: 200_000_000)
+            return reports
+        }
+        let service = ScanService(store: store, runner: runner)
+
+        async let first = service.runScan(projectRoots: [])
+        // 等 started 落地（否则第二调用可能在门禁生效前进入）
+        while store.state.scan.phase != .running {
+            try? await Task.sleep(nanoseconds: 2_000_000)
+        }
+        async let second = service.runScan(projectRoots: [])
+        let secondExecuted = await second
+        _ = await first
+
+        #expect(runs.value == 1, "并发双开导致 runner 跑了 \(runs.value) 次")
+        #expect(!secondExecuted, "并发第二调用应被门禁等待而非二次执行")
+        #expect(store.state.scan.phase == .complete)
+    }
 }
+
 
 /// 测试用配置式 runner。
 final class ConfiguredRunner: ScanRunning, @unchecked Sendable {

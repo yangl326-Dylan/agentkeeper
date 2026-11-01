@@ -9,6 +9,8 @@ public final class SkillIndex: @unchecked Sendable {
     private var db: OpaquePointer?
     private let databaseFile: URL
     private let queue = DispatchQueue(label: "agentkeeper.skillindex")
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
 
     public init(databaseDirectory: URL) {
         self.databaseFile = databaseDirectory.appendingPathComponent("skills.db")
@@ -47,23 +49,51 @@ public final class SkillIndex: @unchecked Sendable {
 
     // MARK: - 操作
 
+    /// rollback 等失败处理通常无需看结果——加 discardable 防告警。
+    @discardableResult
+    private func checkedExec(_ sql: String) -> Bool {
+        guard let db else { return false }
+        return sqlite3_exec(db, sql, nil, nil, nil) == SQLITE_OK
+    }
+
+    /// INSERT statement（同一事务内 prepare 一次、行间 reset 复用、事务末 finalize）。
+    /// step 返回码必查——写失败不静默吞行。
+    private func insertAndStep(_ skill: Skill, statement: OpaquePointer) -> Bool {
+        sqlite3_reset(statement)
+        sqlite3_clear_bindings(statement)
+        sqlite3_bind_text(statement, 1, skill.id, -1, SQLITE_TRANSIENT)
+        guard let payload = try? encoder.encode(skill) else { return false }
+        let bindOk = payload.withUnsafeBytes { buffer -> Bool in
+            return sqlite3_bind_blob(statement, 2, buffer.baseAddress, Int32(buffer.count), SQLITE_TRANSIENT)
+                == SQLITE_OK
+        }
+        guard bindOk else { return false }
+        return sqlite3_step(statement) == SQLITE_DONE
+    }
+
+    private func preparedInsert() -> OpaquePointer? {
+        guard let db else { return nil }
+        var statement: OpaquePointer?
+        let sql = "INSERT OR REPLACE INTO skills (id, payload) VALUES (?, ?)"
+        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK, let statement else { return nil }
+        return statement
+    }
+
     public func upsert(_ skills: [Skill]) {
         queue.sync {
-            guard let db else { return }
-            exec("BEGIN TRANSACTION")
+            guard db != nil else { return }
+            guard let statement = preparedInsert() else { return }
+            defer { sqlite3_finalize(statement) }
+            guard checkedExec("BEGIN TRANSACTION") else { return }
             for skill in skills {
-                guard let payload = try? JSONEncoder().encode(skill) else { continue }
-                var statement: OpaquePointer?
-                let sql = "INSERT OR REPLACE INTO skills (id, payload) VALUES (?, ?)"
-                guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else { continue }
-                defer { sqlite3_finalize(statement) }
-                sqlite3_bind_text(statement, 1, skill.id, -1, SQLITE_TRANSIENT)
-                payload.withUnsafeBytes { buffer in
-                    _ = sqlite3_bind_blob(statement, 2, buffer.baseAddress, Int32(buffer.count), SQLITE_TRANSIENT)
+                guard insertAndStep(skill, statement: statement) else {
+                    checkedExec("ROLLBACK")
+                    return
                 }
-                sqlite3_step(statement)
             }
-            exec("COMMIT")
+            if !checkedExec("COMMIT") {
+                checkedExec("ROLLBACK")
+            }
         }
     }
 
@@ -72,7 +102,8 @@ public final class SkillIndex: @unchecked Sendable {
             guard let db else { return [] }
             var skills: [Skill] = []
             var statement: OpaquePointer?
-            guard sqlite3_prepare_v2(db, "SELECT payload FROM skills", -1, &statement, nil) == SQLITE_OK else {
+            guard sqlite3_prepare_v2(db, "SELECT payload FROM skills", -1, &statement, nil) == SQLITE_OK,
+                  let statement else {
                 return []
             }
             defer { sqlite3_finalize(statement) }
@@ -80,7 +111,7 @@ public final class SkillIndex: @unchecked Sendable {
                 guard let pointer = sqlite3_column_blob(statement, 0) else { continue }
                 let count = Int(sqlite3_column_bytes(statement, 0))
                 let data = Data(bytes: pointer, count: count)
-                if let skill = try? JSONDecoder().decode(Skill.self, from: data) {
+                if let skill = try? decoder.decode(Skill.self, from: data) {
                     skills.append(skill)
                 }
             }
@@ -88,15 +119,40 @@ public final class SkillIndex: @unchecked Sendable {
         }
     }
 
-    /// 全量替换（索引纠偏主通道）。
+    /// 同步全量替换（索引纠偏主通道；测试与显式等待场景用）。
     public func replaceAll(_ skills: [Skill]) {
         queue.sync {
-            guard db != nil else { return }
-            exec("BEGIN TRANSACTION")
-            exec("DELETE FROM skills")
-            exec("COMMIT")
+            performReplace(skills)
         }
-        upsert(skills)
+    }
+
+    /// 异步全量替换（生产主通道：CatalogStore.sync 在 MainActor 上调用，写盘不阻塞主线程）。
+    /// queue 串行保证与 all() 读天然互斥；多连发收敛于最后一次写入。
+    public func replace(_ skills: [Skill]) {
+        queue.async { [weak self] in
+            self?.performReplace(skills)
+        }
+    }
+
+    /// 单事务全量替换（DELETE+插入原子——曾拆两段提交，中途可读到空表且崩溃丢全索引）。
+    private func performReplace(_ skills: [Skill]) {
+        guard db != nil else { return }
+        guard let statement = preparedInsert() else { return }
+        defer { sqlite3_finalize(statement) }
+        guard checkedExec("BEGIN IMMEDIATE TRANSACTION") else { return }
+        guard checkedExec("DELETE FROM skills") else {
+            checkedExec("ROLLBACK")
+            return
+        }
+        for skill in skills {
+            guard insertAndStep(skill, statement: statement) else {
+                checkedExec("ROLLBACK")
+                return
+            }
+        }
+        if !checkedExec("COMMIT") {
+            checkedExec("ROLLBACK")
+        }
     }
 
     /// 完整性检查。

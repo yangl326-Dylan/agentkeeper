@@ -35,8 +35,21 @@ public final class ChangePipeline {
         await monitor.start(watchingRoots: unique)
     }
 
+    /// 事件过滤：自建目录的过渡文件不触发全量重扫——install staging（.ak-stage-）、
+    /// 禁用/快照让位（.ak-old-）、备份区（.keeper-backup-）写盘曾被 FSEvents 弹回
+    /// 全量重扫（自反馈扫描风暴）。按路径组件 basename 前缀判（嵌套深层也拦）。
+    private static let transientPrefixes = [".ak-stage-", ".ak-old-", ".keeper-backup-"]
+
+    static func isTransientEvent(_ path: String) -> Bool {
+        let components = path.split(separator: "/")
+        return components.contains { component in
+            transientPrefixes.contains { component.hasPrefix($0) }
+        }
+    }
+
     /// 单个事件入口（monitor 回调）。
     public func onEvent(rootPath: String) async {
+        guard !Self.isTransientEvent(rootPath) else { return }
         pendingEvents.append(rootPath)
         await store.dispatch(.externalChangeDetected(paths: [rootPath]))
         rescanTask?.cancel()
@@ -60,10 +73,13 @@ public final class ChangePipeline {
     }
 
     /// 立即重扫并按磁盘真相同步 catalog。
-    /// runner（CatalogSyncingRunner）内部已做 build + sync——这里不再重复第二遍
-    /// 全树遍历/哈希（曾使每次外部变更的全量成本 ×2，且第二遍压在 MainActor）。
+    /// runner（CatalogSyncingRunner）内部已做 build + sync——不再重复第二遍
+    /// 全树遍历/哈希。门禁在途时：等待收敛后补一扫（在途快照不含这批事件）。
     public func rescanNow() async {
+        let executed = await scanService.runScan(projectRoots: [])
+        if !executed {
+            _ = await scanService.runScan(projectRoots: [])
+        }
         pendingEvents.removeAll()
-        await scanService.runScan(projectRoots: [])
     }
 }

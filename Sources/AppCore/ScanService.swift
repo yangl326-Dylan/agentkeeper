@@ -6,6 +6,8 @@ import DomainKit
 public final class ScanService {
     private let store: AppStore
     private let runner: ScanRunning
+    private var inFlight = false
+    private var inFlightWaiters: [CheckedContinuation<Void, Never>] = []
 
     public init(store: AppStore, runner: ScanRunning) {
         self.store = store
@@ -13,7 +15,25 @@ public final class ScanService {
     }
 
     /// 执行一次全量扫描；用于首启、手动触发与菜单栏快捷扫描。
-    public func runScan(projectRoots: [ProjectRoot] = []) async {
+    /// 重入门禁：扫描已在进行时**等待在途收敛后返回 false（未执行）**——
+    /// menu 快捷键连点 / FSEvents 窗外扫描曾双开 runner（全树哈希双倍成本 + 状态抖动），
+    /// 现在并发调用只有一个真正的 runner run，且调用方能够感知"未执行"以便补扫。
+    @discardableResult
+    public func runScan(projectRoots: [ProjectRoot] = []) async -> Bool {
+        if inFlight {
+            // 等待在途扫描收敛（MainActor 串行化下安全）
+            await withCheckedContinuation { continuation in
+                inFlightWaiters.append(continuation)
+            }
+            return false
+        }
+        inFlight = true
+        defer {
+            inFlight = false
+            let waiters = inFlightWaiters
+            inFlightWaiters = []
+            for waiter in waiters { waiter.resume() }
+        }
         await store.dispatch(.scanStarted)
         do {
             let report = try await runner.run(projectRoots: projectRoots)
@@ -21,6 +41,7 @@ public final class ScanService {
         } catch {
             await store.dispatch(.scanFailed(message: errorFriendly(error)))
         }
+        return true
     }
 
     /// 扫描范围（项目根）变化后的重扫入口（spec：范围变更 MUST 触发重新扫描）。

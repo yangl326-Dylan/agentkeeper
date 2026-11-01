@@ -70,7 +70,16 @@ import InfraKit
 }
 
 @Suite @MainActor struct CatalogStoreTests {
-    @Test func syncPersistsToIndexAndReloadsWillCache() {
+    /// 异步索引写落地等待（sync 改走后台队列后，持久化断言改为收敛轮询）。
+    private func waitUntilIndexLanded(_ index: SkillIndex, count: Int, timeout: TimeInterval = 2) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if index.all().count == count { return }
+            Thread.sleep(forTimeInterval: 0.01)
+        }
+    }
+
+    @Test func syncPersistsToIndexAndReloadsWillCache() async {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("ak-catalog-\(UUID().uuidString)", isDirectory: true)
         let index = SkillIndex(databaseDirectory: dir)
@@ -79,7 +88,8 @@ import InfraKit
         store.sync(with: [alpha])
         #expect(store.current.count == 1)
 
-        // 从缓存重建的 store 恢复条目（应用重启场景）
+        // 异步写盘落地后从缓存重建（应用重启场景）
+        waitUntilIndexLanded(index, count: 1)
         let reopened = CatalogStore(index: SkillIndex(databaseDirectory: dir))
         #expect(reopened.current.count == 1)
         #expect(reopened.current[0].name == "alpha")

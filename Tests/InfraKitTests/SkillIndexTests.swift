@@ -50,6 +50,51 @@ import DomainKit
         #expect(index.all()[0].name == "fresh")
     }
 
+    /// 异步全量替换：调用方不阻塞（MainActor 上 CatalogStore.sync 用），
+    /// 落地后语义与同步 replaceAll 一致（单事务原子删除+插入）。
+    @Test func asyncReplaceEventuallyMatchesSyncSemantics() async {
+        let (index, _) = makeIndex()
+        index.upsert([
+            sampleSkill("stale-a", agent: "claude-code", scope: .agentOnly(agentID: "claude-code"), sha: "old"),
+            sampleSkill("stale-b", agent: "opencode", scope: .global(owners: ["opencode"]), sha: "old")
+        ])
+
+        index.replace([
+            sampleSkill("fresh", agent: "claude-code", scope: .multiAgent(["claude-code", "opencode"]), sha: "new")
+        ])
+
+        // 异步落地：轮询全量一致（queue 串行化的最终态；不设墙钟上界防 CI 负载误伤）
+        var landed = [Skill]()
+        for _ in 0..<300 {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+            landed = index.all()
+            if landed.count == 1, landed.first?.name == "fresh" { break }
+        }
+        #expect(landed.count == 1)
+        #expect(landed.first?.sha256 == "new")
+        #expect(landed.first?.scope != nil)
+        #expect(index.integrity())
+    }
+
+    /// 连发多次 replace：最终态收敛到最后一次写入（无交错撕裂）。
+    @Test func rapidAsyncReplacesCollapseToLastWrite() async {
+        let (index, _) = makeIndex()
+        for round in 0..<5 {
+            index.replace([
+                sampleSkill("round-\(round)", agent: "claude-code", scope: .agentOnly(agentID: "claude-code"), sha: "r\(round)")
+            ])
+        }
+        var landed = [Skill]()
+        for _ in 0..<300 {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+            landed = index.all()
+            if landed.count == 1, landed[0].name == "round-4" { break }
+        }
+        #expect(landed.count == 1)
+        #expect(landed.first?.name == "round-4")
+        #expect(landed.first?.sha256 == "r4")
+    }
+
     @Test func upsertOverwritesSameID() {
         let (index, _) = makeIndex()
         index.upsert([sampleSkill("alpha", agent: "claude-code", scope: .agentOnly(agentID: "claude-code"), sha: "v1")])
