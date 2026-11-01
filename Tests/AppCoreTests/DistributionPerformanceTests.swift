@@ -12,7 +12,7 @@ import InfraKit
         defer { cleanup(home) }
         let store = TagStore(directory: home.appendingPathComponent("ak", isDirectory: true))
         let clock = ContinuousClock()
-        let elapsed = try clock.measure {
+        let elapsed = clock.measure {
             for index in 0..<100 {
                 let tag = "标签-\(index)"
                 store.addDefinition(tag)

@@ -67,9 +67,8 @@ import InfraKit
             catalogProvider: { [chosen, otherOne, bystander] in
                 [chosen, otherOne, bystander]
             },
-            rescan: { await rescanCounter.hit() }
+            rescan: { rescanCounter.hit() }
         )
-        let beforeOtherSha = otherOne.sha256
         let beforeBystanderSha = bystander.sha256
 
         let summary = await service.updateAllLandingPoints(from: chosen)
@@ -119,7 +118,7 @@ import InfraKit
             distributor: SkillDistributor(git: GitInstaller(baseDirectory: base)),
             disabledRoot: base.appendingPathComponent("disabled", isDirectory: true),
             catalogProvider: { [chosen, disabledSkill] in [chosen, disabledSkill] },
-            rescan: { await rescanCounter.hit() }
+            rescan: { rescanCounter.hit() }
         )
         let disabledSha = disabledSkill.sha256
 

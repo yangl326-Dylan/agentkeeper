@@ -36,7 +36,7 @@ import InfraKit
             history: history,
             distributor: SkillDistributor(git: GitInstaller(baseDirectory: base)),
             disabledRoot: base.appendingPathComponent("disabled", isDirectory: true),
-            rescan: { await rescanCounter.hit() }
+            rescan: { rescanCounter.hit() }
         )
 
         #expect(store.state.operation.inFlight == nil)
@@ -69,7 +69,7 @@ import InfraKit
             history: history,
             distributor: SkillDistributor(git: GitInstaller(baseDirectory: base)),
             disabledRoot: base.appendingPathComponent("disabled", isDirectory: true),
-            rescan: { await rescanCounter.hit() }
+            rescan: { rescanCounter.hit() }
         )
         await service.install(
             source: .localDirectory(path: home.appendingPathComponent("nope").path),
