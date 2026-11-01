@@ -62,10 +62,15 @@ public struct MenuSummarySection: View {
         .frame(width: 260)
     }
 
-    /// 该 agent 的第一个 skill 根目录（Finder 定位用；无则 nil，行不可点）。
+    /// 定位目录：skill 根目录优先，为空回落 agent 配置目录（保证行可点）。
     private func skillRootDirectory(for agentID: AgentID) -> URL? {
-        env.store.state.agents
-            .first(where: { $0.id == agentID })?
-            .skillRoots.first?.path
+        guard let agent = env.store.state.agents.first(where: { $0.id == agentID }) else { return nil }
+        if let root = agent.skillRoots.first?.path, FileManager.default.fileExists(atPath: root.path) {
+            return root
+        }
+        if case .installed(let configDirectory) = agent.installState, let configDirectory {
+            return configDirectory
+        }
+        return nil
     }
 }

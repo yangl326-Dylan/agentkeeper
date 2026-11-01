@@ -41,29 +41,32 @@ struct MenuBarAgentRow: View {
     @State private var hovering = false
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
-            Text(name)
-                .font(.system(size: 12))
-                .lineLimit(1)
-            Spacer()
-            Text("\(skillCount)")
-                .font(.system(size: 11))
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 5)
-        .background(hovering ? Color(nsColor: .secondarySystemFill) : .clear)
-        .contentShape(Rectangle())
-        .onHover { hovering = $0 }
-        .onTapGesture {
+        Button {
             guard let targetDirectory else { return }
             NSWorkspace.shared.activateFileViewerSelecting([targetDirectory])
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 16)
+                Text(name)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                Spacer()
+                Text("\(skillCount)")
+                    .font(.system(size: 11))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(hovering ? Color(nsColor: .secondarySystemFill) : .clear)
+            .contentShape(Rectangle())
+            .onHover { hovering = $0 }
         }
+        .buttonStyle(.plain)
+        .disabled(targetDirectory == nil)
         .help("在 Finder 中打开该 agent 的 skills 目录")
     }
 }
