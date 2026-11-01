@@ -32,6 +32,10 @@ import AppCore
         let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds)!
         hosting.cacheDisplay(in: hosting.bounds, to: rep)
         let png: Data = rep.representation(using: .png, properties: [:])!
+        // CI 干净环境：目录不存在会写失败（本机曾因残留目录而掩盖此问题）
+        try FileManager.default.createDirectory(
+            atPath: "/tmp/ak-ui", withIntermediateDirectories: true
+        )
         try png.write(to: URL(fileURLWithPath: "/tmp/ak-ui/probe-J.png"))
     }
 }
