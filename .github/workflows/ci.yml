@@ -27,7 +27,7 @@ jobs:
       - name: Test
         # --serialize：规避 CI（macos-15 2 vCPU + runner 工具链）上 MainActor 测试偶发
         # 调度死锁（OperationServiceTests 首挂实证，本机并行恒过）。串行全量约 +1min。
-        run: swift test --num-workers 1 --verbose
+        run: swift test --verbose
 
       - name: Build GUI app bundle
         run: scripts/build-app.sh release
