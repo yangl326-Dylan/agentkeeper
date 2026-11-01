@@ -3,7 +3,10 @@ import Testing
 import DomainKit
 @testable import AppCore
 
-@Suite @MainActor struct OperationServiceTests {
+/// .timeLimit：本套件曾在 CI（macos-15 runner）发生 MainActor 调度挂起（本机恒过）——
+/// 限时把「静默挂死 25min」转化为精确的超时报告并可放行其余测试。
+/// .serialized：同套件内消除并发交织变量。
+@Suite(.serialized, .timeLimit(.minutes(1))) @MainActor struct OperationServiceTests {
     private var sampleSkill: Skill {
         Skill(
             id: "alpha|claude-code",
