@@ -44,9 +44,13 @@ struct AgentKeeperApp: App {
                 .preferredColorScheme(env.settings.effectiveColorScheme)
         }
 
-        // 菜单栏与 App 图标同款「带箭头的箱子」
-        MenuBarExtra("AgentKeeper", systemImage: "shippingbox.and.arrow.backward.fill") {
+        // 菜单栏：自定义「收藏匣」template 字形（MenuBarIconTests 覆盖）——
+        // SF 同款箱子仅是符号近似；闭包 label 携带 NSImage(template) 系统明暗自适应
+        MenuBarExtra {
             MenuSummarySection(env: env)
+        } label: {
+            Image(nsImage: MenuBarIcon.templateImage())
+                .accessibilityLabel("AgentKeeper")
         }
     }
 }
