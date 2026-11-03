@@ -29,6 +29,41 @@ public final class AppEnvironment {
 
     /// 当前 agent 筛选（侧栏 Agents 点击；nil = 全部）。
     public var selectedAgent: AgentID?
+    /// 生命周期区选择（停用区/回收站）——与 agent 筛选互斥；点同区取消。
+    public var selectedZone: LifecycleZone?
+
+    /// 区内容版本号（任何区操作后自增）——侧栏计数与区列表以此为失效键，
+    /// 避免逐帧枚举 manifest（fs IO）。
+    public var zoneRevision: Int = 0
+
+    @ObservationIgnored private var zoneCache: (revision: Int, disabled: [ZoneRowModel], trashed: [ZoneRowModel])?
+
+    /// 停用区行（memoize；zoneRevision 变更后重枚举）。
+    public func disabledZoneRows() -> [ZoneRowModel] {
+        zoneRows(zone: .disabled)
+    }
+
+    /// 回收站行（memoize 同上）。
+    public func trashedZoneRows() -> [ZoneRowModel] {
+        zoneRows(zone: .trash)
+    }
+
+    private func zoneRows(zone: LifecycleZone) -> [ZoneRowModel] {
+        if let cache = zoneCache, cache.revision == zoneRevision {
+            return zone == .disabled ? cache.disabled : cache.trashed
+        }
+        let lifecycle = self.lifecycle
+        let disabled = (try? lifecycle.disabledEntries()) ?? []
+        let trashed = (try? lifecycle.trashEntries()) ?? []
+        let disabledRows = ZoneListModel.build(entries: disabled)
+        let trashedRows = ZoneListModel.build(entries: trashed)
+        zoneCache = (zoneRevision, disabledRows, trashedRows)
+        return zone == .disabled ? disabledRows : trashedRows
+    }
+
+    private func bumpZones() {
+        zoneRevision += 1
+    }
 
     /// 当前作用域筛选（侧栏 Skills 节点击 + 工具栏筛选菜单共用；空 = 全部）。
     public var selectedScopes: Set<ScopeKind> = []
@@ -82,6 +117,13 @@ public final class AppEnvironment {
                         _ = try mover.enable(
                             agentID: skill.owners.first ?? "unknown",
                             name: skill.name
+                        )
+                    case .delete:
+                        // 删除 = 移入回收站（~/.agentkeeper/trash/<agent>/<skill>/
+                        // + manifest），原样保全可回滚；彻底删除仅在区列表二次确认
+                        _ = try mover.moveToTrash(
+                            agentID: skill.owners.first ?? "unknown",
+                            skillDirectory: skill.directory.standardizedFileURL
                         )
                     default:
                         throw OperationError.underlying(detail: "该操作类型由对应流程处理（MVP 菜单外）")
@@ -182,6 +224,76 @@ public final class AppEnvironment {
         } else {
             history.append(skillID: skill.id, name: skill.name, direction: direction, result: .success)
         }
+        // 停用/删入回收站会搬移区内容——目录区计数失效（下一帧重枚举）
+        bumpZones()
+    }
+
+    /// 停用区恢复（区行入口：zone 条目不在 catalog，直接走 lifecycle；冲突明细走操作状态机）。
+    public func enableFromZone(zone: LifecycleZone, row: ZoneRowModel) async {
+        let lifecycle = self.lifecycle
+        let direction: OperationDirection = zone == .disabled ? .enable : .snapshotRestore
+        await store.dispatch(.operationStarted(skillID: row.id, direction: direction))
+        do {
+            switch zone {
+            case .disabled:
+                _ = try lifecycle.enable(agentID: row.agentID, name: row.name)
+            case .trash:
+                _ = try lifecycle.restoreFromTrash(agentID: row.agentID, name: row.name)
+            }
+            await store.dispatch(.operationCompleted(skillID: row.id, direction: direction))
+            history.append(
+                skillID: row.originalPath, name: row.name, direction: .enable, result: .success
+            )
+        } catch {
+            await store.dispatch(.operationFailed(
+                skillID: row.id,
+                direction: direction,
+                message: "\(error)"
+            ))
+            history.append(
+                skillID: row.originalPath, name: row.name, direction: .enable,
+                result: .failure(message: "\(error)")
+            )
+        }
+        bumpZones()
+        await scanService.runScan(projectRoots: [])
+    }
+
+    /// 彻底删除单个回收站条目（不可恢复——UI 层负责确认弹窗）。
+    public func purgeTrashEntry(_ row: ZoneRowModel) async {
+        let lifecycle = self.lifecycle
+        await store.dispatch(.operationStarted(skillID: row.id, direction: .delete))
+        do {
+            _ = try lifecycle.purgeTrash(agentID: row.agentID, name: row.name)
+            await store.dispatch(.operationCompleted(skillID: row.id, direction: .delete))
+            history.append(
+                skillID: row.originalPath, name: row.name, direction: .delete, result: .success
+            )
+        } catch {
+            await store.dispatch(.operationFailed(
+                skillID: row.id,
+                direction: .delete,
+                message: "\(error)"
+            ))
+            history.append(
+                skillID: row.originalPath, name: row.name, direction: .delete,
+                result: .failure(message: "\(error)")
+            )
+        }
+        bumpZones()
+    }
+
+    /// 清空回收站（不可恢复——UI 层负责确认弹窗）。
+    public func purgeAllTrash() async {
+        let lifecycle = self.lifecycle
+        let count = (try? lifecycle.purgeAllTrash()) ?? 0
+        if count > 0 {
+            history.append(
+                skillID: "trash", name: "清空回收站", direction: .delete,
+                result: .success
+            )
+        }
+        bumpZones()
     }
 
     /// 快照恢复（先快照当前 → 重建旧内容；失败回滚不丢数据）。

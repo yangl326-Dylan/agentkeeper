@@ -136,3 +136,115 @@ import DomainKit
         #expect(try String(contentsOf: occupied.appendingPathComponent("SKILL.md"), encoding: .utf8) == "existing")
     }
 }
+
+// MARK: - 回收站区（trash）：删除入站可回滚 + 永久清除
+
+@Suite struct SkillLifecycleTrashTests {
+    private func makeSkill(_ home: URL, path: String) -> URL {
+        let dir = home.appendingPathComponent(path, isDirectory: true)
+        try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try! "---\nname: x\ndescription: 测试\n---\nA".write(
+            to: dir.appendingPathComponent("SKILL.md"), atomically: true, encoding: .utf8
+        )
+        return dir
+    }
+
+    /// 删除语义 = 原样保全进回收站（trash/<agent>/<skill>/）+ manifest（原路径）——回滚依据零丢失。
+    @Test func moveToTrashPreservesContentAndWritesManifest() throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let base = home.appendingPathComponent("ak-base", isDirectory: true)
+        let source = makeSkill(home, path: ".claude/skills/beta")
+        let lifecycle = SkillLifecycle(baseDirectory: base)
+
+        let record = try lifecycle.moveToTrash(agentID: "claude-code", skillDirectory: source)
+
+        #expect(record.originalPath == source.path)
+        #expect(!FileManager.default.fileExists(atPath: source.path))
+        let trashed = base.appendingPathComponent("trash/claude-code/beta/SKILL.md")
+        #expect(FileManager.default.fileExists(atPath: trashed.path))
+        #expect(FileManager.default.fileExists(atPath: base.appendingPathComponent("trash/claude-code/beta.manifest.json").path))
+    }
+
+    /// 列举：disabled 与 trash 各自出全表（agent 分组无所谓，扁平 + 记录足够 UI）。 
+    @Test func entriesEnumerateManifestsAcrossBothZones() throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let base = home.appendingPathComponent("ak-base", isDirectory: true)
+        let disabledSource = makeSkill(home, path: ".claude/skills/enabled-one")
+        let trashedSource = makeSkill(home, path: ".codex/skills/gone-two")
+        let lifecycle = SkillLifecycle(baseDirectory: base)
+        _ = try lifecycle.disable(agentID: "claude-code", skillDirectory: disabledSource)
+        _ = try lifecycle.moveToTrash(agentID: "codex", skillDirectory: trashedSource)
+
+        let disabled = try lifecycle.disabledEntries()
+        #expect(disabled.count == 1)
+        #expect(disabled[0].record.name == "enabled-one")
+        #expect(disabled[0].record.agentID == "claude-code")
+        #expect(disabled[0].manifestPath.contains("disabled/claude-code"))
+
+        let trashed = try lifecycle.trashEntries()
+        #expect(trashed.count == 1)
+        #expect(trashed[0].record.name == "gone-two")
+        #expect(trashed[0].record.agentID == "codex")
+        #expect(trashed[0].manifestPath.contains("trash/codex"))
+    }
+
+    /// 回收站恢复：按 manifest 原路径放回、manifest 清理；原路径被占 → 中止零覆盖。
+    @Test func restoreFromTrashPutsBackAndRejectsOccupiedDestination() throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let base = home.appendingPathComponent("ak-base", isDirectory: true)
+        let source = makeSkill(home, path: ".claude/skills/gamma")
+        let lifecycle = SkillLifecycle(baseDirectory: base)
+        _ = try lifecycle.moveToTrash(agentID: "claude-code", skillDirectory: source)
+
+        let record = try lifecycle.restoreFromTrash(agentID: "claude-code", name: "gamma")
+        #expect(record.originalPath == source.path)
+        #expect(FileManager.default.fileExists(atPath: source.appendingPathComponent("SKILL.md").path))
+        #expect(!FileManager.default.fileExists(atPath: base.appendingPathComponent("trash/claude-code").path))
+
+        // 冲突分支：再次入站后原路径被占
+        _ = try lifecycle.moveToTrash(agentID: "claude-code", skillDirectory: source)
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        #expect(throws: SkillLifecycleError.self) {
+            try lifecycle.restoreFromTrash(agentID: "claude-code", name: "gamma")
+        }
+        #expect(FileManager.default.fileExists(atPath: base.appendingPathComponent("trash/claude-code/gamma/SKILL.md").path))
+        #expect(FileManager.default.fileExists(atPath: base.appendingPathComponent("trash/claude-code/gamma.manifest.json").path))
+    }
+
+    /// 彻底删除：单个清除（目录 + manifest 一并）；空 agent 目录顺手清。
+    @Test func purgeTrashRemovesEntryAndRecording() throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let base = home.appendingPathComponent("ak-base", isDirectory: true)
+        let source = makeSkill(home, path: ".claude/skills/delta")
+        let lifecycle = SkillLifecycle(baseDirectory: base)
+        _ = try lifecycle.moveToTrash(agentID: "claude-code", skillDirectory: source)
+        let other = makeSkill(home, path: ".codex/skills/keep")
+        _ = try lifecycle.moveToTrash(agentID: "codex", skillDirectory: other)
+
+        _ = try lifecycle.purgeTrash(agentID: "claude-code", name: "delta")
+
+        #expect(!FileManager.default.fileExists(atPath: base.appendingPathComponent("trash/claude-code").path))
+        // 其它条目不受牵连
+        #expect(FileManager.default.fileExists(atPath: base.appendingPathComponent("trash/codex/keep/SKILL.md").path))
+    }
+
+    /// 清空回收站：全部清除并返回数量；空回收站返回 0（幂等）。
+    @Test func purgeAllTrashEmptiesZoneIdempotently() throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let base = home.appendingPathComponent("ak-base", isDirectory: true)
+        let lifecycle = SkillLifecycle(baseDirectory: base)
+        let a = makeSkill(home, path: ".claude/skills/b1")
+        _ = try lifecycle.moveToTrash(agentID: "claude-code", skillDirectory: a)
+        let b = makeSkill(home, path: ".codex/skills/b2")
+        _ = try lifecycle.moveToTrash(agentID: "codex", skillDirectory: b)
+
+        #expect(try lifecycle.purgeAllTrash() == 2)
+        #expect(try lifecycle.purgeAllTrash() == 0)
+        #expect(try lifecycle.trashEntries().isEmpty)
+    }
+}

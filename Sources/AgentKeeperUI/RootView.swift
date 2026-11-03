@@ -114,6 +114,35 @@ struct NavigationSidebar: View {
                     .buttonStyle(.plain)
                 }
             }
+            Section("生命周期") {
+                ForEach(LifecycleZone.allCases, id: \.self) { zone in
+                    let rows = zone == .disabled ? env.disabledZoneRows() : env.trashedZoneRows()
+                    let isSelected = env.selectedZone == zone
+                    Button {
+                        // 生命周期分区：点同项取消；与 agent/作用域筛选互斥（共用列表位）
+                        if isSelected {
+                            env.selectedZone = nil
+                        } else {
+                            env.selectedZone = zone
+                            env.selectedAgent = nil
+                            env.selectedScopes = []
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: zone.symbol)
+                                .foregroundStyle(.secondary)
+                            Text(ZoneListModel.zoneTitle(zone: zone, rows: rows))
+                            Spacer()
+                            if isSelected {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
             tagSectionsSection
         }
         .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 340)
@@ -331,24 +360,30 @@ struct SkillListView: View {
     @State private var importError: String?
 
     public var body: some View {
-        // 筛选结果本帧只算一次：animation value 与列表使用同一份（曾每帧/每击键跑两条全量管线）
-        let query = SkillListCore.filter(searchText, env)
-        listCore(query)
-            .searchable(text: $searchText, placement: .automatic, prompt: "搜索名称 / 描述 / 项目")
-            .navigationTitle(env.selectedAgent.map { "Skills · \($0)" } ?? "Skills")
-            .toolbar { toolbarContent }
-            .sheet(isPresented: $showGitInstall) {
-                GitInstallSheet()
-            }
-            .alert("导入失败", isPresented: Binding(
-                get: { importError != nil },
-                set: { if !$0 { importError = nil } }
-            )) {
-                Button("好", role: .cancel) { }
-            } message: {
-                Text(importError ?? "")
-            }
-            .animation(motion.animation(for: .listTransition), value: query.map({ $0.id }))
+        // 停用区/回收站选择：列表位切换为生命周期区视图（agent/作用域筛选互斥）
+        if let zone = env.selectedZone {
+            ZoneListView(zone: zone)
+                .navigationTitle(zone.title)
+        } else {
+            // 筛选结果本帧只算一次：animation value 与列表使用同一份（曾每帧/每击键跑两条全量管线）
+            let query = SkillListCore.filter(searchText, env)
+            listCore(query)
+                .searchable(text: $searchText, placement: .automatic, prompt: "搜索名称 / 描述 / 项目")
+                .navigationTitle(env.selectedAgent.map { "Skills · \($0)" } ?? "Skills")
+                .toolbar { toolbarContent }
+                .sheet(isPresented: $showGitInstall) {
+                    GitInstallSheet()
+                }
+                .alert("导入失败", isPresented: Binding(
+                    get: { importError != nil },
+                    set: { if !$0 { importError = nil } }
+                )) {
+                    Button("好", role: .cancel) { }
+                } message: {
+                    Text(importError ?? "")
+                }
+                .animation(motion.animation(for: .listTransition), value: query.map({ $0.id }))
+        }
     }
 
     /// 列表核心（独立节点视图：body 内使用 @Environment 的部分收敛于此，selection binding
@@ -683,6 +718,14 @@ struct SkillDetailContent: View {
             }
             .disabled(pending.inFlight != nil)
             .help("把此 skill 复制安装到其他 agent 的目录（同名目标不覆盖）")
+            // 删除 = 移入回收站（原样保全可回滚；彻底删除走回收站二次确认）
+            Button(role: .destructive) {
+                Task { await env.runOperation(skill: skill, direction: .delete) }
+            } label: {
+                Label("移入回收站", systemImage: "trash")
+            }
+            .disabled(pending.inFlight != nil)
+            .help("移到统一回收站（~/.agentkeeper/trash），可在侧栏「回收站」恢复或彻底删除")
         }
     }
 

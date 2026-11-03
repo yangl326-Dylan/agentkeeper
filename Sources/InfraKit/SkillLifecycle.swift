@@ -48,13 +48,146 @@ public struct SkillLifecycle: @unchecked Sendable {
     }
 
     /// 禁用：原子搬移至禁用区 + manifest 写盘。冲突/占用一律中止，绝不覆盖。
+    /// （实现收敛于区通用搬移——与回收站同构，manifest 惯例一致。）
     @discardableResult
     public func disable(agentID: AgentID, skillDirectory: URL) throws -> DisabledSkillRecord {
+        try moveToZone(.disabled, agentID: agentID, skillDirectory: skillDirectory)
+    }
+
+    // MARK: - 恢复（4.3）
+
+    /// 恢复：按 manifest 回原路径。原路径被占 → 中止并输出冲突明细，绝不覆盖。
+    /// 成功后清理 manifest 与（已空的）禁用目录。
+    /// （实现收敛于区通用恢复——与回收站同构。）
+    @discardableResult
+    public func enable(agentID: AgentID, name: String) throws -> DisabledSkillRecord {
+        try restoreFromZone(.disabled, agentID: agentID, name: name)
+    }
+
+    // MARK: - 列举（停用区 / 回收站）
+
+    /// 区条目：manifest 记录 + 磁盘定位（UI 列表与 CLI 展示共用）。
+    public struct ZoneEntry: Hashable, Sendable {
+        public var record: DisabledSkillRecord
+        public var directoryPath: String
+        public var manifestPath: String
+
+        public init(record: DisabledSkillRecord, directoryPath: String, manifestPath: String) {
+            self.record = record
+            self.directoryPath = directoryPath
+            self.manifestPath = manifestPath
+        }
+    }
+
+    /// 停用区全表（<base>/disabled/<agent>/*.manifest.json）。
+    public func disabledEntries() throws -> [ZoneEntry] {
+        try entries(zone: .disabled)
+    }
+
+    /// 回收站全表（<base>/trash/<agent>/*.manifest.json）。
+    public func trashEntries() throws -> [ZoneEntry] {
+        try entries(zone: .trash)
+    }
+
+    private enum Zone: String {
+        case disabled
+        case trash
+    }
+
+    private func root(zone: Zone, agentID: AgentID) -> URL {
+        zone == .disabled ? disabledRoot(agentID: agentID) : trashRoot(agentID: agentID)
+    }
+
+    private func entries(zone: Zone) throws -> [ZoneEntry] {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        var result: [ZoneEntry] = []
+        let allAgentIDs = Set<String>(knownAgentIDs + ["unknown"])
+        for agentID in allAgentIDs.sorted() {
+            let agentRoot = root(zone: zone, agentID: agentID)
+            guard let manifests = try? fileManager.contentsOfDirectory(atPath: agentRoot.path) else {
+                continue
+            }
+            for manifest in manifests.sorted() where manifest.hasSuffix(".manifest.json") {
+                let manifestURL = agentRoot.appendingPathComponent(manifest)
+                guard let data = try? Data(contentsOf: manifestURL),
+                      let record = try? decoder.decode(DisabledSkillRecord.self, from: data)
+                else { continue }
+                let name = String(manifest.dropLast(".manifest.json".count))
+                let directory = agentRoot.appendingPathComponent(name, isDirectory: true)
+                guard fileManager.fileExists(atPath: directory.path) else { continue }
+                result.append(ZoneEntry(record: record, directoryPath: directory.path, manifestPath: manifestURL.path))
+            }
+        }
+        return result
+    }
+
+    // MARK: - 回收站区（删除语义：原样保全、可回滚、可彻底清除）
+
+    /// 回收站根（<base>/trash/——与停用区并行的第二个安全目录）。
+    private func trashRoot(agentID: AgentID) -> URL {
+        baseDirectory.appendingPathComponent("trash", isDirectory: true)
+            .appendingPathComponent(agentID, isDirectory: true)
+    }
+
+    /// 删除（回收站语义）：原子搬入 trash + manifest 写盘；冲突/占用一律中止，绝不覆盖。
+    @discardableResult
+    public func moveToTrash(agentID: AgentID, skillDirectory: URL) throws -> DisabledSkillRecord {
+        try moveToZone(.trash, agentID: agentID, skillDirectory: skillDirectory)
+    }
+
+    /// 从回收站恢复：按 manifest 原路径放回；原路径被占 → 中止零覆盖。
+    @discardableResult
+    public func restoreFromTrash(agentID: AgentID, name: String) throws -> DisabledSkillRecord {
+        try restoreFromZone(.trash, agentID: agentID, name: name)
+    }
+
+    /// 彻底删除单个回收站条目（目录 + manifest 一并；其它条目不受牵连）。
+    @discardableResult
+    public func purgeTrash(agentID: AgentID, name: String) throws -> DisabledSkillRecord {
+        let agentRoot = trashRoot(agentID: agentID)
+        let manifestURL = agentRoot.appendingPathComponent("\(name).manifest.json")
+        guard fileManager.fileExists(atPath: manifestURL.path) else {
+            throw SkillLifecycleError.manifestMissing(path: manifestURL.path)
+        }
+        guard let record = try? Self.decodeRecord(from: manifestURL, fileManager: fileManager) else {
+            throw SkillLifecycleError.manifestCorrupted(path: manifestURL.path)
+        }
+        let directory = agentRoot.appendingPathComponent(name, isDirectory: true)
+        guard fileManager.fileExists(atPath: directory.path) else {
+            throw SkillLifecycleError.sourceMissing(path: directory.path)
+        }
+        try fileManager.removeItem(at: directory)
+        try fileManager.removeItem(at: manifestURL)
+        if (try? fileManager.contentsOfDirectory(atPath: agentRoot.path))?.isEmpty == true {
+            try? fileManager.removeItem(at: agentRoot)
+        }
+        return record
+    }
+
+    /// 清空回收站：逐条彻底删除；返回清除数。空回收站为 0（幂等）。
+    public func purgeAllTrash() throws -> Int {
+        var purged = 0
+        for entry in try trashEntries() {
+            let agentRoot = trashRoot(agentID: entry.record.agentID)
+            try fileManager.removeItem(atPath: entry.directoryPath)
+            try fileManager.removeItem(atPath: entry.manifestPath)
+            if (try? fileManager.contentsOfDirectory(atPath: agentRoot.path))?.isEmpty == true {
+                try? fileManager.removeItem(at: agentRoot)
+            }
+            purged += 1
+        }
+        return purged
+    }
+
+    // MARK: - 私有：区通用搬移 / 恢复（disable↔trash 同构复用）
+
+    private func moveToZone(_ zone: Zone, agentID: AgentID, skillDirectory: URL) throws -> DisabledSkillRecord {
         guard fileManager.fileExists(atPath: skillDirectory.path) else {
             throw SkillLifecycleError.sourceMissing(path: skillDirectory.path)
         }
         let name = skillDirectory.lastPathComponent
-        let destination = destinationURL(agentID: agentID, name: name)
+        let destination = root(zone: zone, agentID: agentID).appendingPathComponent(name, isDirectory: true)
         let destinationParent = destination.deletingLastPathComponent()
         try fileManager.createDirectory(at: destinationParent, withIntermediateDirectories: true)
 
@@ -67,7 +200,7 @@ public struct SkillLifecycle: @unchecked Sendable {
         )
 
         do {
-            // disable 已算好 manifest sha——planMove 复用（免第二次全树哈希）
+            // sha 单次计算透传 planMove（免第二次全树哈希）
             let plan = try mover.planMove(source: skillDirectory, destination: destination, expectedSha256: sha)
             try mover.execute(plan)
         } catch {
@@ -75,15 +208,15 @@ public struct SkillLifecycle: @unchecked Sendable {
             throw translate(error, path: destination.path)
         }
 
-        // manifest 放禁用目录旁（.manifest.json），与目录强关联
-        let manifestURL = disabledRoot(agentID: agentID).appendingPathComponent("\(name).manifest.json")
+        // manifest 与目录同放（.manifest.json 同级——disable 与 trash 惯例一致）
+        let manifestURL = root(zone: zone, agentID: agentID).appendingPathComponent("\(name).manifest.json")
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601
             try encoder.encode(record).write(to: manifestURL, options: .atomic)
         } catch {
-            // manifest 写失败等于禁用不完整：回滚目录，报告
+            // manifest 写失败等于入区不完整：回滚目录，报告
             try? mover.rollback(MovePlan(
                 source: skillDirectory,
                 destination: destination,
@@ -95,33 +228,27 @@ public struct SkillLifecycle: @unchecked Sendable {
         return record
     }
 
-    // MARK: - 恢复（4.3）
+    private static func decodeRecord(from url: URL, fileManager: FileManager) throws -> DisabledSkillRecord {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(DisabledSkillRecord.self, from: Data(contentsOf: url))
+    }
 
-    /// 恢复：按 manifest 回原路径。原路径被占 → 中止并输出冲突明细，绝不覆盖。
-    /// 成功后清理 manifest 与（已空的）禁用目录。
-    @discardableResult
-    public func enable(agentID: AgentID, name: String) throws -> DisabledSkillRecord {
-        let manifestURL = disabledRoot(agentID: agentID).appendingPathComponent("\(name).manifest.json")
-        guard FileManager.default.fileExists(atPath: manifestURL.path) else {
+    private func restoreFromZone(_ zone: Zone, agentID: AgentID, name: String) throws -> DisabledSkillRecord {
+        let manifestURL = root(zone: zone, agentID: agentID).appendingPathComponent("\(name).manifest.json")
+        guard fileManager.fileExists(atPath: manifestURL.path) else {
             throw SkillLifecycleError.manifestMissing(path: manifestURL.path)
         }
-        let record: DisabledSkillRecord
-        do {
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            record = try decoder.decode(DisabledSkillRecord.self, from: Data(contentsOf: manifestURL))
-        } catch {
-            throw SkillLifecycleError.manifestCorrupted(path: manifestURL.path)
-        }
+        let record = try Self.decodeRecord(from: manifestURL, fileManager: fileManager)
 
-        let disabledDir = destinationURL(agentID: agentID, name: name)
+        let zoneDirectory = root(zone: zone, agentID: agentID).appendingPathComponent(name, isDirectory: true)
         let original = URL(fileURLWithPath: record.originalPath, isDirectory: true)
 
-        guard fileManager.fileExists(atPath: disabledDir.path) else {
-            throw SkillLifecycleError.sourceMissing(path: disabledDir.path)
+        guard fileManager.fileExists(atPath: zoneDirectory.path) else {
+            throw SkillLifecycleError.sourceMissing(path: zoneDirectory.path)
         }
         guard !fileManager.fileExists(atPath: original.path) else {
-            // 冲突面板核心诉求：禁用区与原路径占用明细一起呈现
+            // 冲突面板核心诉求：区目录与原路径占用明细一起呈现
             throw SkillLifecycleError.destinationOccupied(path: original.path)
         }
         try fileManager.createDirectory(
@@ -130,17 +257,17 @@ public struct SkillLifecycle: @unchecked Sendable {
         )
 
         do {
-            let plan = try mover.planMove(source: disabledDir, destination: original)
+            let plan = try mover.planMove(source: zoneDirectory, destination: original)
             try mover.execute(plan)
         } catch {
             throw translate(error, path: original.path)
         }
 
         try? FileManager.default.removeItem(at: manifestURL)
-        // disabled/<agent> 空了顺手清掉，保持禁用区整洁
-        let agentDisabledRoot = disabledRoot(agentID: agentID)
-        if (try? FileManager.default.contentsOfDirectory(atPath: agentDisabledRoot.path))?.isEmpty == true {
-            try? FileManager.default.removeItem(at: agentDisabledRoot)
+        // 区 agent 目录空了顺手清掉，保持整区整洁
+        let agentRoot = root(zone: zone, agentID: agentID)
+        if (try? FileManager.default.contentsOfDirectory(atPath: agentRoot.path))?.isEmpty == true {
+            try? FileManager.default.removeItem(at: agentRoot)
         }
         return record
     }
@@ -203,10 +330,6 @@ public struct SkillLifecycle: @unchecked Sendable {
     public func disabledRoot(agentID: AgentID) -> URL {
         baseDirectory.appendingPathComponent("disabled", isDirectory: true)
             .appendingPathComponent(agentID, isDirectory: true)
-    }
-
-    public func destinationURL(agentID: AgentID, name: String) -> URL {
-        disabledRoot(agentID: agentID).appendingPathComponent(name, isDirectory: true)
     }
 
     // MARK: - 错误翻译

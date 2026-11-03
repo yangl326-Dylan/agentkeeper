@@ -198,3 +198,47 @@ func makeFakeHomeCore(files: [String]) -> URL {
         )
     }
 }
+
+// MARK: - 生命周期区（停用区 / 回收站）行快照
+
+@MainActor
+@Suite struct ZoneRowSnapshotTests {
+    private func row(name: String, agent: String, original: String) -> ZoneRowModel {
+        ZoneRowModel(
+            id: "/zone/\(agent)/\(name).manifest.json",
+            name: name,
+            agentID: agent,
+            originalPath: original,
+            disabledAt: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+    }
+
+    @Test func renderZoneRowsBothZones() throws {
+        let wiring = UIWiring()
+        defer { try? FileManager.default.removeItem(at: wiring.home) }
+        let home = wiring.home
+        let rows = [
+            row(name: "research", agent: "claude-code", original: home.appendingPathComponent(".claude/skills/research").path),
+            row(name: "legacy-script", agent: "opencode", original: home.appendingPathComponent(".opencode/skills/legacy-script").path),
+        ]
+        try UISnapshot.render("zone-disabled-rows", view:
+            VStack(spacing: 10) {
+                ForEach(rows) { row in
+                    ZoneRowView(zone: .disabled, row: row)
+                }
+            }
+            .padding(16),
+            size: CGSize(width: 640, height: 180)
+        )
+        try UISnapshot.render("zone-trash-rows", view:
+            VStack(spacing: 10) {
+                ForEach(rows) { row in
+                    ZoneRowView(zone: .trash, row: row,
+                        onRestore: {}, onPurge: {})
+                }
+            }
+            .padding(16),
+            size: CGSize(width: 640, height: 180)
+        )
+    }
+}
