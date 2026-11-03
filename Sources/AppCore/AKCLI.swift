@@ -11,6 +11,8 @@ public enum AKCLI {
         case doctor
         case disabled
         case enable(name: String)
+        case disable(name: String)
+        case remove(name: String)
         case restore(name: String)
         case purge(name: String)
         case help
@@ -24,12 +26,14 @@ public enum AKCLI {
         case "doctor": return .doctor
         case "help", "--help", "-h": return .help
         case "disabled": return .disabled
-        case "enable", "restore", "purge":
+        case "enable", "disable", "remove", "restore", "purge":
             guard let name = args.dropFirst().first, !name.isEmpty, args.count == 2 else {
                 return .unknown(first)
             }
             switch first {
             case "enable": return .enable(name: name)
+            case "disable": return .disable(name: name)
+            case "remove": return .remove(name: name)
             case "restore": return .restore(name: name)
             default: return .purge(name: name)
             }
@@ -63,6 +67,10 @@ public enum AKCLI {
             return runDisabled(homeDirectory: homeDirectory)
         case .enable(let name):
             return runEnable(name, homeDirectory: homeDirectory)
+        case .disable(let name):
+            return await runDisable(name, homeDirectory: homeDirectory)
+        case .remove(let name):
+            return await runRemove(name, homeDirectory: homeDirectory)
         case .restore(let name):
             return runRestore(name, homeDirectory: homeDirectory)
         case .purge(let name):
@@ -97,7 +105,7 @@ public enum AKCLI {
             lines.append(zoneLine("回收站", entry, hint: "恢复：ak restore \(entry.record.name) / 彻底删除：ak purge \(entry.record.name)"))
         }
         lines.append("")
-        lines.append("停用 → ak enable <name> · 回收站 → ak restore <name> · 彻底删除 → ak purge <name>")
+        lines.append("安装中 → ak disable <name>（停用）/ ak remove <name>（入回收站）· 恢复 → ak enable / ak restore · 彻底删除 → ak purge")
         return RunResult(exitCode: 0, output: lines.joined(separator: "\n"))
     }
 
@@ -122,6 +130,67 @@ public enum AKCLI {
             exitCode: 1,
             output: "歧义：「\(name)」有多个同名条目，请逐个处理——\n\(listed)"
         ))
+    }
+
+    /// 扫描定位「安装中」的 skill：唯一副本才行动；跨 agent 同名 → 歧义列出；无 → 未找到。
+    private static func resolveInstalled(
+        name: String, skills: [Skill]
+    ) -> (skill: Skill?, failure: AKCLI.RunResult?) {
+        let matches = skills.filter { $0.name == name }
+        if matches.count == 1 { return (matches[0], nil) }
+        if matches.isEmpty {
+            return (nil, RunResult(
+                exitCode: 1,
+                output: "未找到：已安装 skill 中不存在「\(name)」（已停用请用 ak enable，已删除请用 ak restore）"
+            ))
+        }
+        let listed = matches
+            .map { "  · \($0.owners.sorted().joined(separator: ",")) \($0.directory.path)" }
+            .joined(separator: "\n")
+        return (nil, RunResult(
+            exitCode: 1,
+            output: "歧义：「\(name)」有多个同名安装副本，请逐个处理（App 详情页可按路径操作）——\n\(listed)"
+        ))
+    }
+
+    /// 停用已安装 skill：扫描定位 → 停用区（可回滚，恢复方式附在输出里）。
+    static func runDisable(_ name: String, homeDirectory: URL) async -> AKCLI.RunResult {
+        let (skills, _) = await scan(homeDirectory: homeDirectory)
+        let (skill, failure) = resolveInstalled(name: name, skills: skills)
+        if let failure { return failure }
+        guard let skill else { return RunResult(exitCode: 1, output: "未找到") }
+        do {
+            let record = try lifecycle(homeDirectory: homeDirectory).disable(
+                agentID: skill.owners.first ?? "unknown",
+                skillDirectory: skill.directory.standardizedFileURL
+            )
+            return RunResult(
+                exitCode: 0,
+                output: "已停用：\(name) → \(record.originalPath)\n（恢复：ak enable \(name);也可在侧栏「停用区」查看）"
+            )
+        } catch {
+            return RunResult(exitCode: 1, output: "停用失败：\(error)")
+        }
+    }
+
+    /// 移入回收站（删除语义）：扫描定位 → trash 区（可回滚；与 purge 严格分层）。
+    static func runRemove(_ name: String, homeDirectory: URL) async -> AKCLI.RunResult {
+        let (skills, _) = await scan(homeDirectory: homeDirectory)
+        let (skill, failure) = resolveInstalled(name: name, skills: skills)
+        if let failure { return failure }
+        guard let skill else { return RunResult(exitCode: 1, output: "未找到") }
+        do {
+            let record = try lifecycle(homeDirectory: homeDirectory).moveToTrash(
+                agentID: skill.owners.first ?? "unknown",
+                skillDirectory: skill.directory.standardizedFileURL
+            )
+            return RunResult(
+                exitCode: 0,
+                output: "已移入回收站：\(name)（可恢复：ak restore \(name);彻底删除：ak purge \(name)）"
+            )
+        } catch {
+            return RunResult(exitCode: 1, output: "移入回收站失败：\(error)")
+        }
     }
 
     static func runEnable(_ name: String, homeDirectory: URL) -> AKCLI.RunResult {
@@ -251,7 +320,9 @@ public enum AKCLI {
           list     列出全部已发现 skill（名称 / 作用域 / 归属 agent / 路径）
           doctor   检查本机各 agent 的安装状态与 skill 数量
           disabled 列出停用区与回收站条目（状态 / 归属 / 恢复方式）
+          disable  <name> 停用已安装 skill（移入停用区，可恢复）
           enable   <name> 从停用区恢复到原路径
+          remove   <name> 把 skill 移入回收站（可恢复）
           restore  <name> 从回收站恢复到原路径
           purge    <name> 彻底删除回收站条目（不可恢复）
           help     显示本帮助

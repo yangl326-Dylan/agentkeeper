@@ -126,7 +126,9 @@ import InfraKit
     private func makeSkill(_ home: URL, _ path: String) -> URL {
         let dir = home.appendingPathComponent(path, isDirectory: true)
         try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        try! "---\nname: x\ndescription: 测试\n---\nA".write(
+        // frontmatter name 必须与目录名一致（CatalogBuilder 取名：frontmatter 优先、目录名兜底）
+        let name = (path as NSString).lastPathComponent
+        try! "---\nname: \(name)\ndescription: 测试\n---\nA".write(
             to: dir.appendingPathComponent("SKILL.md"), atomically: true, encoding: .utf8
         )
         return dir
@@ -211,4 +213,131 @@ import InfraKit
         #expect(result.exitCode == 1)
         #expect(result.output.contains("missing-skill") || result.output.contains("未找到"))
     }
+
+    // MARK: - 停用 / 入回收站（与 enable/restore/purge 成对闭环）
+
+    @Test func parseDisableAndRemoveCommands() {
+        #expect(AKCLI.parse(["disable", "alpha"]) == .disable(name: "alpha"))
+        #expect(AKCLI.parse(["remove", "alpha"]) == .remove(name: "alpha"))
+        #expect(AKCLI.parse(["disable"]) == .unknown("disable"))
+        #expect(AKCLI.parse(["remove", "a", "b"]) == .unknown("remove"))
+    }
+
+    /// `ak disable <name>`：扫描定位已安装 skill → 停用区；原位消失、区可恢复。
+    @Test func disableMovedInstalledSkillToDisabledZone() async throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let source = home.appendingPathComponent(".claude/skills/pauseme", isDirectory: true)
+        try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        try "---\nname: pauseme\ndescription: 测试\n---\nbody".write(
+            to: source.appendingPathComponent("SKILL.md"), atomically: true, encoding: .utf8
+        )
+        let listing = await AKCLI.run(["list"], homeDirectory: home)
+        print("DEBUG_LIST:", listing.output)
+        let result = await AKCLI.run(["disable", "pauseme"], homeDirectory: home)
+        #expect(result.exitCode == 0)
+        #expect(result.output.contains("停用"))
+        #expect(!FileManager.default.fileExists(atPath: source.path))
+        let lifecycle = SkillLifecycle(baseDirectory: home.appendingPathComponent(".agentkeeper"))
+        let entries = try lifecycle.disabledEntries()
+        #expect(entries.count == 1)
+        #expect(entries[0].record.name == "pauseme")
+    }
+
+    /// 同名多副本（跨 agent）安装中时拒绝歧义、一个不动——CLI 不猜。
+    @Test func disableRejectsAmbiguousInstalledCopies() async throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        _ = makeSkill(home, ".claude/skills/shared-name")
+        // opencode 检测/技能根在 ~/.config/opencode（StandardAgentAdapter.openCode）
+        _ = makeSkill(home, ".config/opencode/skills/shared-name")
+
+        let result = await AKCLI.run(["disable", "shared-name"], homeDirectory: home)
+        #expect(result.exitCode == 1)
+        #expect(result.output.contains("歧义") || result.output.contains("多个"))
+        #expect(result.output.contains("claude-code"))
+        #expect(result.output.contains("opencode"))
+        let lifecycle = SkillLifecycle(baseDirectory: home.appendingPathComponent(".agentkeeper"))
+        #expect(try lifecycle.disabledEntries().isEmpty)
+    }
+
+    /// `ak remove <name>`：扫描定位 → 移入回收站（可回滚;与 purge 严格分层）。
+    @Test func removeMovesInstalledSkillToTrash() async throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let source = makeSkill(home, ".codex/skills/toss")
+
+        let result = await AKCLI.run(["remove", "toss"], homeDirectory: home)
+        #expect(result.exitCode == 0)
+        #expect(result.output.contains("回收站"))
+        #expect(!FileManager.default.fileExists(atPath: source.path))
+        let lifecycle = SkillLifecycle(baseDirectory: home.appendingPathComponent(".agentkeeper"))
+        let entries = try lifecycle.trashEntries()
+        #expect(entries.count == 1)
+        #expect(entries[0].record.name == "toss")
+    }
+
+    @Test func disableAndRemoveUnknownSkillNameExitsNonZero() async throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        for command in ["disable", "remove"] {
+            let result = await AKCLI.run([command, "missing-skill"], homeDirectory: home)
+            #expect(result.exitCode == 1)
+            #expect(result.output.contains("missing-skill") || result.output.contains("未找到"))
+        }
+    }
 }
+
+// 在途探针（Phase 后续管线重构草稿）：引用尚未落地的 API（Agent.skills 等），
+// 默认关闭以免阻塞测试目标编译；源码跟进后加 -D AK_PIPELINE_PROBE 即可启用。
+#if AK_PIPELINE_PROBE
+
+@Suite struct FakeHomeProbeTests {
+    @Test func probeSingleScanListing() async throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let dir = home.appendingPathComponent(".claude/skills/probe-x", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try "---\nname: probe-x\ndescription: 测试\n---\nbody".write(
+            to: dir.appendingPathComponent("SKILL.md"), atomically: true, encoding: .utf8
+        )
+        let result = await AKCLI.run(["list"], homeDirectory: home)
+        print("PROBE_OUT:", result.output)
+        #expect(result.exitCode == 0)
+    }
+}
+
+@Suite struct PipelineProbeTests {
+    @Test func probePipelineStages() async throws {
+        let home = makeFakeHome(files: [], fileContents: [:])
+        defer { cleanup(home) }
+        let dir = home.appendingPathComponent(".claude/skills/probe-y", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try "---\nname: probe-y\ndescription: 测试\n---\nbody".write(
+            to: dir.appendingPathComponent("SKILL.md"), atomically: true, encoding: .utf8
+        )
+        // Stage 1: frontmatter parse
+        let markdown = try String(contentsOf: dir.appendingPathComponent("SKILL.md"), encoding: .utf8)
+        let front = FrontmatterParser.parse(markdown: markdown)
+        print("PROBE_FRONT:", front.name ?? "nil", "/", front.description ?? "nil")
+        // Stage 2: adapter parse
+        let registry = AgentRegistry(homeDirectory: home)
+        let adapters = registry.adapters
+        print("PROBE_ADAPTERS:", adapters.map { $0.id }.joined(separator: ","))
+        for adapter in adapters {
+            let install = await adapter.detectInstallation()
+            let roots = await adapter.skillRoots()
+            print("PROBE_ADAPT:", adapter.id, "install=\(install)", "roots=\(roots.map { $0.path.path }.joined(separator: "|"))")
+        }
+        #expect(front.name == "probe-y")
+        // Stage 3: registry scanAll
+        let report = await registry.scanAll()
+        print("PROBE_SCAN:", report.agents.count, "agents,", report.agents.flatMap { $0.skills }.count, "skills")
+        // Stage 4: catalog build
+        let skills = CatalogBuilder().build(agents: report.agents)
+        print("PROBE_CATALOG:", skills.map { $0.name }.joined(separator: ","))
+        #expect(skills.map { $0.name }.contains("probe-y"))
+    }
+}
+
+#endif
