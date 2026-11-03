@@ -114,6 +114,7 @@ struct NavigationSidebar: View {
                     .buttonStyle(.plain)
                 }
             }
+            tagSectionsSection
             Section("生命周期") {
                 ForEach(LifecycleZone.allCases, id: \.self) { zone in
                     let rows = zone == .disabled ? env.disabledZoneRows() : env.trashedZoneRows()
@@ -143,7 +144,6 @@ struct NavigationSidebar: View {
                     .buttonStyle(.plain)
                 }
             }
-            tagSectionsSection
         }
         .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 340)
         .navigationTitle("AgentKeeper")
