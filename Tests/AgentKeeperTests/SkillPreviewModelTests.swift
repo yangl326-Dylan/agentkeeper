@@ -21,14 +21,15 @@ import DomainKit
             atomically: true, encoding: .utf8
         )
         let md = await SkillPreviewModel.loadMarkdown(skillDir: dir)
-        #expect(md.contains("# 标题"))
+        #expect(md?.contains("# 标题") == true)
     }
 
-    @Test func missingMarkdownYieldsPlaceholder() async throws {
+    /// 缺失 → nil（占位文案由 UI 层按语言渲染，模型不再携带 zh 字符串）。
+    @Test func missingMarkdownYieldsNil() async throws {
         let dir = try makeSkillDir()
         defer { try? FileManager.default.removeItem(at: dir.deletingLastPathComponent()) }
         let md = await SkillPreviewModel.loadMarkdown(skillDir: dir)
-        #expect(md.contains("SKILL.md 不存在"))
+        #expect(md == nil)
     }
 
     @Test func loadsFileEntriesWithDirectoryFlag() async throws {

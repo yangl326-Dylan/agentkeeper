@@ -24,13 +24,16 @@ public final class AppEnvironment {
     /// 列表选中态（三面板共享）。
     public var selectedSkillID: String?
 
-    /// 当前标签筛选（Phase 2（标签））。
-    public var selectedTag: String?
+    /// 侧栏导航节点（导航视图：全侧栏单选；列表 = 节点集合 ∩ 搜索词）。
+    public var selectedNode: SidebarNode = .all
 
-    /// 当前 agent 筛选（侧栏 Agents 点击；nil = 全部）。
-    public var selectedAgent: AgentID?
-    /// 生命周期区选择（停用区/回收站）——与 agent 筛选互斥；点同区取消。
-    public var selectedZone: LifecycleZone?
+    /// 切换节点（视图切换时清掉列表选中——新视图内可能不存在该 skill）。
+    public func select(node: SidebarNode) {
+        if selectedNode != node {
+            selectedSkillID = nil
+        }
+        selectedNode = node
+    }
 
     /// 区内容版本号（任何区操作后自增）——侧栏计数与区列表以此为失效键，
     /// 避免逐帧枚举 manifest（fs IO）。
@@ -65,8 +68,10 @@ public final class AppEnvironment {
         zoneRevision += 1
     }
 
-    /// 当前作用域筛选（侧栏 Skills 节点击 + 工具栏筛选菜单共用；空 = 全部）。
-    public var selectedScopes: Set<ScopeKind> = []
+    /// 界面本地化（由 settings.language 驱动；@Observable 链——切换语言全 UI 即时刷新）。
+    public var l10n: L10n {
+        L10n.resolve(settings.language)
+    }
 
     /// 首启引导完成标记（落盘：完成过不再出现，spec 6.6）。
     public var firstRun: FirstRunStore

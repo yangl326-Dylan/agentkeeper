@@ -28,7 +28,7 @@ struct AgentKeeperApp: App {
         }
         .commands {
             CommandGroup(after: .newItem) {
-                Button("立即扫描") {
+                Button(env.l10n.scanNow) {
                     Task { await env.scanNow() }
                 }
                 .keyboardShortcut("r", modifiers: .command)

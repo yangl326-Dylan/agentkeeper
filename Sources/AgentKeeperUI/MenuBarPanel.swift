@@ -37,6 +37,7 @@ struct MenuBarAgentRow: View {
     let icon: String
     let skillCount: Int
     let targetDirectory: URL?
+    var l10n: L10n = L10n(lang: .zhHans)
 
     @State private var hovering = false
 
@@ -67,7 +68,7 @@ struct MenuBarAgentRow: View {
         }
         .buttonStyle(.plain)
         .disabled(targetDirectory == nil)
-        .help("在 Finder 中打开该 agent 的 skills 目录")
+        .help(l10n.menuOpenFinderHelp)
     }
 }
 
@@ -76,6 +77,7 @@ struct MenuBarAgentRow: View {
 /// 操作区：全宽主按钮（accent）+ 扫描行 + 底部退出小字。
 struct MenuPanelActions: View {
     let isScanning: Bool
+    var l10n: L10n = L10n(lang: .zhHans)
     let onOpenMain: () -> Void
     let onScan: () -> Void
     let onQuit: () -> Void
@@ -83,7 +85,7 @@ struct MenuPanelActions: View {
     var body: some View {
         VStack(spacing: 8) {
             Button(action: onOpenMain) {
-                Text("打开主窗口")
+                Text(l10n.menuOpenMain)
                     .font(.system(size: 12, weight: .medium))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 5)
@@ -93,7 +95,7 @@ struct MenuPanelActions: View {
 
             Button(action: onScan) {
                 HStack {
-                    Text(isScanning ? "正在扫描…" : "立即扫描")
+                    Text(isScanning ? l10n.menuScanning : l10n.scanNow)
                         .font(.system(size: 12))
                     Spacer()
                     if isScanning {
@@ -114,7 +116,7 @@ struct MenuPanelActions: View {
 
             Button(action: onQuit) {
                 HStack {
-                    Text("退出 AgentKeeper")
+                    Text(l10n.menuQuit)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                     Spacer()

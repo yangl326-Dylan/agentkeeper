@@ -1,4 +1,5 @@
 import SwiftUI
+import AppCore
 import DomainKit
 
 /// 停用区 / 回收站列表（侧栏「生命周期」分区选中后的列表位）。
@@ -16,21 +17,23 @@ public struct ZoneListView: View {
     }
 
     public var body: some View {
+        let l = env.l10n
         let rows = zone == .disabled ? env.disabledZoneRows() : env.trashedZoneRows()
         List {
             if rows.isEmpty {
                 ContentUnavailableView(
-                    zone == .disabled ? "停用区为空" : "回收站为空",
+                    zone == .disabled ? l.zoneDisabledEmpty : l.zoneTrashEmpty,
                     systemImage: zone == .disabled ? "pause.circle" : "trash",
                     description: Text(zone == .disabled
-                        ? "在 skill 详情页点「停用」即可把副本移入此处（原样保全，随时恢复）"
-                        : "删除的 skill 会先入回收站；内容原样保全，可恢复或彻底清除")
+                        ? l.zoneDisabledEmptyDetail
+                        : l.zoneTrashEmptyDetail)
                 )
             } else {
                 ForEach(rows) { row in
                     ZoneRowView(
                         zone: zone,
                         row: row,
+                        l10n: l,
                         onRestore: {
                             Task { await env.enableFromZone(zone: zone, row: row) }
                         },
@@ -48,41 +51,41 @@ public struct ZoneListView: View {
                     Button {
                         confirmPurgeAll = true
                     } label: {
-                        Label("清空回收站", systemImage: "trash.slash")
+                        Label(l.zoneEmptyTrash, systemImage: "trash.slash")
                     }
-                    .help("彻底删除回收站内全部条目（不可恢复）")
+                    .help(l.zoneEmptyTrashHelp)
                 }
             }
         }
         // 详情层（不可逆确认）：彻底删除单个
         .alert(
-            "彻底删除「\(confirmPurge?.name ?? "")」？",
+            l.zonePurgeTitle(confirmPurge?.name ?? ""),
             isPresented: Binding(
                 get: { confirmPurge != nil },
                 set: { if !$0 { confirmPurge = nil } }
             )
         ) {
-            Button("彻底删除", role: .destructive) {
+            Button(l.zonePurgeButton, role: .destructive) {
                 if let row = confirmPurge {
                     Task { await env.purgeTrashEntry(row) }
                 }
                 confirmPurge = nil
             }
-            Button("取消", role: .cancel) { confirmPurge = nil }
+            Button(l.commonCancel, role: .cancel) { confirmPurge = nil }
         } message: {
-            Text("将永久删除 \(confirmPurge?.originalPath ?? "")—— 内容不可恢复。")
+            Text(l.zonePurgeMessage(confirmPurge?.originalPath ?? ""))
         }
         // 清空回收站（不可逆 + 数量明细）
         .alert(
-            "清空回收站（\(env.trashedZoneRows().count) 条）？",
+            l.zoneEmptyTrashTitle(env.trashedZoneRows().count),
             isPresented: $confirmPurgeAll
         ) {
-            Button("清空", role: .destructive) {
+            Button(l.zoneEmptyButton, role: .destructive) {
                 Task { await env.purgeAllTrash() }
             }
-            Button("取消", role: .cancel) { }
+            Button(l.commonCancel, role: .cancel) { }
         } message: {
-            Text("回收站内所有条目将被永久删除——内容不可恢复。")
+            Text(l.zoneEmptyTrashMessage)
         }
         .overlay(alignment: .bottom) {
             operationBanner
@@ -94,7 +97,7 @@ public struct ZoneListView: View {
         let state = env.store.state.operation
         return Group {
             if state.inFlight != nil {
-                Label("正在执行…", systemImage: "hourglass")
+                Label(env.l10n.zonePerforming, systemImage: "hourglass")
             } else if let failure = state.failureMessage {
                 Label(failure, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(Color(nsColor: .systemOrange))
@@ -120,6 +123,7 @@ public struct ZoneListView: View {
 public struct ZoneRowView: View {
     let zone: LifecycleZone
     let row: ZoneRowModel
+    var l10n: L10n = L10n(lang: .zhHans)
     /// 行动作回调（ZoneListView 注入——含确认弹窗逻辑）。
     var onRestore: () -> Void = {}
     var onPurge: () -> Void = {}
@@ -140,7 +144,7 @@ public struct ZoneRowView: View {
                     .truncationMode(.middle)
                     .textSelection(.enabled)
                 if let at = row.disabledAt {
-                    Text("\(zone == .disabled ? "停用于" : "删除于")\(at.formatted(date: .abbreviated, time: .shortened)) · \(row.agentID)")
+                    Text("\(zone == .disabled ? l10n.zoneDisabledAt : l10n.zoneDeletedAt)\(at.formatted(date: .abbreviated, time: .shortened)) · \(row.agentID)")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
@@ -150,18 +154,18 @@ public struct ZoneRowView: View {
             switch zone {
             case .disabled:
                 Button(action: onRestore) {
-                    Label("启用", systemImage: "checkmark.circle")
+                    Label(l10n.zoneEnableButton, systemImage: "checkmark.circle")
                 }
-                .help("按 manifest 原路径放回；目标被占用时中止并显示冲突明细")
+                .help(l10n.zoneRestoreHelp)
             case .trash:
                 Button(action: onRestore) {
-                    Label("恢复", systemImage: "arrow.uturn.backward.circle")
+                    Label(l10n.zoneRestoreButton, systemImage: "arrow.uturn.backward.circle")
                 }
-                .help("按 manifest 原路径放回；目标被占用时中止并显示冲突明细")
+                .help(l10n.zoneRestoreHelp)
                 Button(role: .destructive, action: onPurge) {
-                    Label("彻底删除", systemImage: "trash.fill")
+                    Label(l10n.zonePurgeButton, systemImage: "trash.fill")
                 }
-                .help("永久删除（不可恢复）")
+                .help(l10n.zonePurgeRowHelp)
             }
         }
     }

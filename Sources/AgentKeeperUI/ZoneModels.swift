@@ -1,28 +1,9 @@
 import Foundation
+import AppCore
 import DomainKit
 import InfraKit
 
-/// 侧栏「生命周期」分区的选择（停用区 / 回收站）——与 agent 筛选互斥共用同一列表位。
-@MainActor
-public enum LifecycleZone: String, Equatable, Sendable, CaseIterable {
-    case disabled
-    case trash
-
-    public var title: String {
-        switch self {
-        case .disabled: "停用区"
-        case .trash: "回收站"
-        }
-    }
-
-    /// 侧栏/导航图标（SF Symbols）。
-    public var symbol: String {
-        switch self {
-        case .disabled: "pause.circle"
-        case .trash: "trash"
-        }
-    }
-}
+// LifecycleZone 已迁至 AppCore/NavigationModel.swift（侧栏节点模型需要它做纯函数映射）。
 
 /// 区行模型：停用区 / 回收站列表条目（manifest 合成——目录本体在 keeper 管辖下）。
 @MainActor
@@ -70,7 +51,7 @@ public enum ZoneListModel {
     public static func count(rows: [ZoneRowModel]) -> Int { rows.count }
 
     /// 侧栏节点文案（带计数）。
-    public static func zoneTitle(zone: LifecycleZone, rows: [ZoneRowModel]) -> String {
-        "\(zone.title) · \(rows.count)"
+    public static func zoneTitle(zone: LifecycleZone, rows: [ZoneRowModel], l10n: L10n) -> String {
+        "\(zone.title(l10n)) · \(rows.count)"
     }
 }

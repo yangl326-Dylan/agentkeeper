@@ -1,4 +1,5 @@
 import Foundation
+import AppCore
 import SwiftUI
 
 /// 外观模式：跟随系统 / 日间 / 夜间（默认跟随系统）。
@@ -7,14 +8,6 @@ public enum AppearanceMode: String, CaseIterable, Sendable {
     case system
     case light
     case dark
-
-    public var label: String {
-        switch self {
-        case .system: "跟随系统"
-        case .light: "日间"
-        case .dark: "夜间"
-        }
-    }
 
     /// SwiftUI 强制色系；system → nil（不强制）。
     public var colorScheme: ColorScheme? {
@@ -36,11 +29,17 @@ public final class AppSettingsStore {
     private enum Key {
         static let appearance = "appearance.v1"
         static let reduceMotion = "reduceMotion.v1"
+        static let language = "language.v1"
     }
 
     /// 当前外观（写入即落盘）。
     public var appearance: AppearanceMode {
         didSet { defaults.set(appearance.rawValue, forKey: Key.appearance) }
+    }
+
+    /// 界面语言（i18n：system = 跟随系统首选语言；写入即落盘）。
+    public var language: AppLanguage {
+        didSet { defaults.set(language.rawValue, forKey: Key.language) }
     }
 
     /// 减弱动效覆盖：nil = 跟随系统（辅助功能偏好）；true/false 强制。
@@ -57,6 +56,7 @@ public final class AppSettingsStore {
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.appearance = AppearanceMode(rawValue: defaults.string(forKey: Key.appearance) ?? "") ?? .system
+        self.language = AppLanguage(rawValue: defaults.string(forKey: Key.language) ?? "") ?? .system
         // integer(forKey:) 对缺失 key 返回 0，必须先用 object 判存
         if defaults.object(forKey: Key.reduceMotion) == nil {
             self.reduceMotionOverride = nil

@@ -48,6 +48,18 @@ import InfraKit
         })
     }
 
+    /// 侧栏项目节点：按项目名（projectTag）过滤，而非「所有项目级」。
+    @Test func filterByProjectNameOnlyMatchesThatProject() {
+        var query = CatalogQuery.initial
+        query.projectName = "atlas"
+        let result = query.apply(catalog: [
+            CatalogQueryTests.skill("atlas-deploy", agent: "claude-code", scope: .project(agentID: "claude-code", root: ProjectRoot(path: "/Users/x/code/atlas"))),
+            CatalogQueryTests.skill("beta-lint", agent: "opencode", scope: .project(agentID: "opencode", root: ProjectRoot(path: "/Users/x/code/beta"))),
+            CatalogQueryTests.skill("global-skill", agent: "claude-code", scope: .global(owners: ["claude-code"])),
+        ])
+        #expect(result.map(\.name) == ["atlas-deploy"])
+    }
+
     @Test func searchMatchesNameAndDescription() {
         var query = CatalogQuery.initial
         query.searchText = "部署"

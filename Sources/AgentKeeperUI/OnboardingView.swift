@@ -11,13 +11,14 @@ public struct OnboardingView: View {
     }
 
     public var body: some View {
+        let l = env.l10n
         VStack(spacing: 28) {
             VStack(spacing: 10) {
                 Image(systemName: "shippingbox.and.arrow.backward.fill")
                     .font(.system(size: 56))
                     .foregroundStyle(.tint)
-                Text("欢迎使用 AgentKeeper").font(.title).bold()
-                Text("扫描本机 AI agent 的 skill 目录，标记来源作用域，支持安全停用与快照。")
+                Text(l.onboardingWelcome).font(.title).bold()
+                Text(l.onboardingSubtitle)
                     .foregroundStyle(.secondary)
             }
             .padding(.top, 32)
@@ -25,23 +26,23 @@ public struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 14) {
                 explainRow(
                     icon: "dot.radiowaves.left.and.right",
-                    title: "一次全量扫描",
-                    detail: "只读扫描各 agent 的标准 skill 目录；外部改动由系统级文件事件自动增量跟随。"
+                    title: l.onboardingScanTitle,
+                    detail: l.onboardingScanDetail
                 )
                 explainRow(
                     icon: "lock.shield",
-                    title: "目录授权",
-                    detail: "扫描仅限用户级与已知项目根，永不递归整个家目录。受限目录会以诊断形式提示你手动授权。"
+                    title: l.onboardingAuthTitle,
+                    detail: l.onboardingAuthDetail
                 )
                 explainRow(
                     icon: "tray.full",
-                    title: "~/.agentkeeper 数据目录",
-                    detail: "停用的 skill、快照、操作历史与缓存都存放在这里；文件系统是唯一真相，任何时刻都可以从磁盘重建。"
+                    title: l.onboardingDataDirTitle,
+                    detail: l.onboardingDataDirDetail
                 )
                 explainRow(
                     icon: "hand.raised",
-                    title: "不覆盖不打扰",
-                    detail: "遇到冲突一律中止并逐条列出明细；停用/恢复使用原子搬移，失败自动回滚。"
+                    title: l.onboardingNoOverrideTitle,
+                    detail: l.onboardingNoOverrideDetail
                 )
             }
             .padding(24)
@@ -51,7 +52,7 @@ public struct OnboardingView: View {
                 hasCompleted = true // @Binding 直写
                 Task { await env.scanNow() }
             } label: {
-                Text("开始扫描本机").controlSize(.large)
+                Text(l.onboardingStartScan).controlSize(.large)
             }
             .keyboardShortcut(.defaultAction)
             .padding(.bottom, 32)

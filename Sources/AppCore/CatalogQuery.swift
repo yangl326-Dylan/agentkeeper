@@ -85,6 +85,8 @@ extension CatalogQuery {
 public struct CatalogQuery: Sendable {
     public var agentID: AgentID?
     public var scopeKinds: Set<ScopeKind>
+    /// 项目名精确过滤（projectTag；侧栏项目节点用——scopeKinds=[.project] 只圈大类不定位项目）。
+    public var projectName: String?
     public var searchText: String
     /// 自定义标签筛选（与 tagsBySkill 索引配合）。
     public var tag: String?
@@ -92,11 +94,13 @@ public struct CatalogQuery: Sendable {
     public init(
         agentID: AgentID? = nil,
         scopeKinds: Set<ScopeKind> = [],
+        projectName: String? = nil,
         searchText: String = "",
         tag: String? = nil
     ) {
         self.agentID = agentID
         self.scopeKinds = scopeKinds
+        self.projectName = projectName
         self.searchText = searchText
         self.tag = tag
     }
@@ -111,6 +115,7 @@ public struct CatalogQuery: Sendable {
         return catalog.filter { skill in
             if let agentID, !skill.owners.contains(agentID) { return false }
             if !scopeKinds.isEmpty, !scopeKinds.contains(ScopeKind.of(skill)) { return false }
+            if let projectName, skill.projectTag() != projectName { return false }
             if let tag {
                 let skillTags = Set(tagsBySkill[skill.id] ?? tagsBySkill[skill.directory.path] ?? [])
                 guard skillTags.contains(tag) else { return false }

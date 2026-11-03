@@ -7,12 +7,13 @@ import AppCore
 struct FileListView: View {
     let baseDirectory: URL
     let entries: [SkillPreviewModel.FileListEntry]
+    var l10n: L10n = L10n(lang: .zhHans)
 
     @State private var selectedPath: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("文件清单（\(entries.count)）", systemImage: "folder")
+            Label(l10n.filesList(entries.count), systemImage: "folder")
                 .font(.headline)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 1) {
@@ -49,7 +50,7 @@ struct FileListView: View {
             Image(systemName: "arrow.up.right.square")
                 .foregroundStyle(.secondary)
                 .font(.callout)
-                .help("在 Finder 中显示")
+                .help(l10n.showInFinder)
                 .onHover { hovering in if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() } }
                 .onTapGesture { reveal(url) }
         }
@@ -64,13 +65,13 @@ struct FileListView: View {
         // Finder 习惯：单击选中；菜单里给显式入口
         .onTapGesture { selectedPath = path }
         .contextMenu {
-            Button("在 Finder 中显示") { reveal(url) }
+            Button(l10n.showInFinder) { reveal(url) }
             if entry.isDirectory {
-                Button("打开文件夹") { open(url) }
+                Button(l10n.openFolder) { open(url) }
             }
         }
         .onTapGesture(count: 2) { reveal(url) }
-        .help(entry.isDirectory ? "双击打开该文件夹（Finder 定位）" : "双击在 Finder 中显示此文件")
+        .help(entry.isDirectory ? l10n.doubleClickDirHelp : l10n.doubleClickFileHelp)
     }
 
     /// Finder 定位并选中该文件/文件夹。

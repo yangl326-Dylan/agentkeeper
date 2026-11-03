@@ -25,7 +25,7 @@ public struct MenuSummarySection: View {
             MenuBarHeaderRow(agentCount: agents.count, totalSkills: summary.totalSkills)
 
             if agents.isEmpty {
-                Text(isScanning ? "正在扫描…" : "尚未发现已安装的 agent")
+                Text(isScanning ? env.l10n.menuScanning : env.l10n.menuNoAgents)
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,7 +37,8 @@ public struct MenuSummarySection: View {
                         name: entry.name,
                         icon: MenuBarIcons.icon(for: entry.id),
                         skillCount: entry.skillCount,
-                        targetDirectory: skillRootDirectory(for: entry.id)
+                        targetDirectory: skillRootDirectory(for: entry.id),
+                        l10n: env.l10n
                     )
                 }
             }
@@ -46,6 +47,7 @@ public struct MenuSummarySection: View {
 
             MenuPanelActions(
                 isScanning: isScanning,
+                l10n: env.l10n,
                 onOpenMain: {
                     NSApplication.shared.activate(ignoringOtherApps: true)
                     openWindow(id: "main")

@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import DomainKit
 import InfraKit
+import AppCore
 @testable import AgentKeeperUI
 
 /// 停用区/回收站的行模型（ZoneListModel）——侧栏计数 + 区行渲染共用的纯映射。
@@ -43,13 +44,17 @@ import InfraKit
         #expect(ZoneListModel.count(rows: rows) == 1)
     }
 
-    /// 侧栏节点行文案（带计数）。
+    /// 侧栏节点行文案（带计数；i18n 双语断言）。
     @Test func sidebarNodeTitlesCarryCounts() {
         let rows = ZoneListModel.build(entries: [
             entry(agent: "claude-code", name: "one", original: "/x"),
             entry(agent: "opencode", name: "two", original: "/y"),
         ])
-        #expect(ZoneListModel.zoneTitle(zone: .disabled, rows: rows) == "停用区 · 2")
-        #expect(ZoneListModel.zoneTitle(zone: .trash, rows: []) == "回收站 · 0")
+        let zh = L10n(lang: .zhHans)
+        let en = L10n(lang: .english)
+        #expect(ZoneListModel.zoneTitle(zone: .disabled, rows: rows, l10n: zh) == "停用区 · 2")
+        #expect(ZoneListModel.zoneTitle(zone: .trash, rows: [], l10n: zh) == "回收站 · 0")
+        #expect(ZoneListModel.zoneTitle(zone: .disabled, rows: rows, l10n: en) == "Disabled · 2")
+        #expect(ZoneListModel.zoneTitle(zone: .trash, rows: [], l10n: en) == "Trash · 0")
     }
 }

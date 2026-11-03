@@ -165,13 +165,14 @@ public enum MarkdownBlockParser {
 struct MarkdownDocumentView: View {
     let markdown: String
     let motion: MotionPolicy
+    var l10n: L10n = L10n(lang: .zhHans)
     @State private var collapsed = false
     @State private var cachedBlocks: [MarkdownBlockParser.MarkdownBlock]?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Label("SKILL.md 预览", systemImage: "doc.text")
+                Label(l10n.markdownPreview, systemImage: "doc.text")
                     .font(.headline)
                 Spacer()
                 Button {
@@ -181,13 +182,13 @@ struct MarkdownDocumentView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: collapsed ? "chevron.right" : "chevron.down")
-                        Text(collapsed ? "展开" : "折叠")
+                        Text(collapsed ? l10n.expand : l10n.collapse)
                     }
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help(collapsed ? "展开全文" : "折叠预览")
+                .help(collapsed ? l10n.expandHelp : l10n.collapseHelp)
             }
 
             if collapsed {

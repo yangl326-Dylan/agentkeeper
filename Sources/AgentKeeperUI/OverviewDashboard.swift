@@ -81,14 +81,14 @@ struct OverviewContent: View {
 
     private func header(_ model: OverviewModel) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label("总览", systemImage: "shippingbox.and.arrow.backward.fill")
+            Label(env.l10n.overviewTitle, systemImage: "shippingbox.and.arrow.backward.fill")
                 .font(.title2.bold())
             if let at = model.lastScanAt {
-                Text("上次扫描 \(OverviewDashboard.clockText(at))")
+                Text(env.l10n.overviewLastScan(OverviewDashboard.clockText(at)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                Text("尚未扫描——点击工具栏「立即扫描」开始")
+                Text(env.l10n.overviewNotScanned)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -99,7 +99,7 @@ struct OverviewContent: View {
         HStack(spacing: 14) {
             statCard(value: model.totalSkills, label: "Skills", icon: "square.stack.3d.up")
             statCard(value: model.installedAgents, label: "Agents", icon: "externaldrive.badge.checkmark")
-            statCard(value: model.tagCount, label: "标签", icon: "tag")
+            statCard(value: model.tagCount, label: env.l10n.overviewTags, icon: "tag")
         }
     }
 
@@ -119,13 +119,13 @@ struct OverviewContent: View {
 
     private func scopeSection(_ model: OverviewModel) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Skill 来源分布", systemImage: "scope")
+            Label(env.l10n.overviewScopeDistribution, systemImage: "scope")
                 .font(.headline)
             let total = max(model.totalSkills, 1)
             ForEach([ScopeKind.global, .agentOnly, .project, .multiAgent], id: \.self) { kind in
                 let count = model.scopeCounts[kind] ?? 0
                 HStack(spacing: 10) {
-                    Text(kind.label)
+                    Text(kind.label(env.l10n))
                         .font(.callout)
                         .frame(width: 92, alignment: .leading)
                     GeometryReader { proxy in
@@ -151,7 +151,7 @@ struct OverviewContent: View {
             Label("Agents", systemImage: "person.crop.square")
                 .font(.headline)
             if model.agentEntries.isEmpty {
-                Text("尚未发现已安装 agent——安装 Claude Code / Codex 等后自动识别")
+                Text(env.l10n.sidebarNoAgents)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -182,12 +182,12 @@ extension OverviewDashboard {
 }
 
 extension ScopeKind {
-    var label: String {
+    func label(_ l10n: L10n) -> String {
         switch self {
-        case .global: "全局"
-        case .agentOnly: "Agent 专属"
-        case .project: "项目级"
-        case .multiAgent: "多 Agent 共用"
+        case .global: l10n.scopeGlobal
+        case .agentOnly: l10n.scopeAgentOnly
+        case .project: l10n.scopeProject
+        case .multiAgent: l10n.scopeMultiAgent
         }
     }
 }

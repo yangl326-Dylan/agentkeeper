@@ -40,118 +40,100 @@ struct NavigationSidebar: View {
     @Environment(AppEnvironment.self) private var env
 
     public var body: some View {
-        List {
-            Section("Agents") {
+        // 导航视图：全侧栏单选（原生高亮），列表 = 选中节点 ∩ 搜索词。
+        let l = env.l10n
+        return List(selection: Binding(
+            get: { env.selectedNode },
+            set: { env.select(node: $0) }
+        )) {
+            Section {
+                // 「所有 Skills」根节点：选中态永远有落点（spec：显式默认视图）
+                HStack {
+                    Image(systemName: "square.grid.2x2")
+                        .foregroundStyle(.secondary)
+                    Text(l.sidebarAllSkills)
+                    Spacer()
+                    Text("\(env.catalogStore.current.count)")
+                        .foregroundStyle(.secondary)
+                        .font(.callout.monospacedDigit())
+                }
+                .tag(SidebarNode.all)
+            }
+            Section(l.sectionAgents) {
                 // 只显示本机实际安装过的 agent；未安装的 harness 不进侧栏。
                 // 行模型由 env memoize（catalog version 键控）——body 不再逐帧重算。
                 let rows = env.sidebarRows()
                 if rows.isEmpty {
-                    Text("尚未发现已安装 agent——安装 Claude Code / Codex 等后自动识别")
+                    Text(l.sidebarNoAgents)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else {
                     ForEach(rows) { row in
-                        Button {
-                            // 点击 agent → 右侧列表按其筛选；再点同项取消
-                            env.selectedAgent = AgentSelection.toggle(
-                                current: env.selectedAgent,
-                                clicked: row.id
+                        HStack(spacing: 8) {
+                            Image(
+                                systemName: row.status == .available
+                                    ? "externaldrive.badge.checkmark" : "externaldrive.badge.exclamationmark"
                             )
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(
-                                    systemName: row.status == .available
-                                        ? "externaldrive.badge.checkmark" : "externaldrive.badge.exclamationmark"
-                                )
-                                .foregroundStyle(
-                                    row.status == .available ? Color.green : Color.orange
-                                )
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(row.name)
-                                    Text(row.statusText)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                if env.selectedAgent == row.id {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.tint)
-                                }
+                            .foregroundStyle(
+                                row.status == .available ? Color.green : Color.orange
+                            )
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(row.name)
+                                Text(l.agentRowStatus(available: row.status == .available, skillCount: row.skillCount))
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
                             }
-                            .contentShape(Rectangle())
+                            Spacer()
+                            Text("\(row.skillCount)")
+                                .foregroundStyle(.secondary)
+                                .font(.callout.monospacedDigit())
                         }
-                        .buttonStyle(.plain)
-                        .padding(.vertical, 2)
+                        .tag(SidebarNode.agent(row.id))
                     }
                 }
             }
-            Section("作用域") {
+            Section(l.sectionScopes) {
                 ForEach(sections) { section in
-                    let isSelected = !env.selectedScopes.isEmpty
-                        && SectionSelection.kinds(for: section) == env.selectedScopes
-                    Button {
-                        // 作用域筛选：点同节取消，点异节切换（agent/标签维度各自独立叠加）
-                        env.selectedScopes = SectionSelection.toggle(
-                            current: env.selectedScopes,
-                            section: section
-                        )
-                    } label: {
-                        HStack {
-                            Image(systemName: sectionIcon(section.kind))
-                                .foregroundStyle(.secondary)
-                            Text(section.title)
-                            Spacer()
-                            Text("\(section.count)")
-                                .foregroundStyle(.secondary)
-                                .font(.callout.monospacedDigit())
-                            if isSelected {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
-                            }
-                        }
-                        .contentShape(Rectangle())
+                    HStack {
+                        Image(systemName: sectionIcon(section.kind))
+                            .foregroundStyle(.secondary)
+                        Text(section.kind == .global ? l.scopeGlobal : section.title)
+                        Spacer()
+                        Text("\(section.count)")
+                            .foregroundStyle(.secondary)
+                            .font(.callout.monospacedDigit())
                     }
-                    .buttonStyle(.plain)
+                    .tag(section.kind == .global ? SidebarNode.global : .project(section.title))
                 }
             }
             tagSectionsSection
-            Section("生命周期") {
+            Section(l.sectionLifecycle) {
                 ForEach(LifecycleZone.allCases, id: \.self) { zone in
                     let rows = zone == .disabled ? env.disabledZoneRows() : env.trashedZoneRows()
-                    let isSelected = env.selectedZone == zone
-                    Button {
-                        // 生命周期分区：点同项取消；与 agent/作用域筛选互斥（共用列表位）
-                        if isSelected {
-                            env.selectedZone = nil
-                        } else {
-                            env.selectedZone = zone
-                            env.selectedAgent = nil
-                            env.selectedScopes = []
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: zone.symbol)
-                                .foregroundStyle(.secondary)
-                            Text(ZoneListModel.zoneTitle(zone: zone, rows: rows))
-                            Spacer()
-                            if isSelected {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
-                            }
-                        }
-                        .contentShape(Rectangle())
+                    HStack {
+                        Image(systemName: zone.symbol)
+                            .foregroundStyle(.secondary)
+                        Text(ZoneListModel.zoneTitle(zone: zone, rows: rows, l10n: l))
+                        Spacer()
+                        Text("\(rows.count)")
+                            .foregroundStyle(.secondary)
+                            .font(.callout.monospacedDigit())
                     }
-                    .buttonStyle(.plain)
+                    .tag(SidebarNode.zone(zone))
                 }
             }
         }
         .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 340)
         .navigationTitle("AgentKeeper")
         .overlay(alignment: .bottom) {
-            ScanStatusStrip(scan: env.store.state.scan, skillsCount: env.catalogStore.current.count)
+            ScanStatusStrip(scan: env.store.state.scan, skillsCount: env.catalogStore.current.count, l10n: env.l10n)
                 .padding(.bottom, 8)
         }
         .animation(motion.animation(for: .listTransition), value: env.store.state.agents.count)
+        // 节点失效归一：catalog/agent 变化后，背后集合消失的节点回落「所有 Skills」
+        .task { normalizeSelection() }
+        .onChange(of: env.catalogStore.version) { _, _ in normalizeSelection() }
+        .onChange(of: env.store.state.agents.count) { _, _ in normalizeSelection() }
     }
 
     private var sections: [NavigationSection] {
@@ -166,33 +148,36 @@ struct NavigationSidebar: View {
             tagsBySkill: env.tagsBySkill()
         )
         if !tagSections.isEmpty {
-            Section("标签") {
+            Section(env.l10n.sectionTags) {
                 ForEach(tagSections) { section in
-                    Button {
-                        // 点同项取消，点异项切换（与 Agents 区同套语义）
-                        env.selectedTag = SelectionToggle.toggle(
-                            current: env.selectedTag,
-                            clicked: section.title
-                        )
-                    } label: {
-                        HStack {
-                            Image(systemName: "tag")
-                                .foregroundStyle(.secondary)
-                            Text(section.title)
-                            Spacer()
-                            Text("\(section.count)")
-                                .foregroundStyle(.secondary)
-                                .font(.callout.monospacedDigit())
-                            if env.selectedTag == section.title {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
-                            }
-                        }
+                    HStack {
+                        Image(systemName: "tag")
+                            .foregroundStyle(.secondary)
+                        Text(section.title)
+                        Spacer()
+                        Text("\(section.count)")
+                            .foregroundStyle(.secondary)
+                            .font(.callout.monospacedDigit())
                     }
-                    .buttonStyle(.plain)
+                    .tag(SidebarNode.tag(section.title))
                 }
             }
         }
+    }
+
+    /// 节点失效归一（纯函数在 AppCore）：按标识匹配回落 .all，保持选中稳定。
+    private func normalizeSelection() {
+        let tagSections = NavigationModel.buildTagSections(
+            skills: env.catalogStore.current,
+            tagsBySkill: env.tagsBySkill()
+        )
+        let normalized = NavigationModel.normalize(
+            node: env.selectedNode,
+            sections: NavigationModel.buildSections(skills: env.catalogStore.current),
+            tagTitles: tagSections.map(\.title),
+            installedAgentIDs: env.sidebarRows().map(\.id)
+        )
+        env.select(node: normalized)
     }
 
     private var motion: MotionPolicy {
@@ -223,27 +208,27 @@ enum ScanStatusText {
         return clock.string(from: date)
     }
 
-    static func build(scan: ScanPhaseState, skillsCount: Int) -> String {
+    static func build(scan: ScanPhaseState, skillsCount: Int, l10n: L10n) -> String {
         switch scan.phase {
-        case .idle: return "尚未扫描"
-        case .running: return "正在扫描…"
+        case .idle: return l10n.stripIdle
+        case .running: return l10n.stripRunning
         case .complete:
             let time = scan.lastCompletedAt.map { clockText($0) } ?? "--:--:--"
-            return "完成 · \(scan.agentCount) agents · \(skillsCount) skills · \(time)"
-        case .failed: return "扫描失败：\(scan.failureMessage ?? "未知")"
+            return l10n.stripDone(agents: scan.agentCount, skills: skillsCount, time: time)
+        case .failed: return l10n.stripFailedDetail(scan.failureMessage ?? "--")
         }
     }
 
     /// 紧凑版（窄侧栏防换行）：保留 skill 数与时分，舍弃秒与 agent 数。
-    static func compact(scan: ScanPhaseState, skillsCount: Int) -> String {
+    static func compact(scan: ScanPhaseState, skillsCount: Int, l10n: L10n) -> String {
         switch scan.phase {
-        case .idle: return "尚未扫描"
-        case .running: return "扫描中…"
+        case .idle: return l10n.stripIdle
+        case .running: return l10n.stripRunningCompact
         case .complete:
             compactClock.dateFormat = "HH:mm"
             let time = scan.lastCompletedAt.map { compactClock.string(from: $0) } ?? "--:--"
             return "\(skillsCount) skills · \(time)"
-        case .failed: return "扫描失败"
+        case .failed: return l10n.stripFailed
         }
     }
 }
@@ -251,15 +236,16 @@ enum ScanStatusText {
 struct ScanStatusStrip: View {
     let scan: ScanPhaseState
     let skillsCount: Int
+    var l10n: L10n = L10n(lang: .zhHans)
     @Environment(\.openWindow) private var openWindow
 
     public var body: some View {
         // 窄侧栏（min 200pt）防换行：优先全文案，放不下用紧凑版；单行硬保证
         ViewThatFits(in: .horizontal) {
-            label(text: ScanStatusText.build(scan: scan, skillsCount: skillsCount))
-            label(text: ScanStatusText.compact(scan: scan, skillsCount: skillsCount))
+            label(text: ScanStatusText.build(scan: scan, skillsCount: skillsCount, l10n: l10n))
+            label(text: ScanStatusText.compact(scan: scan, skillsCount: skillsCount, l10n: l10n))
         }
-        .help("点击打开主窗口 Skill 列表")
+        .help(l10n.stripTapOpenMain)
         .onTapGesture {
             // 点击 → 前置主窗口（Skill 列表随 RootView 常驻）
             NSApplication.shared.activate(ignoringOtherApps: true)
@@ -291,11 +277,12 @@ struct ScanStatusStrip: View {
     }
 
     private var tint: StatusSemantics {
+        // explanation 不直接展示（文案走 ScanStatusText）；仅取色与符号
         switch scan.phase {
-        case .idle: StatusSemantics(colorKey: "gray", symbol: "circle", explanation: "空闲")
-        case .running: StatusSemantics(colorKey: "blue", symbol: "dot.radiowaves.left.and.right", explanation: "扫描中")
-        case .complete: StatusSemantics(colorKey: "green", symbol: "checkmark.circle", explanation: "完成")
-        case .failed: StatusSemantics(colorKey: "red", symbol: "xmark.circle", explanation: "失败")
+        case .idle: StatusSemantics(colorKey: "gray", symbol: "circle", explanation: l10n.stripIdle)
+        case .running: StatusSemantics(colorKey: "blue", symbol: "dot.radiowaves.left.and.right", explanation: l10n.stripRunning)
+        case .complete: StatusSemantics(colorKey: "green", symbol: "checkmark.circle", explanation: l10n.stripIdle)
+        case .failed: StatusSemantics(colorKey: "red", symbol: "xmark.circle", explanation: l10n.stripFailed)
         }
     }
 }
@@ -303,13 +290,15 @@ struct ScanStatusStrip: View {
 /// Skill 列表行内容（不含 List 容器：离屏快照可经 VStack 引用真实行像素）。
 struct SkillRowView: View {
     let skill: Skill
+    var l10n: L10n = L10n(lang: .zhHans)
 
     var body: some View {
         HStack(spacing: 8) {
-            let semantics = StatusSemantics.resolve(token(of: skill))
+            let status = token(of: skill)
+            let semantics = StatusSemantics.resolve(status)
             Image(systemName: semantics.symbol)
                 .foregroundStyle(semantics.colorKey.semanticColor)
-                .help(semantics.explanation)
+                .help(statusHelp(status))
             VStack(alignment: .leading, spacing: 2) {
                 Text(skill.name).font(.body)
                 Text(subtitle(skill))
@@ -318,7 +307,7 @@ struct SkillRowView: View {
                     .lineLimit(1)
             }
             Spacer()
-            Text(scopeLabel(skill))
+            Text(l10n.scopeBadge(skill.scope))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 6)
@@ -332,6 +321,15 @@ struct SkillRowView: View {
         return .enabled
     }
 
+    private func statusHelp(_ token: StatusToken) -> String {
+        switch token {
+        case .disabled: l10n.statusDisabledHelp
+        case .unrecognized: l10n.statusUnrecognizedHelp
+        case .permissionDenied: l10n.permissionDeniedHelp
+        case .enabled, .changed, .conflict: l10n.statusEnabledHelp
+        }
+    }
+
     private func subtitle(_ skill: Skill) -> String {
         var parts: [String] = []
         // 全局/同铺设 skill 拥有多个 owner——只显示第一个会誤导（看似专属）
@@ -339,15 +337,6 @@ struct SkillRowView: View {
         if !owners.isEmpty { parts.append(owners) }
         if let desc = skill.skillDescription, !desc.isEmpty { parts.append(desc) }
         return parts.joined(separator: " · ")
-    }
-
-    private func scopeLabel(_ skill: Skill) -> String {
-        switch skill.scope {
-        case .global: "全局"
-        case .agentOnly: "专属"
-        case .project: "项目 \(skill.projectTag() ?? "")"
-        case .multiAgent: "多 Agent 共用"
-        }
     }
 }
 
@@ -360,25 +349,25 @@ struct SkillListView: View {
     @State private var importError: String?
 
     public var body: some View {
-        // 停用区/回收站选择：列表位切换为生命周期区视图（agent/作用域筛选互斥）
-        if let zone = env.selectedZone {
+        // 生命周期区节点：列表位切换为区视图（同属单选导航，无组合语义）
+        if case let .zone(zone) = env.selectedNode {
             ZoneListView(zone: zone)
-                .navigationTitle(zone.title)
+                .navigationTitle(NavigationModel.listTitle(for: env.selectedNode, l10n: env.l10n))
         } else {
             // 筛选结果本帧只算一次：animation value 与列表使用同一份（曾每帧/每击键跑两条全量管线）
             let query = SkillListCore.filter(searchText, env)
             listCore(query)
-                .searchable(text: $searchText, placement: .automatic, prompt: "搜索名称 / 描述 / 项目")
-                .navigationTitle(env.selectedAgent.map { "Skills · \($0)" } ?? "Skills")
+                .searchable(text: $searchText, placement: .automatic, prompt: Text(env.l10n.searchPrompt))
+                .navigationTitle(NavigationModel.listTitle(for: env.selectedNode, l10n: env.l10n))
                 .toolbar { toolbarContent }
                 .sheet(isPresented: $showGitInstall) {
                     GitInstallSheet()
                 }
-                .alert("导入失败", isPresented: Binding(
+                .alert(env.l10n.importFailed, isPresented: Binding(
                     get: { importError != nil },
                     set: { if !$0 { importError = nil } }
                 )) {
-                    Button("好", role: .cancel) { }
+                    Button(env.l10n.importButtonOK, role: .cancel) { }
                 } message: {
                     Text(importError ?? "")
                 }
@@ -397,17 +386,8 @@ struct SkillListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        let l = env.l10n
         ToolbarItemGroup {
-            Menu {
-                Toggle("全局", isOn: scopeToggle(.global))
-                Toggle("Agent 专属", isOn: scopeToggle(.agentOnly))
-                Toggle("项目级", isOn: scopeToggle(.project))
-                Toggle("多 Agent 共用", isOn: scopeToggle(.multiAgent))
-                Divider()
-                tagFilterMenu
-            } label: {
-                Label("筛选", systemImage: "line.3.horizontal.decrease.circle")
-            }
             Button {
                 Task { await env.scanNow() }
             } label: {
@@ -415,44 +395,26 @@ struct SkillListView: View {
                 if env.store.state.scan.phase == .running {
                     HStack(spacing: 4) {
                         ProgressView().controlSize(.small)
-                        Text("正在扫描…")
+                        Text(l.scanning)
                     }
                 } else {
-                    Label("立即扫描", systemImage: "arrow.clockwise")
+                    Label(l.scanNow, systemImage: "arrow.clockwise")
                 }
             }
             .disabled(env.store.state.scan.phase == .running)
             Button {
                 Task { await importFromPanel() }
             } label: {
-                Label("导入 skill…", systemImage: "square.and.arrow.down")
+                Label(l.importSkill, systemImage: "square.and.arrow.down")
             }
             Button {
                 showGitInstall = true
             } label: {
-                Label("从 git 安装…", systemImage: "arrow.down.circle")
+                Label(l.installFromGit, systemImage: "arrow.down.circle")
             }
             // 设置（⌘,）：macOS 官方 SettingsLink 打开 Settings 场景窗口
             SettingsLink {
-                Label("设置…", systemImage: "gearshape")
-            }
-        }
-    }
-
-    /// 标签筛选子菜单（spec：统一视图按标签筛选，含禁用条目）。
-    @ViewBuilder
-    private var tagFilterMenu: some View {
-        if env.tagService.tags().isEmpty {
-            Text("暂无自定义标签").foregroundStyle(.secondary)
-        } else {
-            Menu("按标签…") {
-                Toggle("全部", isOn: Binding(get: { env.selectedTag == nil }, set: { _ in env.selectedTag = nil }))
-                ForEach(env.tagService.tags(), id: \.self) { tag in
-                    Toggle(tag, isOn: Binding(
-                        get: { env.selectedTag == tag },
-                        set: { on in env.selectedTag = on ? tag : nil }
-                    ))
-                }
+                Label(l.settingsMenu, systemImage: "gearshape")
             }
         }
     }
@@ -463,13 +425,13 @@ struct SkillListView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "导入"
-        panel.message = "选择包含 SKILL.md 的 skill 目录"
+        panel.prompt = env.l10n.commonInstall
+        panel.message = env.l10n.gitSheetTitle
         let response = panel.runModal()
         guard response == .OK, let directory = panel.url else { return }
         let targetRoot = currentTargetRoot()
         guard let targetRoot else {
-            importError = "没有可用的 agent skill 目录（先扫描或检查目录结构）"
+            importError = env.l10n.importNoTargetRoots
             return
         }
         await env.importSkill(from: directory, targetSkillRoot: targetRoot)
@@ -489,15 +451,6 @@ struct SkillListView: View {
         return nil
     }
 
-    private func scopeToggle(_ kind: ScopeKind) -> Binding<Bool> {
-        Binding(
-            get: { env.selectedScopes.contains(kind) },
-            set: { on in
-                if on { env.selectedScopes.insert(kind) } else { env.selectedScopes.remove(kind) }
-            }
-        )
-    }
-
     private var motion: MotionPolicy { env.motionPolicy }}
 
 struct SkillListCore: View {
@@ -509,21 +462,22 @@ struct SkillListCore: View {
     var body: some View {
         // 捕获已解析的具体 env 对象（%@Environment 包装器在离屏/闭包拷贝中不可靠）
         let env = self.env
+        let l = env.l10n
         return List(selection: Binding(
             get: { env.selectedSkillID },
             set: { env.selectedSkillID = $0 }
         )) {
             ForEach(query) { skill in
-                SkillRowView(skill: skill)
+                SkillRowView(skill: skill, l10n: l)
                     .transition(.opacity)
             }
         }
         .overlay {
             if query.isEmpty {
                 ContentUnavailableView(
-                    "没有匹配的 Skill",
+                    l.noMatchingSkills,
                     systemImage: "magnifyingglass",
-                    description: Text("调整筛选或重新扫描")
+                    description: Text(l.adjustFilterOrRescan)
                 )
             }
         }
@@ -531,18 +485,16 @@ struct SkillListCore: View {
 
     // MARK: 数据
 
-    /// 筛选逻辑（static：父级 animation 亦需同一结果）。作用域维度读 env.selectedScopes
-    /// （侧栏 Skills 节与工具栏筛选菜单共用同一真源）。
+    /// 筛选逻辑（static：父级 animation 亦需同一结果）。
+    /// 组合语义唯一收口：侧栏节点（NavigationModel.catalogQuery）∩ 搜索词。
     static func filter(_ searchText: String, _ env: AppEnvironment) -> [Skill] {
-        var query = CatalogQuery.initial
-        query.scopeKinds = env.selectedScopes
+        guard var query = NavigationModel.catalogQuery(for: env.selectedNode) else { return [] }
         query.searchText = searchText
-        query.tag = env.selectedTag
-        query.agentID = env.selectedAgent
-        // 标签筛选需要合成禁用条目；普通视图只见可用 catalog
-        let catalog = env.selectedTag == nil ? env.catalogStore.current : env.catalogForTagFilter()
+        // 标签节点需要合成禁用条目；普通视图只见可用 catalog
+        let isTagNode: Bool = { if case .tag = env.selectedNode { return true }; return false }()
+        let catalog = isTagNode ? env.catalogForTagFilter() : env.catalogStore.current
         // 无标签筛选时不取标签映射（曾每次 filter 都做 N 次串行队列锁往返）
-        let tags = env.selectedTag == nil ? [:] : env.tagsBySkill()
+        let tags = isTagNode ? env.tagsBySkill() : [:]
         return query.apply(catalog: catalog, tagsBySkill: tags)
     }
 }
@@ -573,16 +525,16 @@ struct SkillDetailView: View {
                 InstallToAgentSheet(skill: skill)
             }
             .confirmationDialog(
-                "用此版本更新全部安装副本？",
+                env.l10n.updateAllTitle,
                 isPresented: $confirmUpdateAll,
                 titleVisibility: .visible
             ) {
-                Button("更新（覆盖前自动保存快照）") {
+                Button(env.l10n.updateAllButton) {
                     Task { _ = await env.updateAllLandingPoints(from: skill) }
                 }
-                Button("取消", role: .cancel) { }
+                Button(env.l10n.commonCancel, role: .cancel) { }
             } message: {
-                Text("将用当前版本覆盖内容不一致的副本；覆盖前每个副本自动保存一份快照。已停用的副本跳过。")
+                Text(env.l10n.updateAllMessage)
             }
         } else {
             // MangoDisk 式：未选中时展示扫描产出总览（统计/分布/agent 卡片）
@@ -641,7 +593,8 @@ struct SkillDetailContent: View {
             snapshotsList = nil
             async let md = SkillPreviewModel.loadMarkdown(skillDir: skill.directory)
             async let fs = SkillPreviewModel.loadFiles(skillDir: skill.directory)
-            (markdown, files) = await (md, fs)
+            // 空串哨兵 = SKILL.md 缺失（nil = 加载中；占位文案按语言渲染）
+            (markdown, files) = await (md ?? "", fs)
             // 历史/快照走各自的读区（快照要枚举快照目录 manifest）；store 均 @unchecked Sendable
             let historyStore = env.history
             let snapshotStore = env.snapshots
@@ -703,29 +656,30 @@ struct SkillDetailContent: View {
     private func operationButtons(_ skill: Skill) -> some View {
         let isDisabled = skill.status == .disabled
         let pending = env.store.state.operation
+        let l = env.l10n
         Button {
             Task { await env.runOperation(skill: skill, direction: isDisabled ? .enable : .disable) }
         } label: {
-            Label(isDisabled ? "重新启用" : "停用", systemImage: isDisabled ? "checkmark.circle" : "pause.circle")
+            Label(isDisabled ? l.opEnable : l.opDisable, systemImage: isDisabled ? "checkmark.circle" : "pause.circle")
         }
         .disabled(pending.inFlight != nil)
-        .help(pending.failureMessage ?? (isDisabled ? "停用时记录了原路径，恢复时原样放回" : "移入统一停用目录，可随时恢复"))
+        .help(pending.failureMessage ?? (isDisabled ? l.enableHelp : l.disableHelp))
         if !isDisabled {
             Button {
                 showInstallSheet = true
             } label: {
-                Label("安装到其他 agent…", systemImage: "arrow.up.circle")
+                Label(l.opInstallToAgents, systemImage: "arrow.up.circle")
             }
             .disabled(pending.inFlight != nil)
-            .help("把此 skill 复制安装到其他 agent 的目录（同名目标不覆盖）")
+            .help(l.installToAgentsHelp)
             // 删除 = 移入回收站（原样保全可回滚；彻底删除走回收站二次确认）
             Button(role: .destructive) {
                 Task { await env.runOperation(skill: skill, direction: .delete) }
             } label: {
-                Label("移入回收站", systemImage: "trash")
+                Label(l.opMoveToTrash, systemImage: "trash")
             }
             .disabled(pending.inFlight != nil)
-            .help("移到统一回收站（~/.agentkeeper/trash），可在侧栏「回收站」恢复或彻底删除")
+            .help(l.moveToTrashHelp)
         }
     }
 
@@ -735,18 +689,18 @@ struct SkillDetailContent: View {
     private func tagsSection(_ skill: Skill) -> some View {
         let current = env.tagService.tags(forSkillID: skill.id)
         return VStack(alignment: .leading, spacing: 8) {
-            Label("标签", systemImage: "tag")
+            Label(env.l10n.detailTags, systemImage: "tag")
                 .font(.headline)
             if !current.isEmpty {
-                FlowChips(tags: current) { tag in
+                FlowChips(tags: current, onRemove: { tag in
                     env.tagService.removeTag(tag, fromSkillID: skill.id)
-                }
+                }, removeHelp: env.l10n.removeTagHelp)
             }
             HStack {
-                TextField("新标签名（回车添加）", text: $newTagText)
+                TextField(env.l10n.detailNewTagPrompt, text: $newTagText)
                     .textFieldStyle(.roundedBorder)
                     .frame(maxWidth: 240)
-                Button("添加") {
+                Button(env.l10n.commonAdd) {
                     let name = newTagText.trimmingCharacters(in: .whitespaces)
                     guard !name.isEmpty else { return }
                     env.tagService.addTag(name, toSkillID: skill.id)
@@ -774,7 +728,7 @@ struct SkillDetailContent: View {
             if points.count > 1 || diverged {
                 VStack(alignment: .leading, spacing: 8) {
                     Label(
-                        diverged ? "同名安装（内容不一致）" : "同名安装",
+                        diverged ? env.l10n.landingDiverged : env.l10n.landingSameName,
                         systemImage: diverged ? "exclamationmark.triangle" : "link"
                     )
                     .font(.headline)
@@ -800,7 +754,7 @@ struct SkillDetailContent: View {
                         }
                     }
                     HStack {
-                        Button("用此版本更新全部副本…") {
+                        Button(env.l10n.landingUpdateAll) {
                             confirmUpdateAll = true
                         }
                         .disabled(env.store.state.operation.inFlight != nil)
@@ -814,14 +768,19 @@ struct SkillDetailContent: View {
 
     @ViewBuilder
     private func previewSection(_ skill: Skill) -> some View {
-        if let markdown {
+        if let markdown, !markdown.isEmpty {
             // 块级 markdown 渲染器：标题层级/代码块/列表/引用 + 可折叠 + 卡内滚动
-            MarkdownDocumentView(markdown: markdown, motion: motion)
+            MarkdownDocumentView(markdown: markdown, motion: motion, l10n: env.l10n)
+        } else if markdown != nil {
+            // SKILL.md 缺失/为空（空串哨兵）
+            Text(env.l10n.markdownMissing)
+                .font(.body)
+                .foregroundStyle(.secondary)
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                Label("SKILL.md 预览", systemImage: "doc.text")
+                Label(env.l10n.detailPreview, systemImage: "doc.text")
                     .font(.headline)
-                loadingPlaceholder("正在读取 SKILL.md…")
+                loadingPlaceholder(env.l10n.detailReadingSkillMd)
             }
         }
     }
@@ -830,12 +789,12 @@ struct SkillDetailContent: View {
     private func filesSection(_ skill: Skill) -> some View {
         if let files {
             // Finder 风格：图标/缩进/点选；双击或菜单在 Finder 中定位
-            FileListView(baseDirectory: skill.directory, entries: files)
+            FileListView(baseDirectory: skill.directory, entries: files, l10n: env.l10n)
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                Label("文件清单", systemImage: "doc.on.doc")
+                Label(env.l10n.detailFiles, systemImage: "doc.on.doc")
                     .font(.headline)
-                loadingPlaceholder("正在列出文件…")
+                loadingPlaceholder(env.l10n.detailListingFiles)
             }
         }
     }
@@ -854,12 +813,12 @@ struct SkillDetailContent: View {
 
     private func historySection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("操作历史", systemImage: "clock.arrow.circlepath")
+            Label(env.l10n.detailHistory, systemImage: "clock.arrow.circlepath")
                 .font(.headline)
             // 异步加载中占位；历史记录随操作刷新（runOperation 后重扫触发 task(id:) 重载）
             let records = historyRecords ?? []
             if records.isEmpty {
-                Text(historyRecords == nil ? "加载中…" : "暂无操作记录")
+                Text(historyRecords == nil ? env.l10n.commonLoading : env.l10n.detailNoHistory)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
@@ -887,12 +846,12 @@ struct SkillDetailContent: View {
 
     private func snapshotsSection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("历史快照", systemImage: "camera.on.rectangle")
+            Label(env.l10n.detailSnapshots, systemImage: "camera.on.rectangle")
                 .font(.headline)
             // 异步加载中占位（曾每次 body 求值同步枚举快照 manifest 全表）
             let snapshots = snapshotsList ?? []
             if snapshots.isEmpty {
-                Text(snapshotsList == nil ? "加载中…" : "暂无快照（skill 内容变化时自动记录）")
+                Text(snapshotsList == nil ? env.l10n.commonLoading : env.l10n.detailNoSnapshots)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
@@ -909,7 +868,7 @@ struct SkillDetailContent: View {
                         .font(.caption)
                     }
                     .buttonStyle(.link)
-                    .help("恢复此版本（当前内容会先自动存一份快照）")
+                    .help(env.l10n.restoreSnapshotHelp(snapshots.count - index))
                 }
             }
         }
@@ -918,22 +877,17 @@ struct SkillDetailContent: View {
     // MARK: 辅助
 
     private func scopeText(_ skill: Skill) -> String {
-        switch skill.scope {
-        case let .global(owners): "全局（\(owners.joined(separator: "、"))）"
-        case let .agentOnly(agentID): "Agent 专属（\(agentID)）"
-        case let .project(agentID, root): "项目（\(agentID) · \(root.tagName)）"
-        case let .multiAgent(ids): "多 Agent 共用（\(ids.joined(separator: "、"))）"
-        }
+        env.l10n.scopeDetailText(skill.scope)
     }
 
     private func directionText(_ direction: OperationDirection) -> String {
         switch direction {
-        case .disable: "停用"
-        case .enable: "重新启用"
-        case .snapshotRestore: "从快照恢复"
-        case .delete: "删除"
-        case .distribute: "分发安装"
-        case .updateLandingPoints: "更新全部副本"
+        case .disable: env.l10n.dirDisable
+        case .enable: env.l10n.dirEnable
+        case .snapshotRestore: env.l10n.dirSnapshotRestore
+        case .delete: env.l10n.dirDelete
+        case .distribute: env.l10n.dirDistribute
+        case .updateLandingPoints: env.l10n.dirUpdateAll
         }
     }
 
@@ -954,6 +908,7 @@ struct SkillDetailContent: View {
 struct FlowChips: View {
     let tags: [String]
     let onRemove: (String) -> Void
+    var removeHelp: String = "移除标签"
 
     /// 简化双列流式布局：标签量级小（个人 workset），取自然折行即可。
     public var body: some View {
@@ -975,7 +930,7 @@ struct FlowChips: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .help("移除标签")
+                    .help(removeHelp)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
@@ -1001,19 +956,20 @@ struct InstallToAgentSheet: View {
     }
 
     public var body: some View {
+        let l = env.l10n
         VStack(alignment: .leading, spacing: 16) {
-            Label("安装「\(skill.name)」到其他 agent", systemImage: "arrow.up.circle")
+            Label(l.installSheetTitle(skill.name), systemImage: "arrow.up.circle")
                 .font(.headline)
-            Text("安装方式：复制，源文件保持不动；同名目标不会覆盖，内容一致时自动跳过并说明。")
+            Text(l.installSheetExplain)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             let targets = availableTargets
             if targets.isEmpty {
                 ContentUnavailableView(
-                    "没有可用目标",
+                    l.installNoTargets,
                     systemImage: "tray",
-                    description: Text("先扫描出已安装的 agent 才能安装")
+                    description: Text(l.installNoTargetsDetail)
                 )
             } else {
                 List(selection: Binding(
@@ -1044,9 +1000,9 @@ struct InstallToAgentSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(l.commonCancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("安装") {
+                Button(l.commonInstall) {
                     guard let selection else { return }
                     Task {
                         await env.distributeInstall(skill: skill, targetSkillRoot: selection.root)
@@ -1084,13 +1040,14 @@ struct GitInstallSheet: View {
     @State private var targetRoot: URL?
 
     public var body: some View {
+        let l = env.l10n
         VStack(alignment: .leading, spacing: 16) {
-            Label("从 git 安装 skill", systemImage: "arrow.down.circle")
+            Label(l.gitSheetTitle, systemImage: "arrow.down.circle")
                 .font(.headline)
             HStack {
-                TextField("https://…/repo.git 或 ~/本地仓库路径", text: $urlText)
+                TextField(l.gitURLPlaceholder, text: $urlText)
                     .textFieldStyle(.roundedBorder)
-                Button("查找候选") {
+                Button(l.gitFindCandidates) {
                     Task { await propose() }
                 }
                 .disabled(urlText.trimmingCharacters(in: .whitespaces).isEmpty || proposing)
@@ -1099,16 +1056,16 @@ struct GitInstallSheet: View {
             if proposing {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
-                    Text("正在 clone / 校验…").foregroundStyle(.secondary)
+                    Text(l.gitCloning).foregroundStyle(.secondary)
                 }
             }
 
             if proposalStage {
                 if candidates.isEmpty {
-                    Text("未发现合法 skill（检查 URL 或换本地路径形式）")
+                    Text(l.gitNoSkills)
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("勾选要安装的 skill：").font(.callout)
+                    Text(l.gitPickSkills).font(.callout)
                     List(candidates) { candidate in
                         HStack {
                             Toggle(candidate.name, isOn: Binding(
@@ -1127,7 +1084,7 @@ struct GitInstallSheet: View {
                     }
                     .frame(minHeight: 160)
 
-                    Picker("安装到", selection: $targetRoot) {
+                    Picker(l.gitInstallTo, selection: $targetRoot) {
                         ForEach(targetChoices, id: \.self) { root in
                             Text(root.path).tag(root as URL?)
                         }
@@ -1138,9 +1095,9 @@ struct GitInstallSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(l.commonCancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("安装") {
+                Button(l.commonInstall) {
                     Task { await install() }
                 }
                 .keyboardShortcut(.defaultAction)

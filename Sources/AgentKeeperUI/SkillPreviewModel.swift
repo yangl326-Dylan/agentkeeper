@@ -11,14 +11,14 @@ enum SkillPreviewModel {
         let isDirectory: Bool
     }
 
-    /// SKILL.md 全文（后台读取）；文件缺失给占位文案。
-    static func loadMarkdown(skillDir: URL) async -> String {
+    /// SKILL.md 全文（后台读取）；文件缺失返回 nil——占位文案由 UI 层按语言渲染。
+    static func loadMarkdown(skillDir: URL) async -> String? {
         let url = skillDir.appendingPathComponent("SKILL.md")
         return await Task.detached(priority: .userInitiated) {
             if let content = try? String(contentsOf: url, encoding: .utf8), !content.isEmpty {
                 return content
             }
-            return "（SKILL.md 不存在或为空）"
+            return nil
         }.value
     }
 

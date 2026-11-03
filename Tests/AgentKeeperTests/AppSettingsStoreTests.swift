@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Testing
+import AppCore
 @testable import AgentKeeperUI
 
 /// 外观偏好（跟随系统/日间/夜间）——默认值、映射与 UserDefaults 持久化。
@@ -10,8 +11,22 @@ import Testing
         let defaults = UserDefaults(suiteName: "ak-settings-test-\(UUID().uuidString)")!
         let store = AppSettingsStore(defaults: defaults)
         #expect(store.appearance == .system)
+        #expect(store.language == .system) // i18n：默认同系统语言
         #expect(store.effectiveColorScheme == nil) // 跟随系统 → 不强制
         #expect(store.reduceMotionOverride == nil)
+    }
+
+    /// 语言设置持久化（i18n：设置切换跨启动生效）。
+    @Test func languagePersists() {
+        let name = "ak-settings-test-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        let store = AppSettingsStore(defaults: defaults)
+        store.language = .english
+        let reloaded = AppSettingsStore(defaults: UserDefaults(suiteName: name)!)
+        #expect(reloaded.language == .english)
+        // 跟随系统按首选语言解析（zh* → 中文）
+        #expect(L10n.resolve(.system, preferredLanguages: ["zh-Hans-CN"]).lang == .zhHans)
+        #expect(L10n.resolve(reloaded.language, preferredLanguages: ["zh-Hans-CN"]).lang == .english)
     }
 
     @Test func explicitSchemeMapsAndPersists() {

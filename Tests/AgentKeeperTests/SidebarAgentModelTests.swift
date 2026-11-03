@@ -32,7 +32,14 @@ import AppCore
         )
         #expect(rows.count == 1)
         #expect(rows[0].status == .available)
-        #expect(rows[0].statusText == "可用 · 3 skills")
+        // 文案走 L10n（i18n）：中英双语断言
+        let zh = L10n(lang: .zhHans)
+        let en = L10n(lang: .english)
+        #expect(zh.agentRowStatus(available: true, skillCount: 3) == "可用 · 3 skills")
+        #expect(zh.agentRowStatus(available: true, skillCount: 3).contains("3"))
+        #expect(en.agentRowStatus(available: true, skillCount: 3).contains("3"))
+        #expect(zh.agentRowStatus(available: false, skillCount: 0) == "结构未知")
+        #expect(en.agentRowStatus(available: false, skillCount: 0) == "Unknown layout")
     }
 
     @Test func unrecognizedStructureKeptWithWarningStatus() {
@@ -45,7 +52,6 @@ import AppCore
         )
         #expect(rows.map(\.id) == ["weird-agent"])
         #expect(rows[0].status == .unrecognized)
-        #expect(rows[0].statusText == "结构未知")
     }
 
     @Test func installedWithoutSkillsShowsZero() {
@@ -53,6 +59,6 @@ import AppCore
             agents: [agent("opencode", .installed(configDirectory: nil))],
             skills: []
         )
-        #expect(rows[0].statusText == "可用 · 0 skills")
+        #expect(rows[0].skillCount == 0)
     }
 }
