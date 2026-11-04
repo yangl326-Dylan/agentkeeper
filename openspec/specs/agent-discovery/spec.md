@@ -50,6 +50,21 @@
 - **WHEN** 发起一次全量扫描
 - **THEN** 调度器 SHALL 遍历注册表中所有已注册适配器，并逐个产出标准的扫描报告
 
+### Requirement: 用户自定义 agent
+系统 SHALL 支持从 `~/.agentkeeper/agents.json` 加载用户自定义 agent，使其与内置 agent 走同一条扫描与展示管线；加载 MUST NOT 因单个条目非法而中断扫描。
+
+#### Scenario: 自定义 agent 被扫描
+- **WHEN** `agents.json` 声明了一个 id 不与内置冲突、路径均相对家目录的 agent，且其检测目录存在
+- **THEN** 该 agent 出现在扫描结果、侧栏、菜单栏与 `ak doctor` 中，其 skill 根与项目级目录被正常扫描
+
+#### Scenario: 内置 id 不可被覆盖
+- **WHEN** 自定义条目的 id 与某个内置 agent 相同
+- **THEN** 该条目被忽略，内置 agent 行为不变，并产出一条可见诊断说明原因
+
+#### Scenario: 非法条目降级
+- **WHEN** 自定义条目包含非法 id、绝对路径、`..`、空 `detectionSubpaths` 或损坏的 JSON
+- **THEN** 仅该条目被忽略，扫描继续，诊断中包含 `agents.json` 路径与具体原因
+
 ### Requirement: 扫描进度可感知
 用户 SHALL 能在界面上看到扫描过程的实时状态（开始/进行中/完成/失败），扫描 MUST 在后台线程执行且 MUST NOT 阻塞 UI。
 

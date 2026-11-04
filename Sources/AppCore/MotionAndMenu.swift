@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import DomainKit
+import InfraKit
 
 // MARK: - 动效策略（6.3）
 
@@ -73,22 +74,23 @@ public struct MenuBarSummary: Hashable, Sendable {
     }
 }
 
-/// 菜单栏 agent 行的语义 SF Symbol（Raycast 式面板）。未知 ID 统一回落 terminal。
+/// 菜单栏 agent 行的语义 SF Symbol（Raycast 式面板）。
+/// 单一真相：`AgentSpec.icon`（内置与用户自定义一致）；未知 ID 回落 terminal。
 public enum MenuBarIcons {
-    private static let mapping: [AgentID: String] = [
-        "claude-code": "chevron.left.forwardslash.chevron.right",
-        "opencode": "chevron.left.forwardslash.chevron.right",
-        "codex": "chevron.left.forwardslash.chevron.right",
-        "cursor": "cursorarrow.rays",
-        "gemini": "sparkles",
-        "qwen": "sparkles",
-        "pi": "terminal",
-        "oh-my-pi": "terminal",
-        "openclaw": "terminal",
-        "agents-shared": "person.2",
-    ]
-
-    public static func icon(for agentID: AgentID) -> String {
-        mapping[agentID] ?? "terminal"
+    public static func icon(
+        for agentID: AgentID,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> String {
+        if let spec = BuiltInAgents.spec(for: agentID) {
+            return spec.icon.isEmpty ? "terminal" : spec.icon
+        }
+        // 用户自定义 agent：图标来自 ~/.agentkeeper/agents.json
+        let userConfig = UserAgentConfigLoader.load(
+            baseDirectory: homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
+        )
+        if let spec = userConfig.specs.first(where: { $0.id == agentID }), !spec.icon.isEmpty {
+            return spec.icon
+        }
+        return "terminal"
     }
 }

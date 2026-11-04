@@ -2,13 +2,13 @@ import Foundation
 import DomainKit
 
 // 各 agent 的具名 adapter（测试与客户端用具体类型），
-// 内部全部走 StandardAgentAdapter 引擎。
+// 内部全部委托 StandardAgentAdapter 引擎 + BuiltInAgents 声明。
 
 /// OpenCode。
 public struct OpenCodeAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .openCode(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.openCode, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }
@@ -22,7 +22,7 @@ public struct OpenCodeAdapter: AgentAdapter {
 public struct CodexAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .codex(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.codex, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }
@@ -36,7 +36,7 @@ public struct CodexAdapter: AgentAdapter {
 public struct GeminiAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .gemini(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.gemini, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }
@@ -50,7 +50,7 @@ public struct GeminiAdapter: AgentAdapter {
 public struct OpenClawAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .openClaw(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.openClaw, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }
@@ -64,7 +64,7 @@ public struct OpenClawAdapter: AgentAdapter {
 public struct PiAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .pi(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.pi, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }
@@ -78,7 +78,7 @@ public struct PiAdapter: AgentAdapter {
 public struct OhMyPiAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .ohMyPi(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.ohMyPi, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }
@@ -92,7 +92,7 @@ public struct OhMyPiAdapter: AgentAdapter {
 public struct SharedAgentsAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .sharedAgents(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.sharedAgents, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }
@@ -106,7 +106,7 @@ public struct SharedAgentsAdapter: AgentAdapter {
 public struct QwenAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .qwen(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.qwen, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }
@@ -120,7 +120,7 @@ public struct QwenAdapter: AgentAdapter {
 public struct CursorAdapter: AgentAdapter {
     private let engine: StandardAgentAdapter
     public init(homeDirectory: URL) {
-        self.engine = .cursor(homeDirectory: homeDirectory)
+        self.engine = StandardAgentAdapter(spec: BuiltInAgents.cursor, homeDirectory: homeDirectory)
     }
     public var id: AgentID { engine.id }
     public var displayName: String { engine.displayName }

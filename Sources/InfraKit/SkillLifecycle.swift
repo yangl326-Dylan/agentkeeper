@@ -35,12 +35,12 @@ public struct DisabledSkillRecord: Codable, Hashable, Sendable {
 public struct SkillLifecycle: @unchecked Sendable {
     /// 统一禁用区根（默认 ~/.agentkeeper；测试注入）。
     private let baseDirectory: URL
-    /// 巡检时需遍历的 agent 集合（默认内置 7 个 + unknown）。
+    /// 巡检时的 agent 名单（仅作兜底并集；条目枚举以磁盘目录为准，自定义 agent 自动可见）。
     private let knownAgentIDs: [String]
     private let mover: AtomicMover
     private let fileManager: FileManager
 
-    public init(baseDirectory: URL, knownAgentIDs: [String] = ["claude-code", "codex", "gemini", "opencode", "openclaw", "pi", "oh-my-pi"], mover: AtomicMover = AtomicMover()) {
+    public init(baseDirectory: URL, knownAgentIDs: [String] = [], mover: AtomicMover = AtomicMover()) {
         self.baseDirectory = baseDirectory
         self.knownAgentIDs = knownAgentIDs
         self.mover = mover
@@ -98,12 +98,30 @@ public struct SkillLifecycle: @unchecked Sendable {
         zone == .disabled ? disabledRoot(agentID: agentID) : trashRoot(agentID: agentID)
     }
 
+    /// 区内实际存在的 agent 目录（目录枚举——不依赖任何名单）。
+    /// 回归背景：旧实现只遍历 `knownAgentIDs`，qwen/cursor/自定义 agent 的条目会「磁盘上有、UI 里没有」。
+    private func zoneAgentIDs(_ zone: Zone) -> [AgentID] {
+        let zoneRoot = baseDirectory.appendingPathComponent(zone.rawValue, isDirectory: true)
+        let entries = (try? fileManager.contentsOfDirectory(atPath: zoneRoot.path)) ?? []
+        var ids = Set<AgentID>()
+        for name in entries {
+            var isDirectory: ObjCBool = false
+            let path = zoneRoot.appendingPathComponent(name, isDirectory: true).path
+            if fileManager.fileExists(atPath: path, isDirectory: &isDirectory), isDirectory.boolValue {
+                ids.insert(name)
+            }
+        }
+        // 名单仅作兜底并集（旧 API 语义保留）
+        ids.formUnion(knownAgentIDs)
+        ids.insert("unknown")
+        return ids.sorted()
+    }
+
     private func entries(zone: Zone) throws -> [ZoneEntry] {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         var result: [ZoneEntry] = []
-        let allAgentIDs = Set<String>(knownAgentIDs + ["unknown"])
-        for agentID in allAgentIDs.sorted() {
+        for agentID in zoneAgentIDs(zone) {
             let agentRoot = root(zone: zone, agentID: agentID)
             guard let manifests = try? fileManager.contentsOfDirectory(atPath: agentRoot.path) else {
                 continue
@@ -284,8 +302,7 @@ public struct SkillLifecycle: @unchecked Sendable {
 
     public func unknownDisabledEntries() -> [UnknownDisabledEntry] {
         var unknown: [UnknownDisabledEntry] = []
-        let enabledAgents = knownAgentIDs + ["unknown"]
-        for agentID in enabledAgents {
+        for agentID in zoneAgentIDs(.disabled) {
             let agentRoot = disabledRoot(agentID: agentID)
             guard let children = try? FileManager.default.contentsOfDirectory(atPath: agentRoot.path) else {
                 continue
@@ -308,8 +325,7 @@ public struct SkillLifecycle: @unchecked Sendable {
     /// 返回清理数量；内容已回原位，零丢失。
     public func cleanupOrphanManifests() throws -> Int {
         var removed = 0
-        let allAgentIDs = Set<String>(knownAgentIDs + ["unknown"])
-        for agentID in allAgentIDs {
+        for agentID in zoneAgentIDs(.disabled) {
             let agentRoot = disabledRoot(agentID: agentID)
             guard let children = try? FileManager.default.contentsOfDirectory(atPath: agentRoot.path) else {
                 continue

@@ -5,22 +5,15 @@ import DomainKit
 
 public enum AgentProjectLayout {
     /// 各 agent 在项目根内的 skill 目录候选（相对项目根）。未知约定 → 空数组（体面降级）。
+    /// 单一真相：`BuiltInAgents` 的 spec.projectSkillSubpaths。
     public static func projectSkillSubpaths(for agentID: AgentID) -> [String] {
-        switch agentID {
-        case "claude-code": [".claude/skills"]
-        case "opencode": [".opencode/skill", ".opencode/skills"]
-        case "codex": [".codex/skills", ".codex/skill"]
-        case "gemini": [".gemini/skills"]
-        case "openclaw": []
-        case "pi", "oh-my-pi": []
-        default: []
-        }
+        BuiltInAgents.spec(for: agentID)?.projectSkillSubpaths ?? []
     }
 
-    /// 检测项目级 skill 时需要参与的全部内置 agent。
-    public static let participatingAgents: [AgentID] = [
-        "claude-code", "opencode", "codex", "gemini",
-    ]
+    /// 检测项目级 skill 时需要参与的全部内置 agent（有项目布局者）。
+    public static var participatingAgents: [AgentID] {
+        BuiltInAgents.all.filter { !$0.projectSkillSubpaths.isEmpty }.map(\.id)
+    }
 }
 
 // MARK: - 用户添加的项目根（扫描范围管理）
@@ -74,20 +67,25 @@ public struct ScanScopeStore {
 
 /// 对单个项目根，枚举各 agent 的项目级 skill 目录（存在者才产出 SkillRoot）。
 public struct ProjectRootScanner: Sendable {
-    public init() {}
+    /// 参与项目级扫描的 agent 声明（默认内置；调度器会传入 registry 的完整清单）。
+    public let specs: [AgentSpec]
+
+    public init(specs: [AgentSpec] = BuiltInAgents.all) {
+        self.specs = specs
+    }
 
     public func skillRoots(inProjectRoot root: ProjectRoot) -> [SkillRoot] {
         let fileManager = FileManager.default
         var roots: [SkillRoot] = []
-        for agentID in AgentProjectLayout.participatingAgents {
-            for subpath in AgentProjectLayout.projectSkillSubpaths(for: agentID) {
+        for spec in specs where !spec.projectSkillSubpaths.isEmpty {
+            for subpath in spec.projectSkillSubpaths {
                 let candidate = root.path.appendingPathComponent(subpath, isDirectory: true)
                 var isDirectory: ObjCBool = false
                 if fileManager.fileExists(atPath: candidate.path, isDirectory: &isDirectory), isDirectory.boolValue {
                     roots.append(
                         SkillRoot(
                             path: candidate,
-                            owners: [agentID],
+                            owners: [spec.id],
                             level: .project(root)
                         )
                     )

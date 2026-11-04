@@ -1,28 +1,29 @@
 import Foundation
 import DomainKit
 
-/// Agent 适配器注册表。内置 7 个 adapter（6 组 harness），可动态追加而不改核心。
+/// Agent 适配器注册表。内置 10 个 agent（全部由 `AgentSpec` 派生）+ 用户自定义（agents.json）。
 public struct AgentRegistry: Sendable {
     /// 可变注册表：追加用 `append`，新增 agent 无需修改调度器或既有 adapter。
     public private(set) var adapters: [AgentAdapter]
+    /// 参与扫描的完整 spec 清单（内置 + 用户自定义）——项目级扫描与图标共用。
+    public private(set) var specs: [AgentSpec]
+    /// 用户配置文件（agents.json）的加载诊断。
+    public private(set) var configDiagnostics: [ScanDiagnostic]
 
     public init(homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser) {
-        self.adapters = [
-            ClaudeCodeAdapter(homeDirectory: homeDirectory),
-            OpenCodeAdapter(homeDirectory: homeDirectory),
-            CodexAdapter(homeDirectory: homeDirectory),
-            GeminiAdapter(homeDirectory: homeDirectory),
-            OpenClawAdapter(homeDirectory: homeDirectory),
-            PiAdapter(homeDirectory: homeDirectory),
-            OhMyPiAdapter(homeDirectory: homeDirectory),
-            SharedAgentsAdapter(homeDirectory: homeDirectory),
-            QwenAdapter(homeDirectory: homeDirectory),
-            CursorAdapter(homeDirectory: homeDirectory),
-        ]
+        let userConfig = UserAgentConfigLoader.load(
+            baseDirectory: homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
+        )
+        let specs = BuiltInAgents.all + userConfig.specs
+        self.specs = specs
+        self.configDiagnostics = userConfig.diagnostics
+        self.adapters = specs.map { StandardAgentAdapter(spec: $0, homeDirectory: homeDirectory) }
     }
 
     public init(adapters: [AgentAdapter]) {
         self.adapters = adapters
+        self.specs = []
+        self.configDiagnostics = []
     }
 
     public var all: [AgentAdapter] { adapters }
@@ -45,7 +46,8 @@ public struct ScanScheduler: Sendable {
     public func scanAll(rootDirectory: URL? = nil, knownProjectRoots: [ProjectRoot] = []) async -> ScanReport {
         let startedAt = Date()
         var agents: [Agent] = []
-        var diagnostics: [ScanDiagnostic] = []
+        // 用户配置错误必须可见（不静默当作「没有自定义 agent」）
+        var diagnostics: [ScanDiagnostic] = registry.configDiagnostics
 
         await withTaskGroup(of: AgentScanOutcome.self) { group in
             for adapter in registry.all {
@@ -60,7 +62,9 @@ public struct ScanScheduler: Sendable {
         }
 
         // 项目根：由通用项目扫描器产出 agent 各自的项目级 skill 根，并入 owner agent
-        let projectScanner = ProjectRootScanner()
+        // 自定义 agent 的项目布局同样来自 spec；无 specs（自定义 registry）时回落内置
+        let projectSpecs = registry.specs.isEmpty ? BuiltInAgents.all : registry.specs
+        let projectScanner = ProjectRootScanner(specs: projectSpecs)
         var perAgentProjectRoots: [AgentID: [SkillRoot]] = [:]
         for root in knownProjectRoots {
             for skillRoot in projectScanner.skillRoots(inProjectRoot: root) {

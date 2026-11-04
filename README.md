@@ -3,7 +3,7 @@
 [![CI](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%2015+-black)
-![Tests](https://img.shields.io/badge/tests-291%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-358%20passing-brightgreen)
 
 [中文](#中文) | [English](#english)
 
@@ -27,7 +27,8 @@ AgentKeeper 解决这三件事：**统一目录 → 分歧检测 → 安全停�
 
 ## 功能
 
-- 🔍 **全机扫描**：10 个 adapter 覆盖主流 agent 的标准目录、共享目录与插件缓存（含 OpenCode v2 npm 缓存）
+- 🔍 **全机扫描**：10 个内置 agent 覆盖主流工具的标准目录、共享目录与插件缓存（含 OpenCode v2 npm 缓存）
+- 🧩 **自定义 agent**：写 `~/.agentkeeper/agents.json` 即可接入长尾 agent，无需重新编译或等发版（[接入指南](docs/adding-an-agent.md)）
 - 🧭 **三维度筛选**：按 agent（谁能用）× 作用域（在哪生效：全局/Agent 专属/项目级/多 Agent 共用）× 标签（做什么用），任意叠加成交集
 - ⚠️ **同名安装检测**：跨 agent 副本内容指纹对比，一键「用当前版本更新全部副本」（覆盖前自动快照）
 - 🛡️ **安全停用**：原子搬移到统一停用目录 + manifest 记录原路径 + 快照 + 操作历史，随时恢复
@@ -78,7 +79,7 @@ opencode             installed      32
 ## 开发
 
 ```bash
-swift test        # 291 个测试（TDD 全覆盖）
+swift test        # 358 个测试（TDD 全覆盖）
 swift build       # 全部 target（GUI + ak CLI）
 ```
 
@@ -91,14 +92,14 @@ swift build       # 全部 target（GUI + ak CLI）
 - [ ] ⌘K 全局搜索 + Quick Look
 - [ ] 启动包（一键安装精选 skill 集）
 - [ ] Skill 健康检查（frontmatter / 体积警告）
-- [ ] Adapter 声明式协议（社区 10 行配置接入新 agent）
+- [x] Adapter 声明式协议（单源 `AgentSpec`；内置 agent 加一个字面量，长尾 agent 写 `agents.json`）
 - [ ] Homebrew cask + 公证构建
 
 详见 [docs/superpowers/specs/2026-11-01-oss-strategy-design.md](docs/superpowers/specs/2026-11-01-oss-strategy-design.md)。
 
 ## Contributing
 
-Issue / PR 欢迎——尤其是给新 agent 加 adapter（将来会是纯配置 PR）。
+Issue / PR 欢迎——尤其是给新 agent 加 adapter（内置 = 一个 `AgentSpec` 字面量；详见 [docs/adding-an-agent.md](docs/adding-an-agent.md)）。
 
 ## License
 
@@ -126,7 +127,8 @@ AgentKeeper fixes exactly this: **unified catalog → drift detection → safe d
 
 ## Features
 
-- 🔍 **Full-machine scan**: 10 adapters covering mainstream agents' standard paths, shared dirs and plugin caches (including OpenCode v2 npm cache)
+- 🔍 **Full-machine scan**: 10 built-in agents covering mainstream tools' standard paths, shared dirs and plugin caches (including OpenCode v2 npm cache)
+- 🧩 **Custom agents**: drop a `~/.agentkeeper/agents.json` to bring in long-tail agents — no recompile, no release wait ([guide](docs/adding-an-agent.md))
 - 🧭 **Three filter dimensions**: agent × scope (global / agent-only / project / multi-agent) × tags — stack them freely
 - ⚠️ **Same-name copy detection**: content fingerprints across agents; update every copy from the current version (auto-snapshot first)
 - 🛡️ **Safe disable**: atomic move + manifest + snapshots + operation history
@@ -162,12 +164,12 @@ swift build -c release         # ak CLI
 ## Development
 
 ```bash
-swift test   # 291 tests, full TDD coverage
+swift test   # 358 tests, full TDD coverage
 ```
 
 ## Contributing
 
-Issues and PRs welcome — especially new agent adapters (will become pure config PRs).
+Issues and PRs welcome — especially new agent adapters (built-in = one `AgentSpec` literal; see [docs/adding-an-agent.md](docs/adding-an-agent.md)).
 
 ## License
 
