@@ -186,7 +186,7 @@ public enum AKCLI {
             )
             return RunResult(
                 exitCode: 0,
-                output: "已移入回收站：\(name)（可恢复：ak restore \(name);彻底删除：ak purge \(name)）"
+                output: "已移入回收站：\(name) → \(record.originalPath)（可恢复：ak restore \(name);彻底删除：ak purge \(name)）"
             )
         } catch {
             return RunResult(exitCode: 1, output: "移入回收站失败：\(error)")
