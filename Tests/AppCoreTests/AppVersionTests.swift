@@ -39,7 +39,8 @@ import Testing
     }
 
     @Test func descriptionRoundTrips() {
-        #expect(AppVersion("v1.2.0")?.description == "1.2")
-        #expect(AppVersion("0.2.0")?.description == "0.2")
+        #expect(AppVersion("v1.2.0")?.description == "1.2.0")
+        #expect(AppVersion("0.2.0")?.description == "0.2.0")
+        #expect(AppVersion("1.2")?.description == "1.2")
     }
 }

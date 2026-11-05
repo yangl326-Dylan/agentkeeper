@@ -6,6 +6,8 @@ import Foundation
 public struct AppVersion: Comparable, Hashable, Sendable, CustomStringConvertible {
     /// 归一化后的数字段（至少一段）。
     public let components: [Int]
+    /// 原始显示文本（去掉 `v` 前缀与预发布后缀，保留位数）。
+    private let rawValue: String
 
     public init?(_ raw: String) {
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -31,6 +33,7 @@ public struct AppVersion: Comparable, Hashable, Sendable, CustomStringConvertibl
             parsed.removeLast()
         }
         self.components = parsed
+        self.rawValue = text
     }
 
     /// 当前 App 的 `CFBundleShortVersionString`；非 App Bundle（如 `swift run`）回退 0.0.0。
@@ -39,8 +42,15 @@ public struct AppVersion: Comparable, Hashable, Sendable, CustomStringConvertibl
         return AppVersion(raw ?? "") ?? AppVersion("0.0.0")!
     }
 
-    public var description: String {
-        components.map(String.init).joined(separator: ".")
+    public var description: String { rawValue }
+
+    /// 相等性与哈希只看数字段（`1.2` == `1.2.0`）。
+    public static func == (lhs: AppVersion, rhs: AppVersion) -> Bool {
+        lhs.components == rhs.components
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(components)
     }
 
     public static func < (lhs: AppVersion, rhs: AppVersion) -> Bool {
