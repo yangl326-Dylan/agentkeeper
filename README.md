@@ -3,7 +3,7 @@
 [![CI](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%2015+-black)
-![Tests](https://img.shields.io/badge/tests-358%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-392%20passing-brightgreen)
 
 [中文](#中文) | [English](#english)
 
@@ -29,6 +29,7 @@ AgentKeeper 解决这三件事：**统一目录 → 分歧检测 → 安全停�
 
 - 🔍 **全机扫描**：10 个内置 agent 覆盖主流工具的标准目录、共享目录与插件缓存（含 OpenCode v2 npm 缓存）
 - 🧩 **自定义 agent**：写 `~/.agentkeeper/agents.json` 即可接入长尾 agent，无需重新编译或等发版（[接入指南](docs/adding-an-agent.md)）
+- 🔄 **应用内更新**：设置页手动检查 GitHub Release，发现新版本可直接下载并原地更新（外部无红点/角标）
 - 🧭 **三维度筛选**：按 agent（谁能用）× 作用域（在哪生效：全局/Agent 专属/项目级/多 Agent 共用）× 标签（做什么用），任意叠加成交集
 - ⚠️ **同名安装检测**：跨 agent 副本内容指纹对比，一键「用当前版本更新全部副本」（覆盖前自动快照）
 - 🛡️ **安全停用**：原子搬移到统一停用目录 + manifest 记录原路径 + 快照 + 操作历史，随时恢复
@@ -79,7 +80,7 @@ opencode             installed      32
 ## 开发
 
 ```bash
-swift test        # 358 个测试（TDD 全覆盖）
+swift test        # 392 个测试（TDD 全覆盖）
 swift build       # 全部 target（GUI + ak CLI）
 ```
 
@@ -129,6 +130,7 @@ AgentKeeper fixes exactly this: **unified catalog → drift detection → safe d
 
 - 🔍 **Full-machine scan**: 10 built-in agents covering mainstream tools' standard paths, shared dirs and plugin caches (including OpenCode v2 npm cache)
 - 🧩 **Custom agents**: drop a `~/.agentkeeper/agents.json` to bring in long-tail agents — no recompile, no release wait ([guide](docs/adding-an-agent.md))
+- 🔄 **In-app updates**: check GitHub releases from Settings and update in place — no badges or red dots anywhere else
 - 🧭 **Three filter dimensions**: agent × scope (global / agent-only / project / multi-agent) × tags — stack them freely
 - ⚠️ **Same-name copy detection**: content fingerprints across agents; update every copy from the current version (auto-snapshot first)
 - 🛡️ **Safe disable**: atomic move + manifest + snapshots + operation history
@@ -164,7 +166,7 @@ swift build -c release         # ak CLI
 ## Development
 
 ```bash
-swift test   # 358 tests, full TDD coverage
+swift test   # 392 tests, full TDD coverage
 ```
 
 ## Contributing

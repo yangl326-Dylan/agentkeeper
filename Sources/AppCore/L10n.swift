@@ -315,6 +315,32 @@ public struct L10n: Sendable {
         zh ? "界面语言即时生效；「跟随系统」按系统首选语言。" : "Applies instantly; “Follow System” uses the system's preferred language."
     }
 
+    // MARK: 更新
+
+    public var settingsAboutSection: String { zh ? "关于与更新" : "About & Updates" }
+    public var settingsCurrentVersion: String { zh ? "当前版本" : "Current Version" }
+    public var settingsCheckForUpdates: String { zh ? "检查更新" : "Check for Updates" }
+    public var settingsCheckingForUpdates: String { zh ? "正在检查…" : "Checking…" }
+    public var settingsUpdateNow: String { zh ? "立即更新" : "Update Now" }
+    public var settingsDownloadingUpdate: String { zh ? "正在下载更新…" : "Downloading update…" }
+    public var settingsInstallingUpdate: String {
+        zh ? "正在安装，App 即将自动重启…" : "Installing — the app will restart automatically…"
+    }
+    public var settingsUpdateFailed: String { zh ? "更新失败" : "Update failed" }
+    public var settingsOpenReleasePage: String { zh ? "打开 Release 页面" : "Open Release Page" }
+    public var settingsDevelopmentBuildHint: String {
+        zh ? "开发构建不支持原地更新，请安装 Release 版 App。" : "In-place updates are unavailable for development builds. Install the release app instead."
+    }
+    public var settingsNoAppAsset: String {
+        zh ? "该 Release 未提供 App 安装包，请打开 Release 页面手动下载。" : "This release has no app asset. Open the release page to download manually."
+    }
+    public func settingsUpToDate(_ version: String) -> String {
+        zh ? "当前已是最新版本（\(version)）。" : "You're on the latest version (\(version))."
+    }
+    public func settingsUpdateAvailable(_ version: String) -> String {
+        zh ? "发现新版本 \(version)。" : "Version \(version) is available."
+    }
+
     // MARK: 总览
 
     public var overviewTitle: String { zh ? "总览" : "Overview" }

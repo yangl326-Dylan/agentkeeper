@@ -65,4 +65,25 @@ import Testing
         #expect(en.zonePurgeMessage("/tmp/x").contains("/tmp/x"))
         #expect(en.scopeDetailText(.global(owners: ["a", "b"])).contains("a"))
     }
+
+    /// 更新相关文案：双语非空、参数化正确、中英不同。
+    @Test func updateStringsAreLocalized() {
+        let zh = L10n(lang: .zhHans)
+        let en = L10n(lang: .english)
+        for l in [zh, en] {
+            #expect(!l.settingsAboutSection.isEmpty)
+            #expect(!l.settingsCurrentVersion.isEmpty)
+            #expect(!l.settingsCheckForUpdates.isEmpty)
+            #expect(!l.settingsUpdateNow.isEmpty)
+            #expect(!l.settingsDownloadingUpdate.isEmpty)
+            #expect(!l.settingsInstallingUpdate.isEmpty)
+            #expect(!l.settingsUpdateFailed.isEmpty)
+            #expect(!l.settingsOpenReleasePage.isEmpty)
+            #expect(!l.settingsDevelopmentBuildHint.isEmpty)
+            #expect(!l.settingsNoAppAsset.isEmpty)
+        }
+        #expect(zh.settingsUpToDate("0.3.0").contains("0.3.0"))
+        #expect(en.settingsUpdateAvailable("0.3.0").contains("0.3.0"))
+        #expect(zh.settingsUpdateNow != en.settingsUpdateNow)
+    }
 }

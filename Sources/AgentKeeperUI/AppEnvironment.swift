@@ -82,6 +82,9 @@ public final class AppEnvironment {
     /// 常见配置（外观/动效，落盘 defaults；Settings 场景读写这里）。
     public let settings: AppSettingsStore
 
+    /// 设置页更新检查（仅手动触发；外部无红点/角标）。
+    public let updates: UpdateModel
+
     /// 真实数据根（~；测试版可注入其它 home）。
     private let homeDirectory: URL
     private let akBase: URL
@@ -94,6 +97,7 @@ public final class AppEnvironment {
         self.akBase = homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
         self.firstRun = FirstRunStore(defaults: defaults)
         self.settings = AppSettingsStore(defaults: defaults)
+        self.updates = UpdateModel()
         let base = self.akBase
         let store = AppStore()
         // loadCacheEagerly=false：装配零 IO（SQLite 首读不再阻塞首屏）；bootstrap 后台 warmup
