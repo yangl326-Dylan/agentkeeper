@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-macOS%2015+-black)
 ![Tests](https://img.shields.io/badge/tests-392%20passing-brightgreen)
+[![Release](https://img.shields.io/github/v/release/yangl326-Dylan/agentkeeper?label=release)](https://github.com/yangl326-Dylan/agentkeeper/releases/latest)
 
 [中文](#中文) | [English](#english)
 
@@ -102,6 +103,8 @@ swift build       # 全部 target（GUI + ak CLI）
 
 Issue / PR 欢迎——尤其是给新 agent 加 adapter（内置 = 一个 `AgentSpec` 字面量；详见 [docs/adding-an-agent.md](docs/adding-an-agent.md)）。
 
+使用问题、想法和下一步优先级，请走 [Discussions](https://github.com/yangl326-Dylan/agentkeeper/discussions)——比开 Issue 更合适。
+
 ## License
 
 [MIT](LICENSE)
@@ -172,6 +175,8 @@ swift test   # 392 tests, full TDD coverage
 ## Contributing
 
 Issues and PRs welcome — especially new agent adapters (built-in = one `AgentSpec` literal; see [docs/adding-an-agent.md](docs/adding-an-agent.md)).
+
+For usage questions, ideas and roadmap priorities, please use [Discussions](https://github.com/yangl326-Dylan/agentkeeper/discussions).
 
 ## License
 
