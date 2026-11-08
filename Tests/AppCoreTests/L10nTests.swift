@@ -86,4 +86,16 @@ import Testing
         #expect(en.settingsUpdateAvailable("0.3.0").contains("0.3.0"))
         #expect(zh.settingsUpdateNow != en.settingsUpdateNow)
     }
+
+    /// 菜单栏 agent 行文案：双语非空且中英不同。
+    @Test func menuAgentRowStringsAreLocalized() {
+        let zh = L10n(lang: .zhHans)
+        let en = L10n(lang: .english)
+        #expect(!zh.menuShowInFinder.isEmpty)
+        #expect(!en.menuShowInFinder.isEmpty)
+        #expect(!zh.menuFilterAgentHelp.isEmpty)
+        #expect(!en.menuFilterAgentHelp.isEmpty)
+        #expect(zh.menuShowInFinder != en.menuShowInFinder)
+        #expect(zh.menuFilterAgentHelp != en.menuFilterAgentHelp)
+    }
 }

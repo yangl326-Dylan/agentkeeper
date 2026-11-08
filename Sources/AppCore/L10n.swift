@@ -261,6 +261,10 @@ public struct L10n: Sendable {
     public var menuOpenFinderHelp: String {
         zh ? "在 Finder 中打开该 agent 的 skills 目录" : "Open this agent's skills folder in Finder"
     }
+    public var menuShowInFinder: String { zh ? "在 Finder 中显示" : "Show in Finder" }
+    public var menuFilterAgentHelp: String {
+        zh ? "打开主窗口并只看该 agent" : "Open the main window filtered to this agent"
+    }
 
     // MARK: 引导页
 
