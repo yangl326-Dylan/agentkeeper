@@ -32,7 +32,10 @@ public struct CatalogBuilder: Sendable {
                             frontmatterName: parsed.frontmatterName,
                             skillDescription: parsed.frontmatterDescription,
                             fileCount: parsed.files.count,
-                            lastModified: lastModified(of: parsed)
+                            lastModified: lastModified(of: parsed),
+                            totalBytes: parsed.totalBytes,
+                            skillMdBytes: parsed.skillMdBytes,
+                            issues: parsed.issues
                         )
                     )
                 }

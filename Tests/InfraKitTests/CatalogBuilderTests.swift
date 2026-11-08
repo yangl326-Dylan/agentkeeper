@@ -127,3 +127,30 @@ import DomainKit
         })
     }
 }
+
+@Suite struct CatalogBuilderHealthTests {
+    private func agent(_ id: AgentID, roots: [SkillRoot]) -> Agent {
+        Agent(id: id, name: id, installState: .installed(configDirectory: nil), skillRoots: roots)
+    }
+
+    @Test func buildCarriesHealthFacts() {
+        let home = makeFakeHome(
+            files: [".claude/skills/demo/SKILL.md"],
+            fileContents: [".claude/skills/demo/SKILL.md": "---\nname: demo\n---\nbody"]
+        )
+        defer { cleanup(home) }
+        let root = SkillRoot(
+            path: home.appendingPathComponent(".claude/skills", isDirectory: true),
+            owners: ["claude-code"],
+            level: .user
+        )
+        let skills = CatalogBuilder().build(agents: [agent("claude-code", roots: [root])])
+        let demo = skills.first { $0.name == "demo" }
+        #expect(demo != nil)
+        // 有 name 缺 description → 恰好一条 missingDescription
+        #expect(demo?.issues.map(\.kind) == [.missingDescription])
+        let mdBytes = "---\nname: demo\n---\nbody".utf8.count
+        #expect(demo?.skillMdBytes == mdBytes)
+        #expect(demo!.totalBytes >= mdBytes)
+    }
+}
