@@ -358,6 +358,9 @@ struct SkillListView: View {
             let query = SkillListCore.filter(searchText, env)
             listCore(query)
                 .searchable(text: $searchText, placement: .automatic, prompt: Text(env.l10n.searchPrompt))
+                .onChange(of: env.searchResetToken) { _, _ in
+                    searchText = ""
+                }
                 .navigationTitle(NavigationModel.listTitle(for: env.selectedNode, l10n: env.l10n))
                 .toolbar { toolbarContent }
                 .sheet(isPresented: $showGitInstall) {
