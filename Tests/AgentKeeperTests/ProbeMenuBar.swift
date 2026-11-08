@@ -31,7 +31,8 @@ import AppCore
                 name: "Claude Code",
                 icon: MenuBarIcons.icon(for: "claude-code"),
                 skillCount: 53,
-                targetDirectory: URL(fileURLWithPath: "/tmp")
+                targetDirectory: URL(fileURLWithPath: "/tmp"),
+                onSelect: {}
             ),
             name: "agent-row"
         )

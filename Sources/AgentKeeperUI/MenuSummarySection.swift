@@ -38,6 +38,11 @@ public struct MenuSummarySection: View {
                         icon: MenuBarIcons.icon(for: entry.id),
                         skillCount: entry.skillCount,
                         targetDirectory: skillRootDirectory(for: entry.id),
+                        onSelect: {
+                            env.openAgentFilter(entry.id)
+                            NSApplication.shared.activate(ignoringOtherApps: true)
+                            openWindow(id: "main")
+                        },
                         l10n: env.l10n
                     )
                 }

@@ -31,21 +31,19 @@ struct MenuBarHeaderRow: View {
 
 // MARK: - agent 状态行
 
-/// agent 行：语义图标 + 名称 + tabular skill 数；hover 高亮；点击在 Finder 打开其 skill 根目录。
+/// agent 行：左键打开主窗口并筛选该 agent；右键在 Finder 中显示其 skill 根目录。
 struct MenuBarAgentRow: View {
     let name: String
     let icon: String
     let skillCount: Int
     let targetDirectory: URL?
+    let onSelect: () -> Void
     var l10n: L10n = L10n(lang: .zhHans)
 
     @State private var hovering = false
 
     var body: some View {
-        Button {
-            guard let targetDirectory else { return }
-            NSWorkspace.shared.activateFileViewerSelecting([targetDirectory])
-        } label: {
+        Button(action: onSelect) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
@@ -67,8 +65,14 @@ struct MenuBarAgentRow: View {
             .onHover { hovering = $0 }
         }
         .buttonStyle(.plain)
-        .disabled(targetDirectory == nil)
-        .help(l10n.menuOpenFinderHelp)
+        .help(l10n.menuFilterAgentHelp)
+        .contextMenu {
+            Button(l10n.menuShowInFinder) {
+                guard let targetDirectory else { return }
+                NSWorkspace.shared.activateFileViewerSelecting([targetDirectory])
+            }
+            .disabled(targetDirectory == nil)
+        }
     }
 }
 
