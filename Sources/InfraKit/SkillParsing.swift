@@ -257,21 +257,74 @@ public enum Fingerprint {
 // MARK: - 共享的 skill 解析（adapter 复用）
 
 public enum SkillParsing {
-    /// 判断目录是否是 skill：含 SKILL.md 即是；解析 frontmatter 与文件清单一并返回。
-    /// 文件清单与指纹共用一次枚举（fingerprint 内部顺带产出有序文件列表）。
+    /// 判断目录是否是 skill：含 SKILL.md 即是；解析 frontmatter、文件清单与健康事实一并返回。
+    /// 文件清单与指纹共用一次枚举（fingerprint 内部顺带产出有序文件列表与 totalBytes）。
     public static func parseDirectory(_ directory: URL) -> ParsedSkill? {
         let fileManager = FileManager.default
         let skillMd = directory.appendingPathComponent("SKILL.md")
         guard fileManager.fileExists(atPath: skillMd.path) else { return nil }
-        let markdown = (try? String(contentsOf: skillMd, encoding: .utf8)) ?? ""
-        let parsedFront = FrontmatterParser.parse(markdown: markdown)
+
         let fingerprint = Fingerprint.fingerprint(of: directory)
+        let skillMdBytes = (try? fileManager.attributesOfItem(atPath: skillMd.path))?[.size] as? Int ?? 0
+
+        var issues: [SkillIssue] = []
+        let markdown: String
+        do {
+            markdown = try String(contentsOf: skillMd, encoding: .utf8)
+        } catch {
+            // 解码失败只报 invalidEncoding，不再叠加 emptySkillMd（单因汇报）
+            issues.append(SkillIssue(kind: .invalidEncoding))
+            return ParsedSkill(
+                directory: directory,
+                frontmatterName: nil,
+                frontmatterDescription: nil,
+                files: fingerprint.regularFiles,
+                sha256: fingerprint.sha256 ?? "",
+                totalBytes: fingerprint.totalBytes,
+                skillMdBytes: skillMdBytes,
+                issues: issues
+            )
+        }
+
+        if skillMdBytes == 0 || markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append(SkillIssue(kind: .emptySkillMd))
+        } else {
+            let front = FrontmatterParser.parseDetailed(markdown: markdown)
+            if !front.hasFrontmatter {
+                issues.append(SkillIssue(kind: .missingFrontmatter))
+            } else {
+                if front.name == nil { issues.append(SkillIssue(kind: .missingName)) }
+                if front.description == nil { issues.append(SkillIssue(kind: .missingDescription)) }
+            }
+        }
+
+        // 符号链接目标存在性（指纹枚举本身跳过 symlink，这里单独轻量扫一遍）
+        if let enumerator = fileManager.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.isSymbolicLinkKey],
+            options: []
+        ) {
+            scan: for case let url as URL in enumerator {
+                guard let values = try? url.resourceValues(forKeys: [.isSymbolicLinkKey]),
+                      values.isSymbolicLink == true
+                else { continue }
+                var isDir: ObjCBool = false
+                if fileManager.fileExists(atPath: url.path, isDirectory: &isDir) { continue }
+                issues.append(SkillIssue(kind: .brokenSymlink))
+                break scan
+            }
+        }
+
+        let front = FrontmatterParser.parseDetailed(markdown: markdown)
         return ParsedSkill(
             directory: directory,
-            frontmatterName: parsedFront.name,
-            frontmatterDescription: parsedFront.description,
+            frontmatterName: front.name,
+            frontmatterDescription: front.description,
             files: fingerprint.regularFiles,
-            sha256: fingerprint.sha256 ?? ""
+            sha256: fingerprint.sha256 ?? "",
+            totalBytes: fingerprint.totalBytes,
+            skillMdBytes: skillMdBytes,
+            issues: issues
         )
     }
 

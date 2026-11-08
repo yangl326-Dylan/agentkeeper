@@ -66,3 +66,75 @@ import DomainKit
         #expect(third.totalBytes == 400)
     }
 }
+
+@Suite struct ParseDirectoryHealthTests {
+    private func makeSkillDir(_ body: (URL) throws -> Void) throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ak-health-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try body(dir)
+        return dir
+    }
+    private func kinds(_ parsed: ParsedSkill?) -> Set<SkillIssueKind> {
+        Set((parsed?.issues ?? []).map(\.kind))
+    }
+
+    @Test func healthySkillHasNoIssuesAndCarriesSizes() throws {
+        let md = "---\nname: demo\ndescription: ok\n---\n\n# Demo\n"
+        let dir = try makeSkillDir { dir in
+            try Data(md.utf8).write(to: dir.appendingPathComponent("SKILL.md"))
+            try Data(repeating: 0x61, count: 20).write(to: dir.appendingPathComponent("a.txt"))
+        }
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let parsed = SkillParsing.parseDirectory(dir)
+        #expect(parsed != nil)
+        #expect(kinds(parsed).isEmpty)
+        #expect(parsed?.totalBytes == 20 + md.utf8.count)
+        #expect(parsed?.skillMdBytes == md.utf8.count)
+    }
+
+    @Test func emptySkillMdReported() throws {
+        let dir = try makeSkillDir { dir in
+            try Data().write(to: dir.appendingPathComponent("SKILL.md"))
+        }
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(kinds(SkillParsing.parseDirectory(dir)) == [.emptySkillMd])
+    }
+
+    @Test func missingFrontmatterReported() throws {
+        let dir = try makeSkillDir { dir in
+            try Data("# Just body\n".utf8).write(to: dir.appendingPathComponent("SKILL.md"))
+        }
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(kinds(SkillParsing.parseDirectory(dir)) == [.missingFrontmatter])
+    }
+
+    @Test func missingNameAndDescriptionReported() throws {
+        let dir = try makeSkillDir { dir in
+            try Data("---\nother: x\n---\n\nbody".utf8).write(to: dir.appendingPathComponent("SKILL.md"))
+        }
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(kinds(SkillParsing.parseDirectory(dir)) == [.missingName, .missingDescription])
+    }
+
+    @Test func invalidEncodingReported() throws {
+        let dir = try makeSkillDir { dir in
+            try Data([0xFF, 0xFE, 0xFD]).write(to: dir.appendingPathComponent("SKILL.md"))
+        }
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(kinds(SkillParsing.parseDirectory(dir)) == [.invalidEncoding])
+    }
+
+    @Test func brokenSymlinkReported() throws {
+        let dir = try makeSkillDir { dir in
+            try Data("---\nname: demo\ndescription: ok\n---\n\nbody".utf8)
+                .write(to: dir.appendingPathComponent("SKILL.md"))
+            try FileManager.default.createSymbolicLink(
+                at: dir.appendingPathComponent("dangling"),
+                withDestinationURL: dir.appendingPathComponent("no-such-target")
+            )
+        }
+        defer { try? FileManager.default.removeItem(at: dir) }
+        #expect(kinds(SkillParsing.parseDirectory(dir)) == [.brokenSymlink])
+    }
+}
