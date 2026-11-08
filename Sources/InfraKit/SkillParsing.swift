@@ -119,10 +119,13 @@ public struct DirectoryFingerprint {
     public var sha256: String?
     /// 参与哈希的常规文件（相对路径有序）。
     public var regularFiles: [URL]
+    /// 非隐藏常规文件字节数总和（与 sha256 同一文件集，agent 实际加载口径）。
+    public var totalBytes: Int
 
-    public init(sha256: String?, regularFiles: [URL]) {
+    public init(sha256: String?, regularFiles: [URL], totalBytes: Int = 0) {
         self.sha256 = sha256
         self.regularFiles = regularFiles
+        self.totalBytes = totalBytes
     }
 }
 
@@ -198,10 +201,12 @@ public enum Fingerprint {
         }
         let sortedFiles = files.map(\.url)
         let signature = files.map { ($0.relative, $0.mtime, $0.size) }
+        // 健康检查体积事实：非隐藏常规文件字节总和（与 sha256 同一文件集）
+        let totalBytes = files.reduce(0) { $0 + $1.size }
 
         let directoryPath = directory.standardizedFileURL.path
         if let cached = cache.hit(directoryPath: directoryPath, signature: signature) {
-            return DirectoryFingerprint(sha256: cached, regularFiles: sortedFiles)
+            return DirectoryFingerprint(sha256: cached, regularFiles: sortedFiles, totalBytes: totalBytes)
         }
 
         var hasher = SHA256()
@@ -218,7 +223,7 @@ public enum Fingerprint {
             }
         }
         guard readCount > 0 else {
-            return DirectoryFingerprint(sha256: nil, regularFiles: sortedFiles)
+            return DirectoryFingerprint(sha256: nil, regularFiles: sortedFiles, totalBytes: totalBytes)
         }
         let sha = hasherHex(hasher)
         if readCount == files.count {
@@ -228,7 +233,7 @@ public enum Fingerprint {
                 sha256: sha
             )
         }
-        return DirectoryFingerprint(sha256: sha, regularFiles: sortedFiles)
+        return DirectoryFingerprint(sha256: sha, regularFiles: sortedFiles, totalBytes: totalBytes)
     }
 
     private static func hasherHex(_ hasher: SHA256) -> String {
