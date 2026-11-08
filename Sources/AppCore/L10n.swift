@@ -266,6 +266,32 @@ public struct L10n: Sendable {
         zh ? "打开主窗口并只看该 agent" : "Open the main window filtered to this agent"
     }
 
+    // MARK: 健康检查
+
+    public var healthSectionTitle: String { zh ? "健康" : "Health" }
+    public var healthBadgeHelp: String { zh ? "存在健康问题" : "Has health issues" }
+
+    public func healthIssueText(_ kind: SkillIssueKind) -> String {
+        switch kind {
+        case .missingFrontmatter:
+            zh ? "SKILL.md 缺少 frontmatter 块" : "SKILL.md is missing its frontmatter block"
+        case .missingName:
+            zh ? "frontmatter 缺少 name 字段" : "Frontmatter is missing the name field"
+        case .missingDescription:
+            zh ? "frontmatter 缺少 description 字段" : "Frontmatter is missing the description field"
+        case .emptySkillMd:
+            zh ? "SKILL.md 是空的" : "SKILL.md is empty"
+        case .invalidEncoding:
+            zh ? "SKILL.md 不是有效的 UTF-8 文本" : "SKILL.md is not valid UTF-8 text"
+        case .brokenSymlink:
+            zh ? "目录内存在指向空目标的符号链接" : "A symlink points to a missing target"
+        }
+    }
+
+    public func healthFilesCount(_ count: Int) -> String {
+        zh ? "\(count) 个文件" : "\(count) files"
+    }
+
     // MARK: 引导页
 
     public var onboardingWelcome: String { zh ? "欢迎使用 AgentKeeper" : "Welcome to AgentKeeper" }

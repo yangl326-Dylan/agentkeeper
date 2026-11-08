@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import DomainKit
 @testable import AppCore
 
 /// i18n：语言解析 + 双语字符串表完整性（spec 2026-11-03 附加：设置可切换，默认同系统）。
@@ -97,5 +98,27 @@ import Testing
         #expect(!en.menuFilterAgentHelp.isEmpty)
         #expect(zh.menuShowInFinder != en.menuShowInFinder)
         #expect(zh.menuFilterAgentHelp != en.menuFilterAgentHelp)
+    }
+
+    /// 健康检查文案：双语非空且中英不同。
+    @Test func healthStringsAreLocalized() {
+        let zh = L10n(lang: .zhHans)
+        let en = L10n(lang: .english)
+        #expect(!zh.healthSectionTitle.isEmpty)
+        #expect(zh.healthSectionTitle != en.healthSectionTitle)
+        #expect(!zh.healthBadgeHelp.isEmpty)
+        #expect(zh.healthBadgeHelp != en.healthBadgeHelp)
+        let kinds: [SkillIssueKind] = [
+            .missingFrontmatter, .missingName, .missingDescription,
+            .emptySkillMd, .invalidEncoding, .brokenSymlink,
+        ]
+        for kind in kinds {
+            #expect(!zh.healthIssueText(kind).isEmpty)
+            #expect(!en.healthIssueText(kind).isEmpty)
+            #expect(zh.healthIssueText(kind) != en.healthIssueText(kind))
+        }
+        #expect(zh.healthFilesCount(3).contains("3"))
+        #expect(en.healthFilesCount(3).contains("3"))
+        #expect(zh.healthFilesCount(3) != en.healthFilesCount(3))
     }
 }
