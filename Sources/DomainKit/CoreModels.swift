@@ -119,6 +119,24 @@ public enum SkillStatus: Hashable, Codable, Sendable {
     case disabled
 }
 
+/// Skill 客观健康问题类型（扫描时收集的事实，非阈值判定）。
+public enum SkillIssueKind: Hashable, Codable, Sendable {
+    case missingFrontmatter      // 无 frontmatter 块（正文非空）
+    case missingName             // 有块缺 name
+    case missingDescription      // 有块缺 description（空串视为缺失）
+    case emptySkillMd            // SKILL.md 0 字节或 trim 后为空
+    case invalidEncoding         // SKILL.md 非 UTF-8
+    case brokenSymlink           // 符号链接目标不存在
+}
+
+public struct SkillIssue: Hashable, Codable, Sendable {
+    public var kind: SkillIssueKind
+
+    public init(kind: SkillIssueKind) {
+        self.kind = kind
+    }
+}
+
 public struct Skill: Hashable, Codable, Sendable, Identifiable {
     /// 稳定标识：作用域内目录路径派生。
     public var id: String
@@ -132,6 +150,12 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
     public var skillDescription: String?
     public var fileCount: Int
     public var lastModified: Date?
+    /// 目录内非隐藏常规文件字节数总和（agent 实际加载口径；与 sha256 同一文件集）。
+    public var totalBytes: Int = 0
+    /// SKILL.md 字节数。
+    public var skillMdBytes: Int = 0
+    /// 扫描时收集的客观健康事实（缺 frontmatter 字段、空文件、坏链接等）。
+    public var issues: [SkillIssue] = []
 
     public init(
         id: String,
@@ -143,7 +167,10 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         frontmatterName: String? = nil,
         skillDescription: String? = nil,
         fileCount: Int = 0,
-        lastModified: Date? = nil
+        lastModified: Date? = nil,
+        totalBytes: Int = 0,
+        skillMdBytes: Int = 0,
+        issues: [SkillIssue] = []
     ) {
         self.id = id
         self.name = name
@@ -155,6 +182,33 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         self.skillDescription = skillDescription
         self.fileCount = fileCount
         self.lastModified = lastModified
+        self.totalBytes = totalBytes
+        self.skillMdBytes = skillMdBytes
+        self.issues = issues
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, directory, scope, status, sha256
+        case frontmatterName, skillDescription, fileCount, lastModified
+        case totalBytes, skillMdBytes, issues
+    }
+
+    /// 新字段 decodeIfPresent——旧编码输入（无新 key）解码得默认值。
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        directory = try c.decode(URL.self, forKey: .directory)
+        scope = try c.decode(SkillScope.self, forKey: .scope)
+        status = try c.decode(SkillStatus.self, forKey: .status)
+        sha256 = try c.decode(String.self, forKey: .sha256)
+        frontmatterName = try c.decodeIfPresent(String.self, forKey: .frontmatterName)
+        skillDescription = try c.decodeIfPresent(String.self, forKey: .skillDescription)
+        fileCount = try c.decodeIfPresent(Int.self, forKey: .fileCount) ?? 0
+        lastModified = try c.decodeIfPresent(Date.self, forKey: .lastModified)
+        totalBytes = try c.decodeIfPresent(Int.self, forKey: .totalBytes) ?? 0
+        skillMdBytes = try c.decodeIfPresent(Int.self, forKey: .skillMdBytes) ?? 0
+        issues = try c.decodeIfPresent([SkillIssue].self, forKey: .issues) ?? []
     }
 }
 
@@ -165,19 +219,45 @@ public struct ParsedSkill: Hashable, Codable, Sendable {
     public var frontmatterDescription: String?
     public var files: [URL]
     public var sha256: String
+    public var totalBytes: Int = 0
+    public var skillMdBytes: Int = 0
+    public var issues: [SkillIssue] = []
 
     public init(
         directory: URL,
         frontmatterName: String? = nil,
         frontmatterDescription: String? = nil,
         files: [URL] = [],
-        sha256: String
+        sha256: String,
+        totalBytes: Int = 0,
+        skillMdBytes: Int = 0,
+        issues: [SkillIssue] = []
     ) {
         self.directory = directory
         self.frontmatterName = frontmatterName
         self.frontmatterDescription = frontmatterDescription
         self.files = files
         self.sha256 = sha256
+        self.totalBytes = totalBytes
+        self.skillMdBytes = skillMdBytes
+        self.issues = issues
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case directory, frontmatterName, frontmatterDescription, files, sha256
+        case totalBytes, skillMdBytes, issues
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        directory = try c.decode(URL.self, forKey: .directory)
+        frontmatterName = try c.decodeIfPresent(String.self, forKey: .frontmatterName)
+        frontmatterDescription = try c.decodeIfPresent(String.self, forKey: .frontmatterDescription)
+        files = try c.decodeIfPresent([URL].self, forKey: .files) ?? []
+        sha256 = try c.decode(String.self, forKey: .sha256)
+        totalBytes = try c.decodeIfPresent(Int.self, forKey: .totalBytes) ?? 0
+        skillMdBytes = try c.decodeIfPresent(Int.self, forKey: .skillMdBytes) ?? 0
+        issues = try c.decodeIfPresent([SkillIssue].self, forKey: .issues) ?? []
     }
 }
 

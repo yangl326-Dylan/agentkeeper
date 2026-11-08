@@ -92,3 +92,48 @@ import Testing
         #expect(report.agents[0].skillRoots[0].owners == ["claude-code"])
     }
 }
+
+@Suite struct SkillHealthModelTests {
+    /// SkillIssue 编解码 roundtrip。
+    @Test func skillIssueRoundTrip() throws {
+        let issue = SkillIssue(kind: .missingDescription)
+        let data = try JSONEncoder().encode(issue)
+        let decoded = try JSONDecoder().decode(SkillIssue.self, from: data)
+        #expect(decoded == issue)
+    }
+
+    /// 旧 JSON（无新字段）解码得到默认值——防御未来缓存/测试 fixture。
+    @Test func skillDecodesLegacyJSONWithoutNewFields() throws {
+        let skill = Skill(
+            id: "s1", name: "demo", directory: URL(fileURLWithPath: "/tmp/demo"),
+            scope: .global(owners: ["claude-code"]), status: .enabled, sha256: "abc",
+            frontmatterName: nil, skillDescription: nil, fileCount: 2, lastModified: nil,
+            totalBytes: 100, skillMdBytes: 50, issues: [SkillIssue(kind: .emptySkillMd)]
+        )
+        #expect(skill.totalBytes == 100) // memberwise init 生效
+        let data = try JSONEncoder().encode(skill)
+        var object = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        for key in ["totalBytes", "skillMdBytes", "issues"] { object.removeValue(forKey: key) }
+        let legacy = try JSONDecoder().decode(Skill.self, from: JSONSerialization.data(withJSONObject: object))
+        #expect(legacy.totalBytes == 0)
+        #expect(legacy.skillMdBytes == 0)
+        #expect(legacy.issues.isEmpty)
+        #expect(legacy.name == "demo")
+    }
+
+    /// ParsedSkill 旧 JSON（无新字段）同样可解码。
+    @Test func parsedSkillDecodesLegacyJSONWithoutNewFields() throws {
+        let parsed = ParsedSkill(
+            directory: URL(fileURLWithPath: "/tmp/demo"), frontmatterName: "demo",
+            frontmatterDescription: "d", files: [], sha256: "abc",
+            totalBytes: 10, skillMdBytes: 5, issues: [SkillIssue(kind: .emptySkillMd)]
+        )
+        let data = try JSONEncoder().encode(parsed)
+        var object = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        for key in ["totalBytes", "skillMdBytes", "issues"] { object.removeValue(forKey: key) }
+        let legacy = try JSONDecoder().decode(ParsedSkill.self, from: JSONSerialization.data(withJSONObject: object))
+        #expect(legacy.totalBytes == 0)
+        #expect(legacy.skillMdBytes == 0)
+        #expect(legacy.issues.isEmpty)
+    }
+}
