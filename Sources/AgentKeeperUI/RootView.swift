@@ -344,23 +344,20 @@ struct SkillRowView: View {
 
 struct SkillListView: View {
     @Environment(AppEnvironment.self) private var env
-    @State private var searchText = ""
     @State private var showGitInstall = false
     @State private var importError: String?
 
     public var body: some View {
+        @Bindable var env = env
         // 生命周期区节点：列表位切换为区视图（同属单选导航，无组合语义）
         if case let .zone(zone) = env.selectedNode {
             ZoneListView(zone: zone)
                 .navigationTitle(NavigationModel.listTitle(for: env.selectedNode, l10n: env.l10n))
         } else {
             // 筛选结果本帧只算一次：animation value 与列表使用同一份（曾每帧/每击键跑两条全量管线）
-            let query = SkillListCore.filter(searchText, env)
+            let query = SkillListCore.filter(env.searchText, env)
             listCore(query)
-                .searchable(text: $searchText, placement: .automatic, prompt: Text(env.l10n.searchPrompt))
-                .onChange(of: env.searchResetToken) { _, _ in
-                    searchText = ""
-                }
+                .searchable(text: $env.searchText, placement: .automatic, prompt: Text(env.l10n.searchPrompt))
                 .navigationTitle(NavigationModel.listTitle(for: env.selectedNode, l10n: env.l10n))
                 .toolbar { toolbarContent }
                 .sheet(isPresented: $showGitInstall) {
@@ -381,7 +378,7 @@ struct SkillListView: View {
     /// 列表核心（独立节点视图：body 内使用 @Environment 的部分收敛于此，selection binding
     /// 在求值期捕获具体 env 对象，避免捕获未解析的 Environment 包装器——离屏渲染也不会崩）。
     func listCore(_ query: [Skill]) -> some View {
-        SkillListCore(searchText: $searchText, query: query)
+        SkillListCore(query: query)
     }
 
 
@@ -458,7 +455,6 @@ struct SkillListView: View {
 
 struct SkillListCore: View {
     @Environment(AppEnvironment.self) private var env
-    @Binding var searchText: String
     /// 父级（SkillListView）本帧已算好的筛选结果——不再重复全量管线。
     let query: [Skill]
 

@@ -8,6 +8,7 @@ import AppCore
 public struct MenuSummarySection: View {
     let env: AppEnvironment
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismiss) private var dismiss
 
     public init(env: AppEnvironment) {
         self.env = env
@@ -42,6 +43,7 @@ public struct MenuSummarySection: View {
                             env.openAgentFilter(entry.id)
                             NSApplication.shared.activate(ignoringOtherApps: true)
                             openWindow(id: "main")
+                            dismiss()
                         },
                         l10n: env.l10n
                     )
@@ -56,6 +58,7 @@ public struct MenuSummarySection: View {
                 onOpenMain: {
                     NSApplication.shared.activate(ignoringOtherApps: true)
                     openWindow(id: "main")
+                    dismiss()
                 },
                 onScan: {
                     NSApplication.shared.activate(ignoringOtherApps: true)

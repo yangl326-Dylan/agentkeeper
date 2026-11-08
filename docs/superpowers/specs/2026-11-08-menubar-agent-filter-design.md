@@ -31,18 +31,18 @@
 新增：
 
 ```swift
-public private(set) var searchResetToken: Int = 0
+public var searchText: String = ""
 
 public func openAgentFilter(_ agentID: AgentID) {
     selectedSkillID = nil
     selectedNode = .agent(agentID)
-    searchResetToken &+= 1
+    searchText = ""
 }
 ```
 
-- 导航语义收口在 AppEnvironment，View 只负责调用，便于单测
-- token 每次调用都递增，即使重复点同一个 agent，也能让主窗口重新清空搜索
-- `searchResetToken` 是 observable（不加 `@ObservationIgnored`），主窗口通过 `onChange` 响应
+- 导航与搜索都收口在 AppEnvironment，View 只负责调用，便于单测
+- 搜索词不再是列表的局部 `@State`，状态栏入口可以直接清空，不依赖 View 生命周期或 onChange 时序
+- 即使重复点同一个 agent，也会再次清空搜索
 
 ### `MenuBarAgentRow`
 
@@ -66,11 +66,9 @@ MenuBarAgentRow(
 
 ### `SkillListView`
 
-```swift
-.onChange(of: env.searchResetToken) { _, _ in
-    searchText = ""
-}
-```
+- 搜索词改为绑定 `env.searchText`（`@Bindable var env = env`）
+- 移除局部 `@State searchText`
+- 筛选直接读 `env.searchText`
 
 窗口新建时 `searchText` 本来就是空，不需要额外处理。
 
@@ -86,7 +84,7 @@ MenuBarAgentRow(
 | 测试 | 覆盖 |
 |---|---|
 | `openAgentFilterSetsAgentNode` | 节点变为 `.agent(id)`，`selectedSkillID` 清空 |
-| `openAgentFilterClearsSearchEachTime` | 连续调用两次，`searchResetToken` 各递增一次 |
+| `openAgentFilterClearsSearch` | 连续调用两次，`searchText` 都为空 |
 | `menuStringsLocalized` | 新增文案双语非空且中英不同 |
 | `ProbeMenuBar` | 更新 `MenuBarAgentRow` 构造参数，仍能渲染出像素 |
 

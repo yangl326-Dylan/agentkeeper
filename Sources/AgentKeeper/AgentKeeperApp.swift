@@ -52,5 +52,6 @@ struct AgentKeeperApp: App {
             Image(nsImage: MenuBarIcon.templateImage())
                 .accessibilityLabel("AgentKeeper")
         }
+        .menuBarExtraStyle(.window)
     }
 }
