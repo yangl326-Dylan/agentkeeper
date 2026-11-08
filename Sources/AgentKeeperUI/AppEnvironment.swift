@@ -27,6 +27,16 @@ public final class AppEnvironment {
     /// 侧栏导航节点（导航视图：全侧栏单选；列表 = 节点集合 ∩ 搜索词）。
     public var selectedNode: SidebarNode = .all
 
+    /// 搜索框重置信号：状态栏点 agent 时递增，主窗口监听后清空搜索词。
+    public private(set) var searchResetToken: Int = 0
+
+    /// 状态栏 agent 行入口：切到该 agent 视图、清空选中、请求主窗口清空搜索。
+    public func openAgentFilter(_ agentID: AgentID) {
+        selectedSkillID = nil
+        selectedNode = .agent(agentID)
+        searchResetToken &+= 1
+    }
+
     /// 切换节点（视图切换时清掉列表选中——新视图内可能不存在该 skill）。
     public func select(node: SidebarNode) {
         if selectedNode != node {

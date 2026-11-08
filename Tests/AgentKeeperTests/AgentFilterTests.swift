@@ -67,4 +67,25 @@ import AppCore
         env.select(node: .agent("agent-0"))
         #expect(SkillListCore.filter("", env).count == 3) // 不与标签 AND
     }
+
+    /// 状态栏 agent 行：设置 agent 节点、清空选中、每次调用都递增搜索重置 token。
+    @Test func openAgentFilterSetsAgentNodeAndClearsSearch() throws {
+        let home = makeFakeHomeCore(files: ["d"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        let env = AppEnvironment(homeDirectory: home)
+
+        env.selectedSkillID = "any"
+        let before = env.searchResetToken
+
+        env.openAgentFilter("agent-0")
+        #expect(env.selectedNode == .agent("agent-0"))
+        #expect(env.selectedSkillID == nil)
+        #expect(env.searchResetToken == before + 1)
+
+        // 重复点同一个 agent 也要再次清空搜索
+        env.selectedSkillID = "any"
+        env.openAgentFilter("agent-0")
+        #expect(env.selectedSkillID == nil)
+        #expect(env.searchResetToken == before + 2)
+    }
 }
