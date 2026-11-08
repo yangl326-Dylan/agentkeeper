@@ -5,13 +5,14 @@ import DomainKit
 // MARK: - Frontmatter 解析（SKILL.md YAML-lite）
 
 public enum FrontmatterParser {
-    /// 解析 SKILL.md 前置 `---` 块中 name/description（行级处理，容忍缩进与引号）。
-    public static func parse(markdown: String) -> (name: String?, description: String?) {
-        guard markdown.hasPrefix("---") else { return (nil, nil) }
+    /// 解析 SKILL.md 前置块，额外回报是否存在 frontmatter（健康检查用）。
+    /// 行级处理，容忍缩进与引号；空值由 valueAfter 归一为 nil（视为缺失）。
+    public static func parseDetailed(markdown: String) -> (hasFrontmatter: Bool, name: String?, description: String?) {
+        guard markdown.hasPrefix("---") else { return (false, nil, nil) }
         var lines = markdown.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         lines.removeFirst() // "---"
         guard let end = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) else {
-            return (nil, nil)
+            return (false, nil, nil)
         }
         var name: String?
         var description: String?
@@ -23,7 +24,13 @@ public enum FrontmatterParser {
                 description = valueAfter("description:", in: trimmed)
             }
         }
-        return (name, description)
+        return (true, name, description)
+    }
+
+    /// 兼容旧签名：丢弃 hasFrontmatter。
+    public static func parse(markdown: String) -> (name: String?, description: String?) {
+        let detailed = parseDetailed(markdown: markdown)
+        return (detailed.name, detailed.description)
     }
 
     private static func valueAfter(_ key: String, in line: String) -> String? {
