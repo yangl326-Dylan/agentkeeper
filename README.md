@@ -34,6 +34,7 @@ AgentKeeper 解决这三件事：**统一目录 → 分歧检测 → 安全停�
 - 🧭 **三维度筛选**：按 agent（谁能用）× 作用域（在哪生效：全局/Agent 专属/项目级/多 Agent 共用）× 标签（做什么用），任意叠加成交集
 - ⚠️ **同名安装检测**：跨 agent 副本内容指纹对比，一键「用当前版本更新全部副本」（覆盖前自动快照）
 - 🛡️ **安全停用**：原子搬移到统一停用目录 + manifest 记录原路径 + 快照 + 操作历史，随时恢复
+- 🩺 **健康检查**：frontmatter 完整性、空文件 / 编码异常 / 坏链接等结构问题逐项列出，体积事实一目了然（只报客观事实，不做主观阈值判定）
 - 📦 **Git 安装**：直接从 git 仓库安装 skill 集
 - 📄 **SKILL.md 预览**：块级 markdown 渲染（标题/代码块/列表/引用），可折叠、可滚动
 - 📁 **Finder 式文件清单**：双击/右键在 Finder 中定位
@@ -93,7 +94,7 @@ swift build       # 全部 target（GUI + ak CLI）
 - [ ] Git 真源持续同步（drift 可视化 + 一键拉平）
 - [ ] ⌘K 全局搜索 + Quick Look
 - [ ] 启动包（一键安装精选 skill 集）
-- [ ] Skill 健康检查（frontmatter / 体积警告）
+- [x] Skill 健康检查 v1（frontmatter 完整性 / 结构异常 / 体积事实；阈值判定与跨 agent 字段兼容见 v1.5）
 - [x] Adapter 声明式协议（单源 `AgentSpec`；内置 agent 加一个字面量，长尾 agent 写 `agents.json`）
 - [ ] Homebrew cask + 公证构建
 
