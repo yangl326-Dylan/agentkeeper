@@ -38,4 +38,36 @@ import AppCore
         )
         try png.write(to: URL(fileURLWithPath: "/tmp/ak-ui/probe-J.png"))
     }
+
+    /// 健康区块与列表行徽章：渲染出真实像素。
+    @Test func healthSectionAndBadgeRenderToPixels() throws {
+        let home = makeFakeHomeCore(files: ["d"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        let env = AppEnvironment(homeDirectory: home)
+        env.catalogStore.sync(with: UIWiring.demoSkills(home: home))
+        var sick = env.catalogStore.current[0]
+        sick.totalBytes = 53_000
+        sick.skillMdBytes = 3_100
+        sick.issues = [SkillIssue(kind: .missingDescription), SkillIssue(kind: .brokenSymlink)]
+        let content = VStack(spacing: 12) {
+            SkillRowView(skill: sick, l10n: env.l10n)
+                .frame(width: 280)
+            SkillHealthSection(skill: sick, l10n: env.l10n)
+                .frame(width: 280, alignment: .leading)
+            SkillHealthSection(
+                skill: env.catalogStore.current[1],
+                l10n: env.l10n
+            )
+            .frame(width: 280, alignment: .leading)
+        }
+        .frame(width: 300, height: 400)
+        let hosting = NSHostingView(rootView: content.environment(env))
+        hosting.frame = NSRect(x: 0, y: 0, width: 300, height: 400)
+        hosting.layoutSubtreeIfNeeded()
+        let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds)!
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        let png: Data = rep.representation(using: .png, properties: [:])!
+        try FileManager.default.createDirectory(atPath: "/tmp/ak-ui", withIntermediateDirectories: true)
+        try png.write(to: URL(fileURLWithPath: "/tmp/ak-ui/probe-health.png"))
+    }
 }

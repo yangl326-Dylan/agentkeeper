@@ -307,6 +307,12 @@ struct SkillRowView: View {
                     .lineLimit(1)
             }
             Spacer()
+            if !skill.issues.isEmpty {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.yellow)
+                    .font(.caption)
+                    .help(l10n.healthBadgeHelp)
+            }
             Text(l10n.scopeBadge(skill.scope))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -572,6 +578,7 @@ struct SkillDetailContent: View {
             VStack(alignment: .leading, spacing: 16) {
                 header(skill)
                 scopeBadge(skill)
+                SkillHealthSection(skill: skill, l10n: env.l10n)
                 tagsSection(skill)
                 landingPointsSection(skill)
                 Divider()
