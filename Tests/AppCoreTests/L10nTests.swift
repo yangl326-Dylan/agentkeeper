@@ -122,6 +122,14 @@ import DomainKit
         #expect(zh.healthFilesCount(3) != en.healthFilesCount(3))
     }
 
+    /// 扁平 skill 只读降级文案：双语非空且不同。
+    @Test func flatReadOnlyNoticeIsLocalized() {
+        let zh = L10n(lang: .zhHans)
+        let en = L10n(lang: .english)
+        #expect(!zh.flatReadOnlyNotice.isEmpty)
+        #expect(zh.flatReadOnlyNotice != en.flatReadOnlyNotice)
+    }
+
     /// 生效关系文案：双语非空且中英不同。
     @Test func effectStringsAreLocalized() {
         let zh = L10n(lang: .zhHans)

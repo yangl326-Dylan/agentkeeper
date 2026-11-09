@@ -598,8 +598,12 @@ struct SkillDetailContent: View {
             files = nil
             historyRecords = nil
             snapshotsList = nil
-            async let md = SkillPreviewModel.loadMarkdown(skillDir: skill.directory)
-            async let fs = SkillPreviewModel.loadFiles(skillDir: skill.directory)
+            async let md = skill.layout == .flatFile
+                ? SkillPreviewModel.loadMarkdownFile(skill.directory)
+                : SkillPreviewModel.loadMarkdown(skillDir: skill.directory)
+            async let fs = skill.layout == .flatFile
+                ? SkillPreviewModel.loadFlatFileEntry(skill.directory)
+                : SkillPreviewModel.loadFiles(skillDir: skill.directory)
             // 空串哨兵 = SKILL.md 缺失（nil = 加载中；占位文案按语言渲染）
             (markdown, files) = await (md ?? "", fs)
             // 历史/快照走各自的读区（快照要枚举快照目录 manifest）；store 均 @unchecked Sendable
@@ -667,30 +671,42 @@ struct SkillDetailContent: View {
         let isDisabled = skill.status == .disabled
         let pending = env.store.state.operation
         let l = env.l10n
-        Button {
-            Task { await env.runOperation(skill: skill, direction: isDisabled ? .enable : .disable) }
-        } label: {
-            Label(isDisabled ? l.opEnable : l.opDisable, systemImage: isDisabled ? "checkmark.circle" : "pause.circle")
+        if skill.layout == .flatFile {
+            return AnyView(
+                Text(l.flatReadOnlyNotice)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: 300, alignment: .trailing)
+            )
         }
-        .disabled(pending.inFlight != nil)
-        .help(pending.failureMessage ?? (isDisabled ? l.enableHelp : l.disableHelp))
-        if !isDisabled {
-            Button {
-                showInstallSheet = true
-            } label: {
-                Label(l.opInstallToAgents, systemImage: "arrow.up.circle")
+        return AnyView(
+            HStack(spacing: 8) {
+                Button {
+                    Task { await env.runOperation(skill: skill, direction: isDisabled ? .enable : .disable) }
+                } label: {
+                    Label(isDisabled ? l.opEnable : l.opDisable, systemImage: isDisabled ? "checkmark.circle" : "pause.circle")
+                }
+                .disabled(pending.inFlight != nil)
+                .help(pending.failureMessage ?? (isDisabled ? l.enableHelp : l.disableHelp))
+                if !isDisabled {
+                    Button {
+                        showInstallSheet = true
+                    } label: {
+                        Label(l.opInstallToAgents, systemImage: "arrow.up.circle")
+                    }
+                    .disabled(pending.inFlight != nil)
+                    .help(l.installToAgentsHelp)
+                    // 删除 = 移入回收站（原样保全可回滚；彻底删除走回收站二次确认）
+                    Button(role: .destructive) {
+                        Task { await env.runOperation(skill: skill, direction: .delete) }
+                    } label: {
+                        Label(l.opMoveToTrash, systemImage: "trash")
+                    }
+                    .disabled(pending.inFlight != nil)
+                    .help(l.moveToTrashHelp)
+                }
             }
-            .disabled(pending.inFlight != nil)
-            .help(l.installToAgentsHelp)
-            // 删除 = 移入回收站（原样保全可回滚；彻底删除走回收站二次确认）
-            Button(role: .destructive) {
-                Task { await env.runOperation(skill: skill, direction: .delete) }
-            } label: {
-                Label(l.opMoveToTrash, systemImage: "trash")
-            }
-            .disabled(pending.inFlight != nil)
-            .help(l.moveToTrashHelp)
-        }
+        )
     }
 
     // MARK: - Phase 2 区块

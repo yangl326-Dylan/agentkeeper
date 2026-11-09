@@ -314,6 +314,12 @@ public struct L10n: Sendable {
            : "Note: user-level skill directories may also be read by other tools (Cursor has been known to load ~/.claude/skills aggressively)"
     }
 
+    /// 扁平 skill 在线操作降级提示。
+    public var flatReadOnlyNotice: String {
+        zh ? "扁平 skill（单文件）暂不支持在线操作（停用 / 安装到其他 agent / 移入回收站）"
+           : "Flat (single-file) skills do not support in-app operations yet (disable / install / trash)"
+    }
+
     // MARK: 引导页
 
     public var onboardingWelcome: String { zh ? "欢迎使用 AgentKeeper" : "Welcome to AgentKeeper" }

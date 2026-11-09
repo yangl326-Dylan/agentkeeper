@@ -22,6 +22,25 @@ enum SkillPreviewModel {
         }.value
     }
 
+    /// 扁平 skill：读文件本体（skill.directory 即文件 URL）。
+    static func loadMarkdownFile(_ file: URL) async -> String? {
+        await Task.detached(priority: .userInitiated) {
+            if let content = try? String(contentsOf: file, encoding: .utf8), !content.isEmpty {
+                return content
+            }
+            return nil
+        }.value
+    }
+
+    /// 扁平 skill：文件清单即单文件自身。
+    static func loadFlatFileEntry(_ file: URL) async -> [FileListEntry] {
+        await Task.detached(priority: .userInitiated) { [path = file.standardizedFileURL.path] in
+            // /private/var → /var 前缀归一（与 loadFiles 同口径）
+            let display = path.hasPrefix("/private/var/") ? String(path.dropFirst("/private".count)) : path
+            return [FileListEntry(path: display, isDirectory: false)]
+        }.value
+    }
+
     /// 目录内文件清单（后台单次枚举，确定性排序：父目录总在同级子项前）。
     /// 注意 /var 与 /private/var 拼写差异：根与条目路径统一 standardized 后再裁前缀。
     static func loadFiles(skillDir: URL) async -> [FileListEntry] {
