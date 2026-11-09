@@ -156,7 +156,7 @@ public enum SkillShadowPolicy: Sendable {
 
     public static func precedence(for agentID: AgentID) -> Precedence {
         switch agentID {
-        case "claude-code": .projectOverUser
+        case "claude-code", "deepseek": .projectOverUser
         default: .none
         }
     }

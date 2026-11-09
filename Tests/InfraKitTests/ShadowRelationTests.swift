@@ -145,6 +145,38 @@ import DomainKit
         #expect(skills.allSatisfy { $0.shadowedBy == nil && $0.shadowedCount == 0 })
     }
 
+    /// deepseek 有官方 rank 文档（项目 .dsh=100 > 用户 .dsh=400）→ 同 claude-code 判定。
+    @Test func deepseekUserCopyShadowedByProjectCopy() throws {
+        let home = makeFakeHome(
+            files: [
+                ".dsh/skills/demo/SKILL.md",
+                "projects/atlas/.dsh/skills/demo/SKILL.md",
+            ],
+            fileContents: [
+                ".dsh/skills/demo/SKILL.md": "---\nname: demo\ndescription: user\n---\nU",
+                "projects/atlas/.dsh/skills/demo/SKILL.md": "---\nname: demo\ndescription: proj\n---\nP",
+            ]
+        )
+        defer { cleanup(home) }
+        let projectRoot = ProjectRoot(path: home.appendingPathComponent("projects/atlas", isDirectory: true))
+        let projectSkillRoot = SkillRoot(
+            path: projectRoot.path.appendingPathComponent(".dsh/skills", isDirectory: true),
+            owners: ["deepseek"],
+            level: .project(projectRoot)
+        )
+        let userRoot = SkillRoot(
+            path: home.appendingPathComponent(".dsh/skills", isDirectory: true),
+            owners: ["deepseek"],
+            level: .user
+        )
+        let skills = CatalogBuilder().build(agents: [agent("deepseek", roots: [userRoot, projectSkillRoot])])
+        #expect(skills.count == 2)
+        let project = try #require(skills.first { $0.skillDescription == "proj" })
+        let user = try #require(skills.first { $0.skillDescription == "user" })
+        #expect(user.shadowedBy == project.id)
+        #expect(project.shadowedCount == 1)
+    }
+
     /// global/multiAgent scope 不参与遮蔽分组。
     @Test func sharedScopesExcluded() {
         // claude-code + opencode 同名+同 sha → multiAgent；不应生成 shadow 标注
