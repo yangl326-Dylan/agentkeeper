@@ -11,8 +11,20 @@ public struct SkillCollector: @unchecked Sendable {
     }
 
     public func collect(inRoot root: URL, agentID: AgentID) -> [ParsedSkill] {
-        collectRecursive(rootPath: root.path)
+        var results = collectRecursive(rootPath: root.path)
             .compactMap { SkillParsing.parseDirectory(at: URL(fileURLWithPath: $0)) }
+        results.append(contentsOf: collectFlat(rootPath: root.path))
+        return results
+    }
+
+    /// root 直属扁平 `<name>.md`（DeepSeek Harness「直属平铺条目」语义）。
+    /// 子目录内扁平文件不收；隐藏文件跳过；游离的根级 SKILL.md 不是 skill 名。
+    private func collectFlat(rootPath: String) -> [ParsedSkill] {
+        guard let contents = try? fileManager.contentsOfDirectory(atPath: rootPath) else { return [] }
+        return contents
+            .filter { !$0.hasPrefix(".") && $0 != "SKILL.md" && $0.lowercased().hasSuffix(".md") }
+            .sorted()
+            .compactMap { SkillParsing.parseFlatFile(at: URL(fileURLWithPath: rootPath + "/" + $0)) }
     }
 
     /// 返回所有含 SKILL.md 的目录绝对路径（深度优先，跳过隐藏目录）。
