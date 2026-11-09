@@ -24,7 +24,7 @@ swift test --filter <Suite> 2>&1 | tail -2
 - Modify: `Sources/DomainKit/CoreModels.swift`（Skill 附近新增枚举；Skill 属性/init/CodingKeys/init(from:)）
 - Test: `Tests/DomainKitTests/ModelTests.swift`（SkillHealthModelTests 既有两用例扩展）
 
-- [ ] **Step 1: 失败测试**——`Tests/DomainKitTests/ModelTests.swift` 的 `skillDecodesLegacyJSONWithoutNewFields` 内：
+- [x] **Step 1: 失败测试**——`Tests/DomainKitTests/ModelTests.swift` 的 `skillDecodesLegacyJSONWithoutNewFields` 内：
 
 构造处追加 `layout: .flatFile`：
 
@@ -52,13 +52,13 @@ legacy 断言追加：
         #expect(legacy.layout == .directoryPackage)
 ```
 
-- [ ] **Step 2: 跑测试确认失败**（`cannot find 'layout' in scope`）
+- [x] **Step 2: 跑测试确认失败**（`cannot find 'layout' in scope`）
 
 ```bash
 swift test --filter SkillHealthModelTests 2>&1 | grep -E "error:" | head -3
 ```
 
-- [ ] **Step 3: 实现**——`CoreModels.swift`，Skill 声明前加：
+- [x] **Step 3: 实现**——`CoreModels.swift`，Skill 声明前加：
 
 ```swift
 /// skill 文件形态（DeepSeek Harness 支持目录包与扁平单文件两种）。
@@ -89,8 +89,8 @@ init 体赋值 `self.layout = layout`；CodingKeys 追加 `case layout`；`init(
         layout = try c.decodeIfPresent(SkillLayout.self, forKey: .layout) ?? .directoryPackage
 ```
 
-- [ ] **Step 4: 测试通过** `swift test --filter SkillHealthModelTests 2>&1 | tail -2`
-- [ ] **Step 5: Commit** `git commit -m "feat(deepseek): SkillLayout 形态字段"`
+- [x] **Step 4: 测试通过** `swift test --filter SkillHealthModelTests 2>&1 | tail -2`
+- [x] **Step 5: Commit** `git commit -m "feat(deepseek): SkillLayout 形态字段"`
 
 ### Task 2: SkillParsing.parseFlatFile + ParsedSkill.isFlatFile
 
@@ -99,7 +99,7 @@ init 体赋值 `self.layout = layout`；CodingKeys 追加 `case layout`；`init(
 - Modify: `Sources/InfraKit/SkillParsing.swift`（parseFlatFile）
 - Test: `Tests/InfraKitTests/SkillParsingTests.swift`（新增 `FlatFileParsingTests` suite；该文件已存在则追加 suite）
 
-- [ ] **Step 1: 失败测试**——新建 suite：
+- [x] **Step 1: 失败测试**——新建 suite：
 
 ```swift
 @Suite struct FlatFileParsingTests {
@@ -144,8 +144,8 @@ init 体赋值 `self.layout = layout`；CodingKeys 追加 `case layout`；`init(
 }
 ```
 
-- [ ] **Step 2: 确认失败**（`parseFlatFile`/`isFlatFile` 不存在）
-- [ ] **Step 3: 实现**
+- [x] **Step 2: 确认失败**（`parseFlatFile`/`isFlatFile` 不存在）
+- [x] **Step 3: 实现**
 
 `CoreModels.swift` ParsedSkill 追加（issues 之后）：
 
@@ -206,8 +206,8 @@ init 参数 `issues: [SkillIssue] = []` 后加 `isFlatFile: Bool = false`，体�
 
 注意：`ParsedSkill` 既有 init 参数顺序为 `directory, frontmatterName, frontmatterDescription, files, sha256, totalBytes, skillMdBytes, issues`（均有缺省的靠后）——上面按此顺序传参。
 
-- [ ] **Step 4: 通过** `swift test --filter FlatFileParsingTests 2>&1 | tail -2`
-- [ ] **Step 5: Commit** `git commit -m "feat(deepseek): 扁平 skill 文件解析"`
+- [x] **Step 4: 通过** `swift test --filter FlatFileParsingTests 2>&1 | tail -2`
+- [x] **Step 5: Commit** `git commit -m "feat(deepseek): 扁平 skill 文件解析"`
 
 ### Task 3: SkillCollector 收 root 直属扁平文件
 
@@ -215,7 +215,7 @@ init 参数 `issues: [SkillIssue] = []` 后加 `isFlatFile: Bool = false`，体�
 - Modify: `Sources/InfraKit/SkillCollector.swift`
 - Test: `Tests/InfraKitTests/SkillCollectorTests.swift`（无则新建，模式同 ShadowRelationTests 的 makeFakeHome）
 
-- [ ] **Step 1: 失败测试**
+- [x] **Step 1: 失败测试**
 
 ```swift
 import Foundation
@@ -271,8 +271,8 @@ import DomainKit
 }
 ```
 
-- [ ] **Step 2: 确认失败**（isFlatFile 恒 false / inner.md 未隔离）
-- [ ] **Step 3: 实现**——`SkillCollector.collect` 改为：
+- [x] **Step 2: 确认失败**（isFlatFile 恒 false / inner.md 未隔离）
+- [x] **Step 3: 实现**——`SkillCollector.collect` 改为：
 
 ```swift
     public func collect(inRoot root: URL, agentID: AgentID) -> [ParsedSkill] {
@@ -293,8 +293,8 @@ import DomainKit
     }
 ```
 
-- [ ] **Step 4: 通过 + 既有收集器回归** `swift test --filter "SkillCollector" 2>&1 | tail -2`
-- [ ] **Step 5: Commit** `git commit -m "feat(deepseek): 收集 root 直属扁平 skill"`
+- [x] **Step 4: 通过 + 既有收集器回归** `swift test --filter "SkillCollector" 2>&1 | tail -2`
+- [x] **Step 5: Commit** `git commit -m "feat(deepseek): 收集 root 直属扁平 skill"`
 
 ### Task 4: CatalogBuilder 接线 layout
 
@@ -302,7 +302,7 @@ import DomainKit
 - Modify: `Sources/InfraKit/CatalogBuilder.swift`（build 内 Skill 构造加 layout）
 - Test: `Tests/InfraKitTests/ShadowRelationTests.swift` 旁新增 `Tests/InfraKitTests/DeepSeekCatalogTests.swift`
 
-- [ ] **Step 1: 失败测试**
+- [x] **Step 1: 失败测试**
 
 ```swift
 import Foundation
@@ -350,15 +350,15 @@ import DomainKit
 
 （`try!` 在 @Test 内不可用则改 `try #require`——测试函数签名加 `throws`。）
 
-- [ ] **Step 2: 确认失败**（layout 恒 directoryPackage）
-- [ ] **Step 3: 实现**——`CatalogBuilder.build` 的 Skill 构造尾部（`issues: parsed.issues` 后）追加：
+- [x] **Step 2: 确认失败**（layout 恒 directoryPackage）
+- [x] **Step 3: 实现**——`CatalogBuilder.build` 的 Skill 构造尾部（`issues: parsed.issues` 后）追加：
 
 ```swift
                             layout: parsed.isFlatFile ? .flatFile : .directoryPackage
 ```
 
-- [ ] **Step 4: 通过** `swift test --filter "DeepSeekCatalogTests|CatalogBuilder" 2>&1 | tail -2`
-- [ ] **Step 5: Commit** `git commit -m "feat(deepseek): catalog 标注 skill 形态"`
+- [x] **Step 4: 通过** `swift test --filter "DeepSeekCatalogTests|CatalogBuilder" 2>&1 | tail -2`
+- [x] **Step 5: Commit** `git commit -m "feat(deepseek): catalog 标注 skill 形态"`
 
 ### Task 5: AgentSpec 收录 deepseek
 
@@ -366,7 +366,7 @@ import DomainKit
 - Modify: `Sources/InfraKit/AgentSpec.swift`（BuiltInAgents.deepseek + all）
 - Test: `Tests/InfraKitTests/AgentSpecTests.swift`（ids 集合断言）
 
-- [ ] **Step 1: 失败测试**——AgentSpecTests 首用例的 Set 字面量加 `"deepseek"`（cursor 之后）；追加用例：
+- [x] **Step 1: 失败测试**——AgentSpecTests 首用例的 Set 字面量加 `"deepseek"`（cursor 之后）；追加用例：
 
 ```swift
     /// DeepSeek Harness：用户级 + 项目级 .dsh/skills；无项目注册中心（.none）。
@@ -379,8 +379,8 @@ import DomainKit
     }
 ```
 
-- [ ] **Step 2: 确认失败**
-- [ ] **Step 3: 实现**——`BuiltInAgents` 内 cursor 之后：
+- [x] **Step 2: 确认失败**
+- [x] **Step 3: 实现**——`BuiltInAgents` 内 cursor 之后：
 
 ```swift
     /// DeepSeek Harness（developer preview）：官方 rank 文档 100 项目.dsh / 400 用户.dsh；
@@ -404,8 +404,8 @@ import DomainKit
     ]
 ```
 
-- [ ] **Step 4: 通过 + 全 InfraKit 回归** `swift test --filter "AgentSpecTests|ScanSchedulerTests|UserAgentConfigTests" 2>&1 | tail -2`
-- [ ] **Step 5: Commit** `git commit -m "feat(deepseek): 内置 DeepSeek Harness agent"`
+- [x] **Step 4: 通过 + 全 InfraKit 回归** `swift test --filter "AgentSpecTests|ScanSchedulerTests|UserAgentConfigTests" 2>&1 | tail -2`
+- [x] **Step 5: Commit** `git commit -m "feat(deepseek): 内置 DeepSeek Harness agent"`
 
 ### Task 6: SkillShadowPolicy 升级 deepseek
 
@@ -413,7 +413,7 @@ import DomainKit
 - Modify: `Sources/InfraKit/CatalogBuilder.swift`（precedence switch）
 - Test: `Tests/InfraKitTests/ShadowRelationTests.swift`（追加 deepseek 用例）
 
-- [ ] **Step 1: 失败测试**——ShadowRelationTests 追加：
+- [x] **Step 1: 失败测试**——ShadowRelationTests 追加：
 
 ```swift
     /// deepseek 有官方 rank 文档（项目 .dsh=100 > 用户 .dsh=400）→ 同 claude-code 判定。
@@ -449,8 +449,8 @@ import DomainKit
     }
 ```
 
-- [ ] **Step 2: 确认失败**（shadowedBy nil）
-- [ ] **Step 3: 实现**——`SkillShadowPolicy.precedence`：
+- [x] **Step 2: 确认失败**（shadowedBy nil）
+- [x] **Step 3: 实现**——`SkillShadowPolicy.precedence`：
 
 ```swift
     public static func precedence(for agentID: AgentID) -> Precedence {
@@ -461,8 +461,8 @@ import DomainKit
     }
 ```
 
-- [ ] **Step 4: 通过** `swift test --filter "ShadowRelationTests" 2>&1 | tail -2`
-- [ ] **Step 5: Commit** `git commit -m "feat(deepseek): 遮蔽判定覆盖 deepseek（官方 rank project>user）"`
+- [x] **Step 4: 通过** `swift test --filter "ShadowRelationTests" 2>&1 | tail -2`
+- [x] **Step 5: Commit** `git commit -m "feat(deepseek): 遮蔽判定覆盖 deepseek（官方 rank project>user）"`
 
 ### Task 7: UI——扁平 skill 只读降级 + 预览/文件清单适配
 
@@ -472,7 +472,7 @@ import DomainKit
 - Modify: `Sources/AgentKeeperUI/RootView.swift`（SkillDetailContent.task 分支 + operationButtons 降级）
 - Test: `Tests/AppCoreTests/L10nTests.swift`（追加断言）
 
-- [ ] **Step 1: 失败测试**——L10nTests `effectStringsAreLocalized` 后追加：
+- [x] **Step 1: 失败测试**——L10nTests `effectStringsAreLocalized` 后追加：
 
 ```swift
     /// 扁平 skill 只读降级文案：双语非空且不同。
@@ -484,8 +484,8 @@ import DomainKit
     }
 ```
 
-- [ ] **Step 2: 确认失败**
-- [ ] **Step 3: 实现**
+- [x] **Step 2: 确认失败**
+- [x] **Step 3: 实现**
 
 L10n.swift（effectCrossNote 之后）：
 
@@ -548,12 +548,12 @@ RootView.swift `.task(id: skill.id)` 内替换加载两行：
 
 （ViewBuilder 内不能用裸 `return` 早期的 body 分支——operationButtons 非 ViewBuilder（返回 some View 的普通函数），`return` 可用；若编译器报错则改 `@ViewBuilder` + if/else 两分支。）
 
-- [ ] **Step 4: 通过** `swift test --filter "L10nTests" 2>&1 | tail -2 && swift build 2>&1 | grep -cE "error|warning"`
-- [ ] **Step 5: Commit** `git commit -m "feat(deepseek): 扁平 skill 详情只读降级 + 预览适配"`
+- [x] **Step 4: 通过** `swift test --filter "L10nTests" 2>&1 | tail -2 && swift build 2>&1 | grep -cE "error|warning"`
+- [x] **Step 5: Commit** `git commit -m "feat(deepseek): 扁平 skill 详情只读降级 + 预览适配"`
 
 ### Task 8: 全量验证 + README + 真机 + 发 v0.5.0
 
-- [ ] **Step 1: 全量**
+- [x] **Step 1: 全量**
 
 ```bash
 pkill -9 -f swiftpm-testing-helper 2>/dev/null; sleep 1
@@ -561,8 +561,8 @@ swift build 2>&1 | grep -cE "error|warning"   # 0
 swift test --no-parallel 2>&1 | tail -1        # 全绿（基线 429+）
 ```
 
-- [ ] **Step 2: README**——支持 agent 清单处补 DeepSeek Harness；功能清单补「扁平 skill」；spec 状态同步 commit
-- [ ] **Step 3: 真机 fixture**（测完清理）
+- [x] **Step 2: README**——支持 agent 清单处补 DeepSeek Harness；功能清单补「扁平 skill」；spec 状态同步 commit
+- [x] **Step 3: 真机 fixture**（测完清理）
 
 ```bash
 mkdir -p ~/.dsh/skills/pack ~/.dsh/skills
@@ -577,4 +577,4 @@ sleep 8   # 等自动扫描
 rm -rf ~/.dsh   # 清理（本机无真实 dsh）
 ```
 
-- [ ] **Step 4: 发版**——`scripts/build-app.sh` 版本 `0.5.0`/`CFBundleVersion 6`；`docs/releases/v0.5.0.md` 中英（DeepSeek Harness 收录 + 扁平 skill + 遮蔽升级 + 已知盲区）；arm64/x86_64 分建 → lipo → 组装签名 → ditto/zip → 冒烟（版本号 + ak doctor）→ commit + tag v0.5.0 → `gh release create v0.5.0 -R yangl326-Dylan/agentkeeper --notes-file` → `releases/latest` 终验 → /Applications 安装 → push main+tag
+- [x] **Step 4: 发版**——`scripts/build-app.sh` 版本 `0.5.0`/`CFBundleVersion 6`；`docs/releases/v0.5.0.md` 中英（DeepSeek Harness 收录 + 扁平 skill + 遮蔽升级 + 已知盲区）；arm64/x86_64 分建 → lipo → 组装签名 → ditto/zip → 冒烟（版本号 + ak doctor）→ commit + tag v0.5.0 → `gh release create v0.5.0 -R yangl326-Dylan/agentkeeper --notes-file` → `releases/latest` 终验 → /Applications 安装 → push main+tag
