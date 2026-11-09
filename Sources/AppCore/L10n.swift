@@ -292,6 +292,25 @@ public struct L10n: Sendable {
         zh ? "\(count) 个文件" : "\(count) files"
     }
 
+    // MARK: 生效关系
+
+    public var effectSectionTitle: String { zh ? "生效关系" : "Effect" }
+    public var effectShadowedNotice: String {
+        zh ? "同名项目级 skill 生效，agent 不会加载当前副本（项目级 > 用户级）"
+           : "A project-level skill with the same name is in effect; the agent will not load this copy (project > user)"
+    }
+    public func effectShadowsCount(_ count: Int) -> String {
+        zh ? "当前副本生效；另有 \(count) 个更低优先级同名副本被遮蔽"
+           : "This copy is in effect; \(count) lower-precedence copies with the same name are shadowed"
+    }
+    public func effectMultiAgent(_ agents: String) -> String {
+        zh ? "该内容会被多个 agent 共同加载：\(agents)" : "This content is loaded by multiple agents: \(agents)"
+    }
+    public var effectCrossNote: String {
+        zh ? "注意：用户级 skill 目录也可能被其他工具读取（如 Cursor 曾激进加载 ~/.claude/skills）"
+           : "Note: user-level skill directories may also be read by other tools (Cursor has been known to load ~/.claude/skills aggressively)"
+    }
+
     // MARK: 引导页
 
     public var onboardingWelcome: String { zh ? "欢迎使用 AgentKeeper" : "Welcome to AgentKeeper" }

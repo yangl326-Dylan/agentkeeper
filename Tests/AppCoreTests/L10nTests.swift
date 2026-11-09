@@ -121,4 +121,21 @@ import DomainKit
         #expect(en.healthFilesCount(3).contains("3"))
         #expect(zh.healthFilesCount(3) != en.healthFilesCount(3))
     }
+
+    /// 生效关系文案：双语非空且中英不同。
+    @Test func effectStringsAreLocalized() {
+        let zh = L10n(lang: .zhHans)
+        let en = L10n(lang: .english)
+        #expect(!zh.effectSectionTitle.isEmpty)
+        #expect(zh.effectSectionTitle != en.effectSectionTitle)
+        #expect(!zh.effectShadowedNotice.isEmpty)
+        #expect(zh.effectShadowedNotice != en.effectShadowedNotice)
+        #expect(zh.effectShadowsCount(2).contains("2"))
+        #expect(en.effectShadowsCount(2).contains("2"))
+        #expect(zh.effectShadowsCount(2) != en.effectShadowsCount(2))
+        #expect(!zh.effectCrossNote.isEmpty)
+        #expect(zh.effectCrossNote != en.effectCrossNote)
+        #expect(zh.effectMultiAgent("a, b").contains("a, b"))
+        #expect(zh.effectMultiAgent("a, b") != en.effectMultiAgent("a, b"))
+    }
 }
