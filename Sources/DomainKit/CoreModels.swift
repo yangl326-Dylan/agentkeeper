@@ -160,6 +160,8 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
     public var shadowedBy: String?
     /// 我遮蔽的同名低优先级副本数（仅生效副本 > 0）。
     public var shadowedCount: Int = 0
+    /// 文件形态；legacy 数据默认目录包。
+    public var layout: SkillLayout = .directoryPackage
 
     public init(
         id: String,
@@ -176,7 +178,8 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         skillMdBytes: Int = 0,
         issues: [SkillIssue] = [],
         shadowedBy: String? = nil,
-        shadowedCount: Int = 0
+        shadowedCount: Int = 0,
+        layout: SkillLayout = .directoryPackage
     ) {
         self.id = id
         self.name = name
@@ -193,6 +196,7 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         self.issues = issues
         self.shadowedBy = shadowedBy
         self.shadowedCount = shadowedCount
+        self.layout = layout
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -200,6 +204,7 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         case frontmatterName, skillDescription, fileCount, lastModified
         case totalBytes, skillMdBytes, issues
         case shadowedBy, shadowedCount
+        case layout
     }
 
     /// 新字段 decodeIfPresent——旧编码输入（无新 key）解码得默认值。
@@ -220,7 +225,16 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         issues = try c.decodeIfPresent([SkillIssue].self, forKey: .issues) ?? []
         shadowedBy = try c.decodeIfPresent(String.self, forKey: .shadowedBy)
         shadowedCount = try c.decodeIfPresent(Int.self, forKey: .shadowedCount) ?? 0
+        layout = try c.decodeIfPresent(SkillLayout.self, forKey: .layout) ?? .directoryPackage
     }
+}
+
+/// skill 文件形态（DeepSeek Harness 支持目录包与扁平单文件两种）。
+public enum SkillLayout: String, Hashable, Codable, Sendable {
+    /// `<name>/SKILL.md` 目录包（绝大多数 agent 的约定）。
+    case directoryPackage
+    /// root 直属 `<name>.md` 单文件（dsh 语义）。
+    case flatFile
 }
 
 /// 适配器解析出的原始 skill（尚未归一为 Skill 实体）。
