@@ -35,7 +35,8 @@ public struct CatalogBuilder: Sendable {
                             lastModified: lastModified(of: parsed),
                             totalBytes: parsed.totalBytes,
                             skillMdBytes: parsed.skillMdBytes,
-                            issues: parsed.issues
+                            issues: parsed.issues,
+                            layout: parsed.isFlatFile ? .flatFile : .directoryPackage
                         )
                     )
                 }
