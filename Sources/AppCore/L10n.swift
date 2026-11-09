@@ -306,6 +306,9 @@ public struct L10n: Sendable {
     public func effectMultiAgent(_ agents: String) -> String {
         zh ? "该内容会被多个 agent 共同加载：\(agents)" : "This content is loaded by multiple agents: \(agents)"
     }
+
+    /// agent id 列表的连接符（中文顿号 / 英文逗号）。
+    public var listSeparator: String { zh ? "、" : ", " }
     public var effectCrossNote: String {
         zh ? "注意：用户级 skill 目录也可能被其他工具读取（如 Cursor 曾激进加载 ~/.claude/skills）"
            : "Note: user-level skill directories may also be read by other tools (Cursor has been known to load ~/.claude/skills aggressively)"

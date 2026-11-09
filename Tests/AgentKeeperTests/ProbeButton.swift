@@ -70,4 +70,36 @@ import AppCore
         try FileManager.default.createDirectory(atPath: "/tmp/ak-ui", withIntermediateDirectories: true)
         try png.write(to: URL(fileURLWithPath: "/tmp/ak-ui/probe-health.png"))
     }
+
+    /// 生效关系区块三态：被遮蔽 / 遮蔽他人 / 多 agent 串扰。
+    @Test func effectSectionRendersToPixels() throws {
+        let home = makeFakeHomeCore(files: ["d"])
+        defer { try? FileManager.default.removeItem(at: home) }
+        let env = AppEnvironment(homeDirectory: home)
+        env.catalogStore.sync(with: UIWiring.demoSkills(home: home))
+        var shadowed = env.catalogStore.current[0]
+        shadowed.shadowedBy = "/some/effective/copy"
+        var effective = env.catalogStore.current[1]
+        effective.shadowedCount = 3
+        var shared = effective
+        shared.scope = .multiAgent(["claude-code", "opencode"])
+        let content = VStack(spacing: 12) {
+            SkillEffectSection(skill: shadowed, l10n: env.l10n)
+                .frame(width: 300, alignment: .leading)
+            SkillEffectSection(skill: effective, l10n: env.l10n)
+                .frame(width: 300, alignment: .leading)
+            SkillEffectSection(skill: shared, l10n: env.l10n)
+                .frame(width: 300, alignment: .leading)
+        }
+        .frame(width: 320, height: 420)
+        let hosting = NSHostingView(rootView: content)
+        hosting.frame = NSRect(x: 0, y: 0, width: 320, height: 420)
+        hosting.appearance = NSAppearance(named: .aqua)
+        hosting.layoutSubtreeIfNeeded()
+        let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds)!
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        let png: Data = rep.representation(using: .png, properties: [:])!
+        try FileManager.default.createDirectory(atPath: "/tmp/ak-ui", withIntermediateDirectories: true)
+        try png.write(to: URL(fileURLWithPath: "/tmp/ak-ui/probe-effect.png"))
+    }
 }

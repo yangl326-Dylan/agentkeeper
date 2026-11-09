@@ -578,6 +578,7 @@ struct SkillDetailContent: View {
             VStack(alignment: .leading, spacing: 16) {
                 header(skill)
                 scopeBadge(skill)
+                SkillEffectSection(skill: skill, l10n: env.l10n)
                 SkillHealthSection(skill: skill, l10n: env.l10n)
                 tagsSection(skill)
                 landingPointsSection(skill)
