@@ -247,6 +247,8 @@ public struct ParsedSkill: Hashable, Codable, Sendable {
     public var totalBytes: Int = 0
     public var skillMdBytes: Int = 0
     public var issues: [SkillIssue] = []
+    /// true = 扁平单文件 skill（directory 字段此时指向文件本体 URL）。
+    public var isFlatFile: Bool = false
 
     public init(
         directory: URL,
@@ -256,7 +258,8 @@ public struct ParsedSkill: Hashable, Codable, Sendable {
         sha256: String,
         totalBytes: Int = 0,
         skillMdBytes: Int = 0,
-        issues: [SkillIssue] = []
+        issues: [SkillIssue] = [],
+        isFlatFile: Bool = false
     ) {
         self.directory = directory
         self.frontmatterName = frontmatterName
@@ -266,6 +269,7 @@ public struct ParsedSkill: Hashable, Codable, Sendable {
         self.totalBytes = totalBytes
         self.skillMdBytes = skillMdBytes
         self.issues = issues
+        self.isFlatFile = isFlatFile
     }
 
     private enum CodingKeys: String, CodingKey {

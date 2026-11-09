@@ -328,6 +328,49 @@ public enum SkillParsing {
         )
     }
 
+    /// 解析扁平 skill 文件（DeepSeek Harness 语义：root 直属 `<name>.md`）。
+    /// directory 指向文件本体 URL；frontmatter 缺省时 name 由上层用文件名兜底。
+    public static func parseFlatFile(at file: URL) -> ParsedSkill? {
+        guard file.pathExtension.lowercased() == "md" else { return nil }
+        let data = (try? Data(contentsOf: file)) ?? Data()
+        let totalBytes = data.count
+        let markdown = String(data: data, encoding: .utf8)
+        // 解码失败只报 invalidEncoding（单因汇报，同 parseDirectory）
+        guard let markdown else {
+            return ParsedSkill(
+                directory: file.standardizedFileURL,
+                files: [file.standardizedFileURL],
+                sha256: Fingerprint.sha256OfFiles([(relativePath: file.lastPathComponent, data: data)]),
+                totalBytes: totalBytes,
+                skillMdBytes: totalBytes,
+                issues: [SkillIssue(kind: .invalidEncoding)],
+                isFlatFile: true
+            )
+        }
+        var issues: [SkillIssue] = []
+        if totalBytes == 0 || markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append(SkillIssue(kind: .emptySkillMd))
+        }
+        let front = FrontmatterParser.parseDetailed(markdown: markdown)
+        if !front.hasFrontmatter {
+            issues.append(SkillIssue(kind: .missingFrontmatter))
+        } else {
+            if front.name == nil { issues.append(SkillIssue(kind: .missingName)) }
+            if front.description == nil { issues.append(SkillIssue(kind: .missingDescription)) }
+        }
+        return ParsedSkill(
+            directory: file.standardizedFileURL,
+            frontmatterName: front.name,
+            frontmatterDescription: front.description,
+            files: [file.standardizedFileURL],
+            sha256: Fingerprint.sha256OfFiles([(relativePath: file.lastPathComponent, data: data)]),
+            totalBytes: totalBytes,
+            skillMdBytes: totalBytes,
+            issues: issues,
+            isFlatFile: true
+        )
+    }
+
     /// 递归收集目录内全部常规文件（跳过隐藏与符号链接）。
     public static func allRegularFiles(in directory: URL) -> [URL] {
         let fileManager = FileManager.default
