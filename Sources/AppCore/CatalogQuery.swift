@@ -48,14 +48,7 @@ extension CatalogQuery {
             ?? matching.first?.sha256
             ?? ""
         let sameContent = matching.filter { $0.sha256 == chosenFingerprint }
-        return sameContent.flatMap { skill -> [LandingPoint] in
-            switch skill.scope {
-            case .global, .agentOnly, .project, .multiAgent:
-                return skill.owners.map { agentID in
-                    LandingPoint(agentID: agentID, directory: skill.directory)
-                }
-            }
-        }
+        return perDirectoryPoints(sameContent)
     }
 
     /// 同名落点全集（不按指纹过滤）：「更新所有落点」的数据源——需覆盖指纹分歧的落点。
@@ -63,19 +56,31 @@ extension CatalogQuery {
         named name: String,
         catalog: [Skill]
     ) -> [LandingPoint] {
-        let matching = catalog.filter { $0.name == name }
-        // 指纹分歧的落点也必须收编（旨在更新），因此这里不做指纹过滤，只按 owner 展开
-        return matching.flatMap { skill -> [LandingPoint] in
-            skill.owners.map { agentID in
-                LandingPoint(agentID: agentID, directory: skill.directory)
-            }
-        }
+        // 指纹分歧的落点也必须收编（旨在更新），因此这里不做指纹过滤
+        perDirectoryPoints(catalog.filter { $0.name == name })
     }
 
     /// 同名落点之间是否存在指纹分歧（「已分歧」提示的判定）。
     public static func isDiverged(name: String, catalog: [Skill]) -> Bool {
         let matching = catalog.filter { $0.name == name }
         return Set(matching.map(\.sha256)).count > 1
+    }
+
+    /// 落点统一按目录收编：每个目录一条，多 agent 共载时 owners 合并显示。
+    /// per-owner 展开会把 multiAgent 副本（owners=2+）展开成多行且错误归属
+    /// （宣称 claude-code 加载 ~/.agents 目录）——v0.4.1 起废弃。
+    private static func perDirectoryPoints(_ skills: [Skill]) -> [LandingPoint] {
+        var byDirectory: [String: LandingPoint] = [:]
+        var order: [String] = []
+        for skill in skills {
+            let key = skill.directory.standardizedFileURL.path
+            let agentID = skill.owners.joined(separator: ", ")
+            if byDirectory[key] == nil {
+                byDirectory[key] = LandingPoint(agentID: agentID, directory: skill.directory)
+                order.append(key)
+            }
+        }
+        return order.map { byDirectory[$0]! }
     }
 }
 

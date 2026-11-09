@@ -743,7 +743,7 @@ struct SkillDetailContent: View {
                     )
                     .font(.headline)
                     .foregroundStyle(diverged ? Color.orange : .primary)
-                    ForEach(Array(points.enumerated()), id: \.element.agentID) { entry in
+                    ForEach(Array(points.enumerated()), id: \.element.directory.standardizedFileURL.path) { entry in
                         let point = entry.element
                         let pointSha = shaByPath[point.directory.standardizedFileURL.path]
                         let matches = pointSha == skill.sha256

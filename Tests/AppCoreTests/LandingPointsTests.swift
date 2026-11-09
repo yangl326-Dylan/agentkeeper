@@ -37,7 +37,8 @@ import DomainKit
         #expect(points[0].agentID == "claude-code")
     }
 
-    /// multiAgent 作用域的记录同样计入落点。
+    /// multiAgent 作用域的记录同样计入落点——但按目录收编（每目录一条，owners 合并显示）。
+    /// per-owner 展开会宣称 claude-code 加载 ~/.agents 目录（错误归属），v0.4.1 修复。
     @Test func multiAgentScopeCountsAsLandingPoint() {
         let multi = Skill(
             id: "/m/id",
@@ -48,8 +49,10 @@ import DomainKit
         )
         let other = skill(agentID: "codex", name: "review", sha256: "aaa", path: "/a/.codex/skills/review")
         let points = CatalogQuery.landingPoints(named: "review", fingerprint: "aaa", catalog: [multi, other])
-        #expect(points.count == 3)
-        #expect(Set(points.map(\.agentID)) == ["claude-code", "opencode", "codex"])
+        #expect(points.count == 2)
+        let byDir = Dictionary(uniqueKeysWithValues: points.map { ($0.directory.path, $0) })
+        #expect(byDir["/x/review"]?.agentID == "claude-code, opencode")
+        #expect(byDir["/a/.codex/skills/review"]?.agentID == "codex")
     }
 
     /// 不同名互不干扰。
