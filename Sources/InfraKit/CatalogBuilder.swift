@@ -42,7 +42,45 @@ public struct CatalogBuilder: Sendable {
             }
         }
 
-        return relabelMultiAgent(in: skills)
+        return labelShadowing(in: relabelMultiAgent(in: skills))
+    }
+
+    // MARK: - 同名遮蔽标注
+
+    /// 同 agent 内同名 skill 的副作用判定：官方优先级有据才标（spec 2026-11-09）。
+    /// 只处理 agentOnly/project scope；global/multiAgent 是另一条语义（跨 agent 共同加载）。
+    private func labelShadowing(in skills: [Skill]) -> [Skill] {
+        var result = skills
+        var groups: [String: [Int]] = [:]
+        for (index, skill) in result.enumerated() {
+            switch skill.scope {
+            case .agentOnly, .project:
+                guard let owner = skill.scope.agentIDForOwner else { continue }
+                groups["\(owner)|\(skill.name)", default: []].append(index)
+            case .global, .multiAgent:
+                continue
+            }
+        }
+        for (key, indices) in groups where indices.count > 1 {
+            let agentID = key.split(separator: "|", maxSplits: 1).first.map(String.init) ?? ""
+            guard SkillShadowPolicy.precedence(for: agentID) == .projectOverUser else { continue }
+            // 仅当恰好一个项目级副本；多个项目间排序不可知，保持中性
+            let projectIndices = indices.filter { index in
+                if case .project = result[index].scope { return true }
+                return false
+            }
+            guard projectIndices.count == 1, let projectIndex = projectIndices.first else { continue }
+            let userIndices = indices.filter { index in
+                if case .agentOnly = result[index].scope { return true }
+                return false
+            }
+            guard !userIndices.isEmpty else { continue }
+            for index in userIndices where result[index].shadowedBy == nil {
+                result[index].shadowedBy = result[projectIndex].id
+            }
+            result[projectIndex].shadowedCount += userIndices.count
+        }
+        return result
     }
 
     // MARK: - 初始作用域
@@ -103,5 +141,22 @@ public struct CatalogBuilder: Sendable {
                 (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
             }
             .max()
+    }
+}
+
+/// 同名 skill 优先级判定（官方文档背书；无据一律 none，宁可少说）。
+public enum SkillShadowPolicy: Sendable {
+    public enum Precedence: Hashable, Sendable {
+        /// 项目级目录覆盖用户级（Claude Code 官方 skills 文档）。
+        case projectOverUser
+        /// 无官方优先级文档，不判定。
+        case none
+    }
+
+    public static func precedence(for agentID: AgentID) -> Precedence {
+        switch agentID {
+        case "claude-code": .projectOverUser
+        default: .none
+        }
     }
 }
