@@ -108,16 +108,23 @@ import Testing
             id: "s1", name: "demo", directory: URL(fileURLWithPath: "/tmp/demo"),
             scope: .global(owners: ["claude-code"]), status: .enabled, sha256: "abc",
             frontmatterName: nil, skillDescription: nil, fileCount: 2, lastModified: nil,
-            totalBytes: 100, skillMdBytes: 50, issues: [SkillIssue(kind: .emptySkillMd)]
+            totalBytes: 100, skillMdBytes: 50, issues: [SkillIssue(kind: .emptySkillMd)],
+            shadowedBy: "s0", shadowedCount: 2
         )
         #expect(skill.totalBytes == 100) // memberwise init 生效
+        #expect(skill.shadowedBy == "s0")
+        #expect(skill.shadowedCount == 2)
         let data = try JSONEncoder().encode(skill)
         var object = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-        for key in ["totalBytes", "skillMdBytes", "issues"] { object.removeValue(forKey: key) }
+        for key in ["totalBytes", "skillMdBytes", "issues", "shadowedBy", "shadowedCount"] {
+            object.removeValue(forKey: key)
+        }
         let legacy = try JSONDecoder().decode(Skill.self, from: JSONSerialization.data(withJSONObject: object))
         #expect(legacy.totalBytes == 0)
         #expect(legacy.skillMdBytes == 0)
         #expect(legacy.issues.isEmpty)
+        #expect(legacy.shadowedBy == nil)
+        #expect(legacy.shadowedCount == 0)
         #expect(legacy.name == "demo")
     }
 

@@ -156,6 +156,10 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
     public var skillMdBytes: Int = 0
     /// 扫描时收集的客观健康事实（缺 frontmatter 字段、空文件、坏链接等）。
     public var issues: [SkillIssue] = []
+    /// 遮蔽我的生效副本 skill id（同名更高优先级副本，同 agent）；nil = 生效或无关系。
+    public var shadowedBy: String?
+    /// 我遮蔽的同名低优先级副本数（仅生效副本 > 0）。
+    public var shadowedCount: Int = 0
 
     public init(
         id: String,
@@ -170,7 +174,9 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         lastModified: Date? = nil,
         totalBytes: Int = 0,
         skillMdBytes: Int = 0,
-        issues: [SkillIssue] = []
+        issues: [SkillIssue] = [],
+        shadowedBy: String? = nil,
+        shadowedCount: Int = 0
     ) {
         self.id = id
         self.name = name
@@ -185,12 +191,15 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         self.totalBytes = totalBytes
         self.skillMdBytes = skillMdBytes
         self.issues = issues
+        self.shadowedBy = shadowedBy
+        self.shadowedCount = shadowedCount
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, directory, scope, status, sha256
         case frontmatterName, skillDescription, fileCount, lastModified
         case totalBytes, skillMdBytes, issues
+        case shadowedBy, shadowedCount
     }
 
     /// 新字段 decodeIfPresent——旧编码输入（无新 key）解码得默认值。
@@ -209,6 +218,8 @@ public struct Skill: Hashable, Codable, Sendable, Identifiable {
         totalBytes = try c.decodeIfPresent(Int.self, forKey: .totalBytes) ?? 0
         skillMdBytes = try c.decodeIfPresent(Int.self, forKey: .skillMdBytes) ?? 0
         issues = try c.decodeIfPresent([SkillIssue].self, forKey: .issues) ?? []
+        shadowedBy = try c.decodeIfPresent(String.self, forKey: .shadowedBy)
+        shadowedCount = try c.decodeIfPresent(Int.self, forKey: .shadowedCount) ?? 0
     }
 }
 
