@@ -644,17 +644,20 @@ struct SkillDetailContent: View {
     }
 
     private func scopeBadge(_ skill: Skill) -> some View {
-        HStack(spacing: 8) {
-            Label(scopeText(skill), systemImage: "scope")
-                .font(.caption)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Capsule().fill(.quaternary.opacity(0.5)))
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Label(scopeText(skill), systemImage: "scope")
+                    .font(.caption)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(.quaternary.opacity(0.5)))
+                Spacer()
+                operationButtons(skill)
+            }
             Text("sha256 \(String(skill.sha256.prefix(12)))…")
                 .font(.caption.monospaced())
                 .foregroundStyle(.tertiary)
-            Spacer()
-            operationButtons(skill)
+                .textSelection(.enabled)
         }
     }
 
