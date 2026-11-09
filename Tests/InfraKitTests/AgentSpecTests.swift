@@ -10,8 +10,17 @@ import DomainKit
         #expect(Set(ids).count == ids.count)
         #expect(Set(ids) == Set([
             "claude-code", "opencode", "codex", "gemini", "openclaw",
-            "pi", "oh-my-pi", "agents-shared", "qwen", "cursor",
+            "pi", "oh-my-pi", "agents-shared", "qwen", "cursor", "deepseek",
         ]))
+    }
+
+    /// DeepSeek Harness：用户级 + 项目级 .dsh/skills；无项目注册中心（.none）。
+    @Test func deepseekHarnessSpec() {
+        let spec = BuiltInAgents.spec(for: "deepseek")
+        #expect(spec?.displayName == "DeepSeek Harness")
+        #expect(spec?.skillRootCandidates == [".dsh/skills"])
+        #expect(spec?.projectSkillSubpaths == [".dsh/skills"])
+        #expect(spec?.projectRootDiscovery == ProjectRootDiscovery.none)
     }
 
     /// Claude Code 的项目根来自 ~/.claude.json（唯一使用该策略的内置 agent）。
@@ -44,7 +53,7 @@ import DomainKit
         // 未知 agent 体面降级
         #expect(AgentProjectLayout.projectSkillSubpaths(for: "future-agent").isEmpty)
 
-        #expect(AgentProjectLayout.participatingAgents == ["claude-code", "opencode", "codex", "gemini"])
+        #expect(AgentProjectLayout.participatingAgents == ["claude-code", "opencode", "codex", "gemini", "deepseek"])
     }
 
     /// 注册表完全由 specs 派生：10 个内置 adapter，id 与 spec 一致。

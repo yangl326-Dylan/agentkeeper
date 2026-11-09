@@ -146,10 +146,21 @@ public enum BuiltInAgents {
         icon: "cursorarrow.rays"
     )
 
+    /// DeepSeek Harness（developer preview）：官方 rank 文档 100 项目.dsh / 400 用户.dsh；
+    /// ~/.agents/skills（rank 500）仍归 agents-shared，v1 不接入。
+    public static let deepseek = AgentSpec(
+        id: "deepseek",
+        displayName: "DeepSeek Harness",
+        detectionSubpaths: [".dsh"],
+        skillRootCandidates: [".dsh/skills"],
+        projectSkillSubpaths: [".dsh/skills"],
+        icon: "wand.and.stars"
+    )
+
     /// 全部内置 agent（顺序即注册顺序）。
     public static let all: [AgentSpec] = [
         claudeCode, openCode, codex, gemini, openClaw,
-        pi, ohMyPi, sharedAgents, qwen, cursor,
+        pi, ohMyPi, sharedAgents, qwen, cursor, deepseek,
     ]
 
     public static func spec(for id: AgentID) -> AgentSpec? {

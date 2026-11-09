@@ -40,8 +40,8 @@ struct FakeAdapter: AgentAdapter {
         let ids = Set(registry.all.map(\.id))
         #expect(ids == Set([
             "claude-code", "opencode", "codex", "gemini", "openclaw", "pi", "oh-my-pi",
-            // 固定标准路径（常见 harness 安装/skill 目录）：共享目录 + Qwen + Cursor
-            "agents-shared", "qwen", "cursor",
+            // 固定标准路径（常见 harness 安装/skill 目录）：共享目录 + Qwen + Cursor + DeepSeek
+            "agents-shared", "qwen", "cursor", "deepseek",
         ]))
     }
 
