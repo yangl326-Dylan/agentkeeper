@@ -69,4 +69,5 @@ L10n：区块标题 + 4 类文案中英双语（沿用 L10n 测试模式）。
 ## 实战补记（实现期决定）
 
 - **crossNote 门控**：用户级串扰提示仅随区块渲染（区块本体无行时不出现）——保证「生效关系」零噪音语义完整。
+- **同名落点修复（真机暴露）**：multiAgent 副本（owners=2+）在「同名安装」面板被 per-owner 展开成重复行且错误归属；修复 = 落点按目录唯一，owners 合并显示于一行（`CatalogQuery.perDirectoryPoints`）。
 - 验证手段：离屏探针三态渲染（probe-effect.png）+ 真机键盘导航（合成鼠标点击无法选中 SwiftUI List；可靠通路 = 方向键/Tab/Return）。
