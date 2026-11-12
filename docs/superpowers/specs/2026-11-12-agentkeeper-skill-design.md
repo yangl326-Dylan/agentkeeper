@@ -52,3 +52,15 @@ frontmatter：`name: agentkeeper`；description 英文，覆盖触发场景：�
 - 不做任何自动 side-effect：所有安装动作由用户/agent 显式触发，符合 AGENTS.md 行为规范
 - skills.sh 收录靠安装遥测、非即时，文档不做过度承诺
 - skill 内容演化走 git，不与 App 版本号绑定
+
+## 发布与推广（2026-11-12 追加，已确认）
+
+用户授权后续步骤**自主执行、无需逐步确认**：
+
+1. **多渠道发布**（验证通过后）：
+   - skills.sh 生态：`npx skills add yangl326-Dylan/agentkeeper`（覆盖 Claude Code / Codex / OpenCode / Cursor / Gemini CLI / Qwen Code 等 75+ agent）
+   - Claude Code 插件市场：`/plugin marketplace add yangl326-Dylan/agentkeeper`（marketplace.json 已就位）
+   - 无注册表的 harness（DeepSeek Harness 扁平 `<name>.md`、pi、agents-shared 等）：README 提供直装矩阵，本机演示直装
+2. **GitHub topics 标签**：补 `agent-skills`、`claude-plugin`、`deepseek`、`pi`、`qwen-code` 等渠道标签
+3. **Discussions 介绍帖**：发在「Show and tell」分类，中英双语，**须注明该帖由 AI agent 代仓库所有者发布**
+4. 本机多 agent 直装后用 `ak doctor` / `ak list` 验证被 AgentKeeper 自身编目（dogfood 证据，供介绍帖引用）
