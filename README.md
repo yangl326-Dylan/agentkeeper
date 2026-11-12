@@ -16,6 +16,8 @@
 
 > 核心管理功能永久免费。开源协议 MIT。
 
+![AgentKeeper 主界面：统一目录 + 三维度筛选](docs/images/hero.png)
+
 ## 为什么需要它
 
 用多个 AI agent（Claude Code / OpenCode / Codex / Cursor / Gemini CLI…）的人，skill 散落在 7+ 个目录里，还有 npm 插件缓存这种深水区：
@@ -43,6 +45,12 @@ AgentKeeper 解决这三件事：**统一目录 → 分歧检测 → 安全停�
 - 🌗 **日夜间主题**：系统语义色，默认跟随系统
 - 🧑‍💻 **CLI 伴随**：`ak` 命令——GUI 管人，CLI 管 agent（agent 也可以自己调用）
 
+### 界面速览
+
+| 同名分歧检测（指纹对比 + 一键拉平） | 安全停用（停用区 · 随时启用） |
+| :---: | :---: |
+| ![同名分歧检测](docs/images/drift.png) | ![安全停用](docs/images/disabled.png) |
+
 ## 安装
 
 **(1) 一键安装 Release 产物（推荐，universal 双架构）**：直接下载 [v0.1.0 Release](https://github.com/yangl326-Dylan/agentkeeper/releases/latest) 或复制命令块——
@@ -68,18 +76,9 @@ swift build -c release         # 构建 ak CLI
 
 ## CLI 速览
 
-```console
-$ ak list
-NAME                SCOPE         AGENTS                       PATH
-brainstorming       agent-only    claude-code                  /Users/you/.claude/skills/...
-...
-共 86 个 skill · 7 个 agent
+![ak CLI：ak list / ak doctor](docs/images/cli.png)
 
-$ ak doctor
-AGENT                STATUS         SKILLS
-claude-code          installed      53
-opencode             installed      32
-```
+`ak list` / `ak doctor` 只读，随时可安全执行；完整命令见 [AGENTS.md](AGENTS.md)。
 
 ## 开发
 
@@ -123,6 +122,8 @@ Issue / PR 欢迎——尤其是给新 agent 加 adapter（内置 = 一个 `Agen
 
 > Core features are free forever. MIT licensed.
 
+![AgentKeeper main window: unified catalog with three filter dimensions](docs/images/hero.png)
+
 ## Why
 
 If you run multiple AI agents (Claude Code / OpenCode / Codex / Cursor / Gemini CLI…), your skills are scattered across 7+ directories — including npm plugin caches:
@@ -147,6 +148,12 @@ AgentKeeper fixes exactly this: **unified catalog → drift detection → safe d
 - 🌗 **Light/dark theme**: system semantic colors, follows system by default
 - 🧑‍💻 **CLI companion**: `ak` — the GUI is for humans, the CLI is for agents (agents can invoke it too)
 
+### Screenshots
+
+| Same-name drift detection (fingerprint diff + one-click sync) | Safe disable (disabled shelf · re-enable anytime) |
+| :---: | :---: |
+| ![Same-name drift detection](docs/images/drift.png) | ![Safe disable](docs/images/disabled.png) |
+
 ## Install
 
 **(1) One-shot release install (recommended, universal binary)** — grab the [latest release](https://github.com/yangl326-Dylan/agentkeeper/releases/latest) or paste:
@@ -169,6 +176,12 @@ swift build -c release         # ak CLI
 
 📄 Full install guide (App setup, Gatekeeper workaround): [INSTALL.md](INSTALL.md)
 🤖 Instructions for AI agents installing/using `ak`: [AGENTS.md](AGENTS.md)
+
+## CLI at a glance
+
+![ak CLI: ak list / ak doctor](docs/images/cli.png)
+
+`ak list` / `ak doctor` are read-only and always safe to run; full usage in [AGENTS.md](AGENTS.md).
 
 ## Development
 
