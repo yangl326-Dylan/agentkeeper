@@ -1,6 +1,6 @@
 # AgentKeeper 自我分发 skill 实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 让 AgentKeeper 官方 skill（`agentkeeper`）可被各主流渠道安装（skills.sh / Claude 插件市场 / harness 直装），并完成发布、打标签与讨论区介绍。
 
@@ -17,7 +17,7 @@
 **Files:**
 - Create: `skills/agentkeeper/SKILL.md`
 
-- [ ] **Step 1: 写入完整 SKILL.md**
+- [x] **Step 1: 写入完整 SKILL.md**
 
 ```markdown
 ---
@@ -96,12 +96,12 @@ Builds are not notarized yet: if macOS refuses to open the app, run
 - More: INSTALL.md in the repository
 ```
 
-- [ ] **Step 2: 自查行数与 frontmatter**
+- [x] **Step 2: 自查行数与 frontmatter**
 
 Run: `wc -l skills/agentkeeper/SKILL.md && head -4 skills/agentkeeper/SKILL.md`
 Expected: ≤ 80 行；首行为 `---`，含 `name: agentkeeper` 与 description。
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add skills/agentkeeper/SKILL.md
@@ -114,7 +114,7 @@ git commit -m "feat(skill): 官方 agentkeeper skill（唯一内容源）"
 - Create: `.claude-plugin/plugin.json`
 - Create: `.claude-plugin/marketplace.json`
 
-- [ ] **Step 1: 写入 plugin.json（manifest name 必须与市场 entry name 一致）**
+- [x] **Step 1: 写入 plugin.json（manifest name 必须与市场 entry name 一致）**
 
 ```json
 {
@@ -128,7 +128,7 @@ git commit -m "feat(skill): 官方 agentkeeper skill（唯一内容源）"
 }
 ```
 
-- [ ] **Step 2: 写入 marketplace.json（plugin source 为仓库根，复用同一 skills/ 目录）**
+- [x] **Step 2: 写入 marketplace.json（plugin source 为仓库根，复用同一 skills/ 目录）**
 
 ```json
 {
@@ -145,13 +145,13 @@ git commit -m "feat(skill): 官方 agentkeeper skill（唯一内容源）"
 }
 ```
 
-- [ ] **Step 3: 本地验证市场与插件**
+- [x] **Step 3: 本地验证市场与插件**
 
 Run: `claude plugin validate .`
 Expected: 最后一行 `✔ Validation passed`。
 若报 `source` 相关错误，检查 plugin 是否在仓库根（`./`）且 `.claude-plugin/plugin.json` 存在。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .claude-plugin/plugin.json .claude-plugin/marketplace.json
@@ -165,7 +165,7 @@ git commit -m "feat(claude-plugin): marketplace 双清单，仓库即市场"
 - Modify: `README.md`（中文「安装」段 + 英文「Install」段）
 - Modify: `INSTALL.md`（中英各加一节）
 
-- [ ] **Step 1: AGENTS.md「参考」节追加一行**
+- [x] **Step 1: AGENTS.md「参考」节追加一行**
 
 在 `- 主仓库：https://github.com/yangl326-Dylan/agentkeeper` 之前插入：
 
@@ -173,7 +173,7 @@ git commit -m "feat(claude-plugin): marketplace 双清单，仓库即市场"
 - 本仓库贡献者以外的 agent：请安装 `agentkeeper` skill（`npx skills add yangl326-Dylan/agentkeeper`），源文件见 [skills/agentkeeper/SKILL.md](skills/agentkeeper/SKILL.md)
 ```
 
-- [ ] **Step 2: README 中文「安装」段（`ak doctor` 命令块之后、源码构建之前）插入**
+- [x] **Step 2: README 中文「安装」段（`ak doctor` 命令块之后、源码构建之前）插入**
 
 ```markdown
 **Skill 安装（让 AI agent 自动用上 `ak`）**：
@@ -185,7 +185,7 @@ npx skills add yangl326-Dylan/agentkeeper   # skills.sh 生态，75+ agent
 Claude Code 也可走插件市场：`/plugin marketplace add yangl326-Dylan/agentkeeper` → `/plugin install agentkeeper@agentkeeper`。
 ```
 
-- [ ] **Step 3: README 英文「Install」段对应位置插入（镜像中文）**
+- [x] **Step 3: README 英文「Install」段对应位置插入（镜像中文）**
 
 ```markdown
 **Skill install (let AI agents pick up `ak` automatically)**:
@@ -197,7 +197,7 @@ npx skills add yangl326-Dylan/agentkeeper   # skills.sh ecosystem, 75+ agents
 Claude Code users can also use the plugin marketplace: `/plugin marketplace add yangl326-Dylan/agentkeeper` → `/plugin install agentkeeper@agentkeeper`.
 ```
 
-- [ ] **Step 4: INSTALL.md 中英「Agent 安装 / 更新」节各追加一段**
+- [x] **Step 4: INSTALL.md 中英「Agent 安装 / 更新」节各追加一段**
 
 中文（「### Agent 安装 / 更新」节末尾）：
 
@@ -215,7 +215,7 @@ Claude Code users can also use the plugin marketplace: `/plugin marketplace add 
 The `agentkeeper` skill ships with this repository: `npx skills add yangl326-Dylan/agentkeeper` (Claude Code / Codex / OpenCode / Cursor / Gemini CLI and more). For harnesses without a registry, copy the file directly: DeepSeek Harness `cp skills/agentkeeper/SKILL.md ~/.dsh/skills/agentkeeper.md`; pi `mkdir -p ~/.pi/skills/agentkeeper && cp skills/agentkeeper/SKILL.md ~/.pi/skills/agentkeeper/`; agents shared dir likewise at `~/.agents/skills/agentkeeper/`.
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add AGENTS.md README.md INSTALL.md
@@ -224,18 +224,18 @@ git commit -m "docs: agentkeeper skill 安装入口（中英）"
 
 ### Task 4: 推送并做远端渠道验证
 
-- [ ] **Step 1: 推送 main**
+- [x] **Step 1: 推送 main**
 
 ```bash
 git push origin main
 ```
 
-- [ ] **Step 2: skills.sh 渠道验证（远端仓库被识别）**
+- [x] **Step 2: skills.sh 渠道验证（远端仓库被识别）**
 
 Run: `npx --yes skills add yangl326-Dylan/agentkeeper --list`
 Expected: 列出 `agentkeeper` skill，frontmatter 解析无报错。
 
-- [ ] **Step 3: Claude 插件市场渠道验证（注册 + 安装）**
+- [x] **Step 3: Claude 插件市场渠道验证（注册 + 安装）**
 
 ```bash
 claude plugin marketplace add yangl326-Dylan/agentkeeper
@@ -245,7 +245,7 @@ claude plugin list | grep -A1 agentkeeper
 
 Expected: `✔ Successfully added marketplace`、`✔ Successfully installed plugin`、`Status: ✔ enabled`。
 
-- [ ] **Step 4: Claude Code 渠道 dogfood 验证**
+- [x] **Step 4: Claude Code 渠道 dogfood 验证**
 
 Run: `ak doctor`
 Expected: claude-code 行 skill 数 +1（plugin 载入的 agentkeeper 出现在编目）。
@@ -253,7 +253,7 @@ Expected: claude-code 行 skill 数 +1（plugin 载入的 agentkeeper 出现在�
 
 ### Task 5: 无注册表 harness 直装 + 全机 dogfood
 
-- [ ] **Step 1: 三类 harness 直装**
+- [x] **Step 1: 三类 harness 直装**
 
 ```bash
 mkdir -p ~/.dsh/skills ~/.pi/skills/agentkeeper ~/.agents/skills/agentkeeper
@@ -262,7 +262,7 @@ cp skills/agentkeeper/SKILL.md ~/.pi/skills/agentkeeper/SKILL.md
 cp skills/agentkeeper/SKILL.md ~/.agents/skills/agentkeeper/SKILL.md
 ```
 
-- [ ] **Step 2: 全机编目验证并留存输出**
+- [x] **Step 2: 全机编目验证并留存输出**
 
 ```bash
 ak doctor && ak list | head -40 | tee /tmp/ak-skill-launch-output.txt
@@ -270,13 +270,13 @@ ak doctor && ak list | head -40 | tee /tmp/ak-skill-launch-output.txt
 
 Expected: `ak list` 出现 agentkeeper 多行（deepseek 扁平、pi、agents-shared、claude-code 插件缓存），汇总行 skill 数增加；输出文件供讨论帖引用。
 
-- [ ] **Step 3: Commit（无代码改动则跳过）**
+- [x] **Step 3: Commit（无代码改动则跳过）**
 
 本任务不改仓库文件，无需 commit。
 
 ### Task 6: GitHub topics 渠道标签
 
-- [ ] **Step 1: 追加 topic**
+- [x] **Step 1: 追加 topic**
 
 ```bash
 gh repo edit yangl326-Dylan/agentkeeper --add-topic agent-skills,claude-plugin,deepseek,pi,qwen-code
@@ -286,7 +286,7 @@ Expected: 退出码 0；`gh repo view --json repositoryTopics` 可见新增标�
 
 ### Task 7: Discussions 介绍帖（Show and tell）
 
-- [ ] **Step 1: 组帖（中英双语，引用 Task 5 输出）**
+- [x] **Step 1: 组帖（中英双语，引用 Task 5 输出）**
 
 用 `cat /tmp/ak-skill-launch-output.txt` 取真实输出，替换下方 `{{AK_OUTPUT}}`。帖子必须包含 agent 代发备注。
 
@@ -332,7 +332,7 @@ DeepSeek Harness、pi、oh-my-pi、OpenClaw、`~/.agents/skills` 共享目录。
 欢迎试用并在本讨论回复反馈。
 ````
 
-- [ ] **Step 2: 取 repositoryId 并发帖**
+- [x] **Step 2: 取 repositoryId 并发帖**
 
 ```bash
 gh api graphql -f query='query{repository(owner:"yangl326-Dylan",name:"agentkeeper"){id}}'
@@ -350,13 +350,13 @@ Expected: 返回 `discussion.url`；打开确认渲染正常（代码块、引�
 
 ### Task 8: 收尾核对
 
-- [ ] **Step 1: 对照 spec 验收标准逐条核对**
+- [x] **Step 1: 对照 spec 验收标准逐条核对**
 
 - `npx skills add yangl326-Dylan/agentkeeper --list` 能发现 skill（Task 4 Step 2）
 - Claude 插件市场安装成功（Task 4 Step 3）
 - `ak list` 编目到多副本（Task 5 Step 2）
 - topics 已打（Task 6）、讨论帖已发并含 agent 代发备注（Task 7）
 
-- [ ] **Step 2: 汇总报告**
+- [x] **Step 2: 汇总报告**
 
 向用户报告：渠道验证结果、ak 汇总数变化、topics、讨论帖 URL。若有任何一步失败，如实报告失败点与已尝试的修正，不夸大完成度。
