@@ -1,0 +1,12 @@
+{
+  "name": "agentkeeper",
+  "description": "Skill management across AI coding agents",
+  "owner": { "name": "yangl326-Dylan" },
+  "plugins": [
+    {
+      "name": "agentkeeper",
+      "source": "./",
+      "description": "Unified skill catalog, drift detection and safe disable/rollback across AI coding agents (ak CLI + macOS app)"
+    }
+  ]
+}

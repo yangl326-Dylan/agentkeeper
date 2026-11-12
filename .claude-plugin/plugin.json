@@ -1,0 +1,9 @@
+{
+  "name": "agentkeeper",
+  "description": "Cross-agent skill management: unified catalog, drift detection, safe disable/rollback via the ak CLI and AgentKeeper.app",
+  "version": "0.5.0",
+  "author": { "name": "yangl326-Dylan" },
+  "homepage": "https://github.com/yangl326-Dylan/agentkeeper",
+  "license": "MIT",
+  "keywords": ["skills", "agents", "macos", "cli"]
+}
