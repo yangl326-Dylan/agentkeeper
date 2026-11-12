@@ -64,7 +64,7 @@ ak doctor
 **Skill 安装（让 AI agent 自动用上 `ak`）**：
 
 ```bash
-npx skills add yangl326-Dylan/agentkeeper   # skills.sh 生态，75+ agent
+npx skills add yangl326-Dylan/agentkeeper --skill agentkeeper   # skills.sh 生态，75+ agent
 ```
 
 Claude Code 也可走插件市场：`/plugin marketplace add yangl326-Dylan/agentkeeper` → `/plugin install agentkeeper@agentkeeper`。
@@ -175,7 +175,7 @@ ak doctor
 **Skill install (let AI agents pick up `ak` automatically)**:
 
 ```bash
-npx skills add yangl326-Dylan/agentkeeper   # skills.sh ecosystem, 75+ agents
+npx skills add yangl326-Dylan/agentkeeper --skill agentkeeper   # skills.sh ecosystem, 75+ agents
 ```
 
 Claude Code users can also use the plugin marketplace: `/plugin marketplace add yangl326-Dylan/agentkeeper` → `/plugin install agentkeeper@agentkeeper`.

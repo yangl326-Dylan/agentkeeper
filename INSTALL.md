@@ -56,7 +56,7 @@ ak list    # readonly table of every skill, scope, owning agents and paths
 
 ### Skill distribution
 
-The `agentkeeper` skill ships with this repository: `npx skills add yangl326-Dylan/agentkeeper` (Claude Code / Codex / OpenCode / Cursor / Gemini CLI and more). For harnesses without a registry, copy the file directly: DeepSeek Harness `cp skills/agentkeeper/SKILL.md ~/.dsh/skills/agentkeeper.md`; pi `mkdir -p ~/.pi/skills/agentkeeper && cp skills/agentkeeper/SKILL.md ~/.pi/skills/agentkeeper/`; agents shared dir likewise at `~/.agents/skills/agentkeeper/`.
+The `agentkeeper` skill ships with this repository: `npx skills add yangl326-Dylan/agentkeeper --skill agentkeeper` (Claude Code / Codex / OpenCode / Cursor / Gemini CLI and more). For harnesses without a registry, copy the file directly: DeepSeek Harness `cp skills/agentkeeper/SKILL.md ~/.dsh/skills/agentkeeper.md`; pi `mkdir -p ~/.pi/skills/agentkeeper && cp skills/agentkeeper/SKILL.md ~/.pi/skills/agentkeeper/`; agents shared dir likewise at `~/.agents/skills/agentkeeper/`.
 
 ---
 
@@ -110,7 +110,7 @@ ak list    # 只读表格：全部 skill 的名称 / 作用域 / 归属 agent / 
 
 ### Skill 分发
 
-`agentkeeper` skill 已随仓库分发：`npx skills add yangl326-Dylan/agentkeeper`（Claude Code / Codex / OpenCode / Cursor / Gemini CLI 等）。无注册表的 harness 直接复制文件：DeepSeek Harness `cp skills/agentkeeper/SKILL.md ~/.dsh/skills/agentkeeper.md`；pi `mkdir -p ~/.pi/skills/agentkeeper && cp skills/agentkeeper/SKILL.md ~/.pi/skills/agentkeeper/`；agents 共享目录同理放 `~/.agents/skills/agentkeeper/`。
+`agentkeeper` skill 已随仓库分发：`npx skills add yangl326-Dylan/agentkeeper --skill agentkeeper`（Claude Code / Codex / OpenCode / Cursor / Gemini CLI 等）。无注册表的 harness 直接复制文件：DeepSeek Harness `cp skills/agentkeeper/SKILL.md ~/.dsh/skills/agentkeeper.md`；pi `mkdir -p ~/.pi/skills/agentkeeper && cp skills/agentkeeper/SKILL.md ~/.pi/skills/agentkeeper/`；agents 共享目录同理放 `~/.agents/skills/agentkeeper/`。
 
 ## Troubleshooting / 常见问题
 
