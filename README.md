@@ -61,6 +61,14 @@ unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/
 ak doctor
 ```
 
+**Skill 安装（让 AI agent 自动用上 `ak`）**：
+
+```bash
+npx skills add yangl326-Dylan/agentkeeper   # skills.sh 生态，75+ agent
+```
+
+Claude Code 也可走插件市场：`/plugin marketplace add yangl326-Dylan/agentkeeper` → `/plugin install agentkeeper@agentkeeper`。
+
 **(2) 从源码构建**（需要 Swift 6.0+ / macOS 15+）：
 
 ```bash
@@ -163,6 +171,14 @@ curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/la
 unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
 ak doctor
 ```
+
+**Skill install (let AI agents pick up `ak` automatically)**:
+
+```bash
+npx skills add yangl326-Dylan/agentkeeper   # skills.sh ecosystem, 75+ agents
+```
+
+Claude Code users can also use the plugin marketplace: `/plugin marketplace add yangl326-Dylan/agentkeeper` → `/plugin install agentkeeper@agentkeeper`.
 
 **(2) Build from source** — Swift 6.0+ / macOS 15+. (Homebrew cask coming soon.)
 
