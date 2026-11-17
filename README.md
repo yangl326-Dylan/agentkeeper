@@ -53,7 +53,7 @@ AgentKeeper 解决这三件事：**统一目录 → 分歧检测 → 安全停�
 
 ## 安装
 
-**(1) 一键安装 Release 产物（推荐，universal 双架构）**：直接下载 [v0.1.0 Release](https://github.com/yangl326-Dylan/agentkeeper/releases/latest) 或复制命令块——
+**(1) 一键安装 Release 产物（推荐，universal 双架构）**：直接下载[最新 Release](https://github.com/yangl326-Dylan/agentkeeper/releases/latest) 或复制命令块——
 
 ```bash
 curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-macos.zip
@@ -81,6 +81,12 @@ swift build -c release         # 构建 ak CLI
 
 📄 完整安装文档（含 App 安装、未公证构建的处理）：[INSTALL.md](INSTALL.md)
 🤖 给 AI agent 的安装与使用说明：[AGENTS.md](AGENTS.md)
+
+### 给 AI agent
+
+- 从这里开始：[`llms.txt`](llms.txt)——能力、安装命令、只读/变更命令与安全边界，一个文件说清。
+- 行为规范：[`AGENTS.md`](AGENTS.md)。
+- 安装 `agentkeeper` skill，让 agent 知道何时该用 `ak`：`npx skills add yangl326-Dylan/agentkeeper --skill agentkeeper`。
 
 ## CLI 速览
 
@@ -144,7 +150,7 @@ AgentKeeper fixes exactly this: **unified catalog → drift detection → safe d
 
 ## Features
 
-- 🔍 **Full-machine scan**: 10 built-in agents covering mainstream tools' standard paths, shared dirs and plugin caches (including OpenCode v2 npm cache)
+- 🔍 **Full-machine scan**: 11 built-in agents covering mainstream tools' standard paths, shared dirs and plugin caches (including OpenCode v2 npm cache)
 - 🧩 **Custom agents**: drop a `~/.agentkeeper/agents.json` to bring in long-tail agents — no recompile, no release wait ([guide](docs/adding-an-agent.md))
 - 🔄 **In-app updates**: check GitHub releases from Settings and update in place — no badges or red dots anywhere else
 - 🧭 **Three filter dimensions**: agent × scope (global / agent-only / project / multi-agent) × tags — stack them freely
@@ -192,6 +198,12 @@ swift build -c release         # ak CLI
 
 📄 Full install guide (App setup, Gatekeeper workaround): [INSTALL.md](INSTALL.md)
 🤖 Instructions for AI agents installing/using `ak`: [AGENTS.md](AGENTS.md)
+
+### For AI agents
+
+- Start with [`llms.txt`](llms.txt): capabilities, install commands, read-only vs mutating commands, and safety rules in one file.
+- Behavior guide: [`AGENTS.md`](AGENTS.md).
+- Install the `agentkeeper` skill so your agent knows when to use `ak`: `npx skills add yangl326-Dylan/agentkeeper --skill agentkeeper`.
 
 ## CLI at a glance
 

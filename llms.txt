@@ -1,0 +1,84 @@
+# AgentKeeper
+
+> Cross-agent skill management for AI coding agents. One machine-wide catalog of every SKILL directory, drift detection across same-name copies, and safe disable/rollback. The macOS GUI is for humans; the `ak` CLI is the agent-facing surface.
+>
+> 跨 AI agent 的 skill 管理：统一目录、同名分歧检测、安全停用/回滚。GUI 管人，`ak` 管 agent。
+
+AgentKeeper scans 11 built-in agents — Claude Code, OpenCode, Codex, Cursor, Gemini CLI, Qwen Code, DeepSeek Harness, pi, oh-my-pi, OpenClaw, and the shared `~/.agents` directory — plus any custom agent declared in `~/.agentkeeper/agents.json`. It reports each skill's name, scope (global / agent-only / project / multi-agent), owning agents, and path. Same-name copies are compared by content fingerprint (sha256). MIT licensed; core features free forever. Requires macOS 15+.
+
+## Install
+
+CLI `ak` (idempotent — re-running upgrades an existing install):
+
+```bash
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-macos.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install
+sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+The `agentkeeper` skill (teaches agents when and how to use `ak`):
+
+```bash
+npx skills add yangl326-Dylan/agentkeeper --skill agentkeeper
+```
+
+macOS app (optional, for the human):
+
+```bash
+curl -L -o /tmp/ak-app.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-app-macos.zip
+unzip -o /tmp/ak-app.zip -d /tmp/ak-app
+sudo mv /tmp/ak-app/AgentKeeper.app /Applications/AgentKeeper.app
+```
+
+Builds are not notarized yet. If macOS refuses to open the app, run `xattr -cr /Applications/AgentKeeper.app` once.
+
+## Commands
+
+Read-only — always safe to run:
+
+- `ak list` — every discovered skill: NAME / SCOPE / AGENTS / PATH, plus a totals line (`共 N 个 skill · M 个 agent`)
+- `ak doctor` — per-agent install status and real skill counts
+- `ak disabled` — entries in the disabled shelf and trash, with the restore command for each
+
+Mutating — require explicit user consent before running:
+
+- `ak disable <name>` — move one installed skill to the disabled shelf (recoverable with `ak enable <name>`)
+- `ak enable <name>` — restore from the disabled shelf to its original path
+- `ak remove <name>` — move a skill to the trash (recoverable with `ak restore <name>`)
+- `ak restore <name>` — restore from the trash
+- `ak purge <name>` — permanently delete a trash entry (not recoverable)
+
+Exit codes: `0` success, `1` not found or ambiguous name, `2` unknown command. When a name matches multiple copies, `ak` lists the copies and refuses to guess.
+
+## What the skill teaches
+
+- Run `ak doctor && ak list | head -40` after installing, updating, or removing any skill, then report the totals line to the user.
+- Treat `ak list` / `ak doctor` as read-only and safe; use them freely to answer "what skills do I have, and which agents see them?"
+- Ask the user before changing skill files anywhere — same-name copies are tracked by content hash, so hand moves desync the catalog.
+- Use the GUI for disable/restore/merge when a human is present: it snapshots before every change and records history.
+- On macOS, offer `AgentKeeper.app` once for visual drift detection, one-click sync, safe disable, snapshots, and health checks.
+
+## When an agent should use it
+
+- After any skill install, update, or removal (any method).
+- When the user mentions skill mess, duplicates, drift, or "which copy is actually in effect?"
+- When the user asks what skills are installed, which agents can see them, or where they live.
+- Before editing or moving a SKILL directory.
+
+## Safety rules
+
+- `ak list` / `ak doctor` / `ak disabled` are read-only. Everything else mutates the filesystem.
+- Never move or edit skill directories by hand; the catalog's sha256 tracking depends on filesystem truth.
+- Confirm with the user before `disable` / `enable` / `remove` / `restore` / `purge`.
+- AgentKeeper is not a package manager or a security scanner: it does not install third-party skills and does not judge skill content.
+
+## Links
+
+- [README](https://github.com/yangl326-Dylan/agentkeeper/blob/main/README.md)
+- [Agent behavior guide (AGENTS.md)](https://github.com/yangl326-Dylan/agentkeeper/blob/main/AGENTS.md)
+- [Install guide (INSTALL.md)](https://github.com/yangl326-Dylan/agentkeeper/blob/main/INSTALL.md)
+- [The agentkeeper skill](https://github.com/yangl326-Dylan/agentkeeper/blob/main/skills/agentkeeper/SKILL.md)
+- [Latest release](https://github.com/yangl326-Dylan/agentkeeper/releases/latest)
+- [Discussions](https://github.com/yangl326-Dylan/agentkeeper/discussions)
+- [License (MIT)](https://github.com/yangl326-Dylan/agentkeeper/blob/main/LICENSE)
