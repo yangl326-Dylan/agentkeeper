@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import DomainKit
 
 /// 状态更新的广播通道：AppCore 单入口发送，Presentation 多订阅者接收。

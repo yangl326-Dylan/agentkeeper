@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppKit
 import AppCore
@@ -161,3 +162,5 @@ public struct AppSettingsView: View {
         }
     }
 }
+
+#endif

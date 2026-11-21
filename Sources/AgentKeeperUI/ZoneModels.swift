@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import AppCore
 import DomainKit
@@ -55,3 +56,5 @@ public enum ZoneListModel {
         "\(zone.title(l10n)) · \(rows.count)"
     }
 }
+
+#endif

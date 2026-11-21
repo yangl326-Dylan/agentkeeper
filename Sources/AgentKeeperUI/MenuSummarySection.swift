@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppKit
 import DomainKit
@@ -84,3 +85,5 @@ public struct MenuSummarySection: View {
         return nil
     }
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
@@ -242,3 +243,5 @@ func makeFakeHomeCore(files: [String]) -> URL {
         )
     }
 }
+
+#endif

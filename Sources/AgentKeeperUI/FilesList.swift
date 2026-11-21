@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppKit
 import AppCore
@@ -84,3 +85,5 @@ struct FileListView: View {
         NSWorkspace.shared.open(url)
     }
 }
+
+#endif

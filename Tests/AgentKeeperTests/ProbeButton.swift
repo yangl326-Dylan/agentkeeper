@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import SwiftUI
@@ -103,3 +104,5 @@ import AppCore
         try png.write(to: URL(fileURLWithPath: "/tmp/ak-ui/probe-effect.png"))
     }
 }
+
+#endif

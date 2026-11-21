@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppKit
 import DomainKit
@@ -136,3 +137,5 @@ struct MenuPanelActions: View {
         }
     }
 }
+
+#endif

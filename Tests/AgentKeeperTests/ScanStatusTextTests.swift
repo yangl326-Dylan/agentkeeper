@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import AppCore
@@ -58,3 +59,5 @@ import AppCore
         #expect(!compact.contains("\n"))
     }
 }
+
+#endif

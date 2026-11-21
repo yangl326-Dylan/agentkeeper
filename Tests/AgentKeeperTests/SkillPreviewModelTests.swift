@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
@@ -49,3 +50,5 @@ import DomainKit
         #expect(paths == ["a.txt", "sub", "sub/b.txt"])
     }
 }
+
+#endif

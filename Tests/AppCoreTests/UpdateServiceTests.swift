@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking   // Linux：HTTPURLResponse 在此模块
+#endif
 import Testing
 @testable import AppCore
 

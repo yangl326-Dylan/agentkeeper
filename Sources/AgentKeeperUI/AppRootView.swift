@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 
 /// 应用根视图：引导页 ↔ 主界面切换。
@@ -23,3 +24,5 @@ public struct AppRootView: View {
         }
     }
 }
+
+#endif

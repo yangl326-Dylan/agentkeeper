@@ -72,7 +72,9 @@ public enum SnapshotDiffer {
         let basePath = directory.standardizedFileURL.path
         while let url = enumerator?.nextObject() as? URL {
             let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isHiddenKey])
-            guard values?.isRegularFile == true, values?.isHidden != true else { continue }
+            guard values?.isRegularFile == true, values?.isHidden != true,
+                  !url.lastPathComponent.hasPrefix(".")   // Linux 跨平台补点前缀判定（见 Fingerprint 同注）
+            else { continue }
             let filePath = url.standardizedFileURL.path
             var relative = filePath
             if relative.hasPrefix(basePath) {

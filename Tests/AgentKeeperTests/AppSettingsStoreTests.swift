@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import SwiftUI
 import Testing
@@ -66,3 +67,5 @@ import AppCore
         #expect(reloaded.reduceMotionOverride == true)
     }
 }
+
+#endif

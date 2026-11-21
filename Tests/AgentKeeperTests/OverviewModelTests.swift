@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import AppCore
@@ -40,3 +41,5 @@ import DomainKit
         #expect(model.agentEntries.isEmpty)
     }
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppCore
 import DomainKit
@@ -170,3 +171,5 @@ public struct ZoneRowView: View {
         }
     }
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import AppCore
@@ -57,3 +58,5 @@ import AppCore
         #expect(FirstRunStore(defaults: defaults).hasCompletedOnboarding)
     }
 }
+
+#endif

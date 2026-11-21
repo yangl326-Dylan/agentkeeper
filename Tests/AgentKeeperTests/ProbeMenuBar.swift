@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import SwiftUI
@@ -42,3 +43,5 @@ import AppCore
         )
     }
 }
+
+#endif

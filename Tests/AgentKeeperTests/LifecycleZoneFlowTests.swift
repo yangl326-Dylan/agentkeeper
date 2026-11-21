@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
@@ -100,3 +101,5 @@ import InfraKit
         ))
     }
 }
+
+#endif

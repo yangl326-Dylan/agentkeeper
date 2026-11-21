@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import AppKit
@@ -32,3 +33,5 @@ import AppKit
         #expect(app.activationPolicy() == .regular)
     }
 }
+
+#endif

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-import CryptoKit
+import Crypto
 import DomainKit
 @testable import InfraKit
 

@@ -2,7 +2,9 @@
 
 [English](#english) | [中文](#中文)
 
-Requirements / 系统要求：macOS 15+ · Universal binary（Apple Silicon 与 Intel Mac 均可用）
+Requirements / 系统要求：
+- macOS 15+ · Universal binary（Apple Silicon 与 Intel Mac 均可用）
+- Linux: Ubuntu 24.04+ · CLI `ak`（GUI app 见 roadmap，[`add-linux-app`](openspec/changes/add-linux-app/proposal.md)）
 
 ---
 
@@ -12,7 +14,7 @@ Requirements / 系统要求：macOS 15+ · Universal binary（Apple Silicon 与 
 
 ### Option 1: Human — Download release (recommended)
 
-**CLI `ak`**
+**CLI `ak` (macOS)**
 
 ```bash
 curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-macos.zip
@@ -23,7 +25,18 @@ ak doctor
 
 `ak doctor` prints every detected agent's install status and skill count. Exit code is 0 on success, 2 on unknown command.
 
-**GUI app**
+**CLI `ak` (Linux, Ubuntu 24.04+)**
+
+```bash
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-linux-ubuntu24.04.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install
+sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+> The Linux binary statically links the Swift runtime — no Swift toolchain needed. System deps: glibc and libsqlite3 (preinstalled on Ubuntu 24.04 desktop/server images; `sudo apt-get install -y libsqlite3-0` if missing).
+
+**GUI app (macOS)**
 
 ```bash
 curl -L -o /tmp/ak-app.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-app-macos.zip
@@ -66,7 +79,7 @@ The `agentkeeper` skill ships with this repository: `npx skills add yangl326-Dyl
 
 ### 方式一：人类——下载 Release（推荐）
 
-**CLI `ak`**
+**CLI `ak`（macOS）**
 
 ```bash
 curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-macos.zip
@@ -77,7 +90,18 @@ ak doctor
 
 `ak doctor` 输出每个 agent 的安装状态与 skill 数；退出码 0 成功、2 未知命令。
 
-**GUI App**
+**CLI `ak`（Linux，Ubuntu 24.04+）**
+
+```bash
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-linux-ubuntu24.04.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install
+sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+> Linux 二进制静态链接 Swift 运行时——无需安装 Swift 工具链。系统依赖：glibc 与 libsqlite3（Ubuntu 24.04 桌面/服务器镜像自带；缺失时 `sudo apt-get install -y libsqlite3-0`）。
+
+**GUI App（macOS）**
 
 ```bash
 curl -L -o /tmp/ak-app.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-app-macos.zip

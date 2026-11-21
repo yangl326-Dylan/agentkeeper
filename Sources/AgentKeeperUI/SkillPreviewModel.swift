@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 
 /// Skill 预览数据异步加载。
@@ -62,3 +63,5 @@ enum SkillPreviewModel {
         }.value
     }
 }
+
+#endif
