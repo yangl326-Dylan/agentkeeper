@@ -27,7 +27,7 @@
 
 - [x] 4.1 ci.yml 增加 ubuntu-24.04 job（swift 6.2 + libsqlite3-dev + build + test + 0-warning + ak help 冒烟）；注：swiftbuild 引擎自 6.4 起默认，Linux 侧资源包查找有缺陷，6.2 默认 native 无此问题（升级前先验证）
 - [x] 4.2 release job 增加 `AgentKeeper-cli-linux-ubuntu24.04.zip`（`--static-swift-stdlib`，本机实测 89MB ELF 可产出）；macOS 产物矩阵不变
-- [ ] 4.3 （推送后）观察 macos job 全绿，作为 macOS 零回归验收
+- [x] 4.3 macOS job 全绿（PR #5 run 44916579971：macOS 2m36s ✓ / Linux 1m58s ✓）——macOS 零回归验收完成
 
 ## 5. 文档
 
