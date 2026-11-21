@@ -6,6 +6,7 @@ import Foundation
 
 /// `PlatformAdapter` 的 macOS 实现：收敛 AppKit 触点，共享层只见协议。
 /// 行为与原散落在 UI 各处的 NSWorkspace/NSApplication 调用一一对应（零行为变化）。
+@MainActor
 public struct MacPlatformAdapter: PlatformAdapter {
     public init() {}
 
@@ -23,17 +24,14 @@ public struct MacPlatformAdapter: PlatformAdapter {
         NSWorkspace.shared.open(url)
     }
 
-    /// 目录选择面板（异步 begin，不阻塞 MainActor）。
+    /// 目录选择面板（MainActor 上跑模态，同步返回——NSOpenPanel 属性访问需 MainActor 隔离）。
     public func openDirectoryPicker() async -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        return await withCheckedContinuation { continuation in
-            panel.begin { response in
-                continuation.resume(returning: response == .OK ? panel.url : nil)
-            }
-        }
+        guard panel.runModal() == .OK else { return nil }
+        return panel.url
     }
 
     /// 前台激活（同原 NSApplication.activate(ignoringOtherApps: true)）。

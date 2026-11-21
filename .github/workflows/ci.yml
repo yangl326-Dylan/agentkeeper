@@ -63,12 +63,19 @@ jobs:
       - name: Install system dependencies
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libsqlite3-dev
 
-      - name: Select Swift
-        uses: swift-actions/setup-swift@v2
-        with:
-          # 6.2.1 的 libswiftObservation.so 有链接缺陷（undefined swift::threading::fatal），
-          # 6.2.4 已修；6.4 默认 SwiftBuild 引擎在 Linux 有资源包缺陷，升级前先验证。
-          swift-version: "6.2.4"
+      # swiftly 直装：setup-swift 的版本清单滞后（6.2.4 报 "not available"）；6.2.1 有 libswiftObservation 链接缺陷不可回退
+      - name: Install Swift 6.2.4 (swiftly)
+        run: |
+          set -e
+          curl -sSfL https://download.swift.org/swiftly/linux/swiftly.tar.xz -o /tmp/swiftly.tar.xz
+          mkdir -p /tmp/swiftly-bin && tar -xJf /tmp/swiftly.tar.xz -C /tmp/swiftly-bin swiftly
+          /tmp/swiftly-bin/swiftly init --quiet-here --assume-deps
+          "$HOME/.local/bin/swiftly" install --assume-deps 6.2.4
+          "$HOME/.local/bin/swiftly" use 6.2.4
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Swift
+        run: swift --version
 
       - name: Build (platform-neutral targets, zero warnings expected)
         run: |

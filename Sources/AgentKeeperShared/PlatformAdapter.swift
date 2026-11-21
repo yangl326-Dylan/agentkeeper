@@ -3,7 +3,9 @@ import Foundation
 /// 平台行为适配点（add-linux-app 决策 2）：共享展示层只见本协议，
 /// 每个栈各自提供实现（macOS=AppKit/NSWorkspace；Linux=xdg-open/AppIndicator）。
 /// AppEnvironment 经 init 注入；缺省 `NullPlatformAdapter`（测试与无桌面环境兜底）。
-public protocol PlatformAdapter: Sendable {
+/// @MainActor：实现全部触碰平台 UI API（AppKit/GTK），调用方（AppEnvironment）均为 MainActor。
+@MainActor
+public protocol PlatformAdapter {
     /// 系统辅助功能「减少动态效果」当前是否开启（reduceMotion 跟随探测）。
     var isReduceMotionEnabled: Bool { get }
 
@@ -36,6 +38,7 @@ extension PlatformAdapter {
 
 /// 空实现：全部行为为无操作。默认注入用（单测、CLI 侧组装、无桌面会话）——
 /// 共享层任何平台触点都不得直接依赖具体平台 API，一律经本协议。
+@MainActor
 public struct NullPlatformAdapter: PlatformAdapter {
     public init() {}
 
