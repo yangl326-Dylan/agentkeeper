@@ -1,5 +1,6 @@
 #if os(macOS)
 import SwiftUI
+import AgentKeeperShared
 import AppCore
 
 /// 动效策略：系统「减少动态效果」开启时全部返回 nil（即时切换，保留状态语义）。
@@ -22,6 +23,16 @@ public struct MotionPolicy: Hashable, Sendable {
         case .scanPulse:
             return Animation.easeInOut(duration: 1.2)
         }
+    }
+}
+
+/// Reduce Motion 策略：用户设置覆盖优先，未覆盖时经 PlatformAdapter 采系统辅助功能值。
+/// （原 AppEnvironment.motionPolicy——MotionPolicy 含 SwiftUI Animation，留在 UI 栈构造。）
+extension AppEnvironment {
+    var motionPolicy: MotionPolicy {
+        MotionPolicy(reduceMotion: settings.effectiveReduceMotion(
+            accessibility: adapter.isReduceMotionEnabled
+        ))
     }
 }
 

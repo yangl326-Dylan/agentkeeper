@@ -1,5 +1,6 @@
 #if os(macOS)
 import SwiftUI
+import AgentKeeperShared
 import AppCore
 import DomainKit
 import InfraKit

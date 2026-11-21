@@ -1,19 +1,24 @@
-#if os(macOS)
 import Foundation
 
 /// Skill 预览数据异步加载。
 /// 根因背景： previously `SkillDetailContent.body` 在主线程同步递归遍历目录 +
 /// 同步读 SKILL.md，任何切换/重渲染都卡顿且无加载反馈——现收敛到此后台执行。
+/// （共享展示层：文件清单/markdown 加载逻辑双栈共用。）
 @MainActor
-enum SkillPreviewModel {
+public enum SkillPreviewModel {
     /// Finder 式文件清单条目（相对 skill 目录的路径 + 目录标记）。
-    struct FileListEntry: Equatable, Sendable {
-        let path: String
-        let isDirectory: Bool
+    public struct FileListEntry: Equatable, Sendable {
+        public let path: String
+        public let isDirectory: Bool
+
+        public init(path: String, isDirectory: Bool) {
+            self.path = path
+            self.isDirectory = isDirectory
+        }
     }
 
     /// SKILL.md 全文（后台读取）；文件缺失返回 nil——占位文案由 UI 层按语言渲染。
-    static func loadMarkdown(skillDir: URL) async -> String? {
+    public static func loadMarkdown(skillDir: URL) async -> String? {
         let url = skillDir.appendingPathComponent("SKILL.md")
         return await Task.detached(priority: .userInitiated) {
             if let content = try? String(contentsOf: url, encoding: .utf8), !content.isEmpty {
@@ -24,7 +29,7 @@ enum SkillPreviewModel {
     }
 
     /// 扁平 skill：读文件本体（skill.directory 即文件 URL）。
-    static func loadMarkdownFile(_ file: URL) async -> String? {
+    public static func loadMarkdownFile(_ file: URL) async -> String? {
         await Task.detached(priority: .userInitiated) {
             if let content = try? String(contentsOf: file, encoding: .utf8), !content.isEmpty {
                 return content
@@ -34,7 +39,7 @@ enum SkillPreviewModel {
     }
 
     /// 扁平 skill：文件清单即单文件自身。
-    static func loadFlatFileEntry(_ file: URL) async -> [FileListEntry] {
+    public static func loadFlatFileEntry(_ file: URL) async -> [FileListEntry] {
         await Task.detached(priority: .userInitiated) { [path = file.standardizedFileURL.path] in
             // /private/var → /var 前缀归一（与 loadFiles 同口径）
             let display = path.hasPrefix("/private/var/") ? String(path.dropFirst("/private".count)) : path
@@ -44,7 +49,7 @@ enum SkillPreviewModel {
 
     /// 目录内文件清单（后台单次枚举，确定性排序：父目录总在同级子项前）。
     /// 注意 /var 与 /private/var 拼写差异：根与条目路径统一 standardized 后再裁前缀。
-    static func loadFiles(skillDir: URL) async -> [FileListEntry] {
+    public static func loadFiles(skillDir: URL) async -> [FileListEntry] {
         let rootPath = URL(fileURLWithPath: skillDir.path).standardizedFileURL.path
         return await Task.detached(priority: .userInitiated) {
             guard let enumerator = FileManager.default.enumerator(
@@ -63,5 +68,3 @@ enum SkillPreviewModel {
         }.value
     }
 }
-
-#endif

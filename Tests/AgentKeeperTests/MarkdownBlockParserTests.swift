@@ -1,7 +1,7 @@
 #if os(macOS)
 import Foundation
 import Testing
-@testable import AgentKeeperUI
+@testable import AgentKeeperShared
 
 /// SKILL.md 块级解析：标题/段落/代码围栏/列表/引用/分隔线。
 @Suite struct MarkdownBlockParserTests {

@@ -1,6 +1,7 @@
 #if os(macOS)
 import SwiftUI
 import AppKit
+import AgentKeeperShared
 import AppCore
 
 /// 设置页（macOS SwiftUI 官方推荐：`Settings` 场景 + `Form`/`Section` 组织，

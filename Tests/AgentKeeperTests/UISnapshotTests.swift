@@ -5,6 +5,7 @@ import DomainKit
 import InfraKit
 import AppCore
 import SwiftUI
+import AgentKeeperShared
 @testable import AgentKeeperUI
 
 /// UI 离屏快照管线：ImageRenderer 渲染真实视图层级出 PNG（目检 + 回归）。

@@ -1,5 +1,6 @@
 #if os(macOS)
 import SwiftUI
+import AgentKeeperShared
 
 /// 应用根视图：引导页 ↔ 主界面切换。
 /// 状态收敛到 AppEnvironment（@Observable；曾用 App struct 级 @State——从 Window 内容

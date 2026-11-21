@@ -1,6 +1,7 @@
 #if os(macOS)
 import SwiftUI
 import AppKit
+import AgentKeeperShared
 import AppCore
 
 /// Finder 风格文件清单：目录/文件图标、层级缩进、点选、双击/菜单在 Finder 定位。

@@ -41,13 +41,19 @@ let package = Package(
             name: "AppCore",
             dependencies: ["DomainKit", "InfraKit"]
         ),
+        // 共享展示层（平台无关）：环境组装根、展示模型、设置存储、Markdown 块解析。
+        // 平台行为经 PlatformAdapter 注入；本目标零 os 分支、零 AppKit/SwiftUI import。
+        .target(
+            name: "AgentKeeperShared",
+            dependencies: ["AppCore", "DomainKit", "InfraKit"]
+        ),
         .target(
             name: "AgentKeeperUI",
-            dependencies: ["AppCore", "DomainKit", "InfraKit"]
+            dependencies: ["AgentKeeperShared", "AppCore", "DomainKit", "InfraKit"]
         ),
         .executableTarget(
             name: "AgentKeeper",
-            dependencies: ["AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
+            dependencies: ["AgentKeeperShared", "AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
         ),
         .executableTarget(
             name: "ak",
@@ -67,7 +73,7 @@ let package = Package(
         ),
         .testTarget(
             name: "AgentKeeperTests",
-            dependencies: ["AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
+            dependencies: ["AgentKeeperShared", "AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
         )
     ],
     swiftLanguageModes: [.v6]

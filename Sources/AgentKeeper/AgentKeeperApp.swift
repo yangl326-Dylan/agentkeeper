@@ -1,13 +1,15 @@
 // macOS GUI 入口（Linux 占位入口见 LinuxMain.swift）。
 #if os(macOS)
 import SwiftUI
+import AgentKeeperShared
 import AgentKeeperUI
 import AppCore
 import DomainKit
 
 @main
 struct AgentKeeperApp: App {
-    @State private var env = AppEnvironment()
+    // macOS 平台适配器：reduceMotion 探测 / terminate 等平台触点走 AppKit 实现
+    @State private var env = AppEnvironment(adapter: MacPlatformAdapter())
 
     init() {
         // 裸可执行形态兜底：强制常规前台应用（Dock 图标 + 应用菜单栏归属）

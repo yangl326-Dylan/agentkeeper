@@ -4,7 +4,7 @@ import Testing
 import DomainKit
 import InfraKit
 import AppCore
-@testable import AgentKeeperUI
+@testable import AgentKeeperShared
 
 /// 停用区/回收站的行模型（ZoneListModel）——侧栏计数 + 区行渲染共用的纯映射。
 @MainActor

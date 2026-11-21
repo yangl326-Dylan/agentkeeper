@@ -1,4 +1,3 @@
-#if os(macOS)
 import Foundation
 import AppCore
 import DomainKit
@@ -57,4 +56,3 @@ public enum ZoneListModel {
     }
 }
 
-#endif

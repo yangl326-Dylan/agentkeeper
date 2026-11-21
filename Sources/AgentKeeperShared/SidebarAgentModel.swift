@@ -1,27 +1,34 @@
-#if os(macOS)
 import Foundation
 import DomainKit
 import AppCore
 
 /// 侧栏 Agents 分组模型：只显示本机实际安装的 agent（目录存在），未安装不进侧栏。
+/// （共享展示层：macOS/Linux 两套视图共用同一分组逻辑。）
 @MainActor
-enum SidebarAgentModel {
-    enum Status: Equatable, Sendable {
+public enum SidebarAgentModel {
+    public enum Status: Equatable, Sendable {
         /// 已安装且结构可识别。
         case available
         /// 目录存在但结构未知（仍可见，提示排查）。
         case unrecognized
     }
 
-    struct Row: Equatable, Identifiable, Sendable {
-        let id: AgentID
-        let name: String
-        let status: Status
-        let skillCount: Int
+    public struct Row: Equatable, Identifiable, Sendable {
+        public let id: AgentID
+        public let name: String
+        public let status: Status
+        public let skillCount: Int
         // statusText 已收敛到 L10n.agentRowStatus（i18n）
+
+        public init(id: AgentID, name: String, status: Status, skillCount: Int) {
+            self.id = id
+            self.name = name
+            self.status = status
+            self.skillCount = skillCount
+        }
     }
 
-    static func build(agents: [Agent], skills: [Skill]) -> [Row] {
+    public static func build(agents: [Agent], skills: [Skill]) -> [Row] {
         agents.compactMap { agent in
             let status: Status
             switch agent.installState {
@@ -42,5 +49,3 @@ enum SidebarAgentModel {
         }
     }
 }
-
-#endif

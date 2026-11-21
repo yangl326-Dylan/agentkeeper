@@ -3,6 +3,7 @@ import Foundation
 import Testing
 import DomainKit
 import AppCore
+import AgentKeeperShared
 @testable import AgentKeeperUI
 
 /// 作用域节点 → 列表：全局含 global + multiAgent；项目节点按项目名过滤

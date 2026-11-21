@@ -2,16 +2,18 @@
 
 ## 1. PoC 验证（首任务，定 🟡 项）
 
-- [ ] 1.1 安装 GTK4 运行/开发库（libgtk-4-dev）；引入 SwiftCrossUI（锁定版本）；最小 App 本机跑通（窗口出现）
-- [ ] 1.2 验证映射表 🟡 项：@Observable 接入方式、Animation 支持面、TextField 过滤替代 .searchable、Commands 可用性；结论回写 design.md
+- [x] 1.1 安装 GTK4 运行/开发库（libgtk-4-dev 4.14.5）；引入 SwiftCrossUI（锁定 from: 0.11.0）；最小 App 本机跑通（窗口真实渲染，进程稳定）
+- [x] 1.2 验证映射表 🟡 项：@Observable 接入 ✅（@State 持有外部类 + $ 绑定直通）、TextField 过滤 ✅、基础控件/布局 ✅；Animation/Commands/NavigationSplitView/Table 留实装时验证（官方示例佐证存在）；结论已回写 design.md 决策 3
 
 ## 2. 共享展示层（薄壳化准备）
 
-- [ ] 2.1 新建 `AgentKeeperShared` target；移入 AppSettingsStore、ZoneModels、SidebarAgentModel、SkillPreviewModel（纯移动，AgentKeeperUI 转发引用）
-- [ ] 2.2 移入 AppEnvironment（PlatformAdapter 注入 reduceMotion 等探测）；macOS 实现适配器
-- [ ] 2.3 移入 Markdown 块解析 + ClaudePalette 令牌（hex/间距/字号阶）；`Color` 构造分栈
+- [x] 2.1 新建 `AgentKeeperShared` target；移入 AppSettingsStore、ZoneModels、SidebarAgentModel、SkillPreviewModel（纯移动，AgentKeeperUI 转发引用）
+- [x] 2.2 移入 AppEnvironment（PlatformAdapter 注入 reduceMotion 等探测）；macOS 实现适配器
+- [x] 2.3 移入 Markdown 块解析 + ClaudePalette 令牌（hex/间距/字号阶）；`Color` 构造分栈
+  - 注：Markdown 块解析已完成（`MarkdownBlockParser.swift` 入 Shared，渲染留 UI 层）；ClaudePalette 令牌暂留 UI 层，随 Linux 令牌任务后置；另随行移入 OverviewModel（AppEnvironment.overviewModel 签名所需）
 - [ ] 2.4 从 RootView 剥离展示逻辑为共享 ViewModel（行构建/过滤/排序/状态文案）；共享 VM 单测
-- [ ] 2.5 PlatformAdapter 协议 + macOS 实现（reveal/openURL/chooseDirectory/activate/terminate）
+  - 注：本次跳过（风险高），留给后续小步 PR
+- [x] 2.5 PlatformAdapter 协议 + macOS 实现（reveal/openURL/chooseDirectory/activate/terminate）
 
 ## 3. Linux UI 栈
 

@@ -3,7 +3,7 @@ import Foundation
 import Testing
 import AppCore
 import DomainKit
-@testable import AgentKeeperUI
+@testable import AgentKeeperShared
 
 /// 总览模型（MangoDisk 式扫描结果仪表盘的数据底座）：
 /// 未选中 skill 时主界面展示扫描产出全貌——统计、作用域分布、agent 卡片。

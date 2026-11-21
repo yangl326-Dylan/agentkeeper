@@ -1,12 +1,12 @@
-#if os(macOS)
 import Foundation
+import Observation
 import AppCore
 import DomainKit
 import InfraKit
-import SwiftUI
-import AppKit
 
 /// 应用组装根：真实 InfraKit/AppCore 服务在此拼装，UI 只依赖本环境。
+/// （共享展示层：双栈共用；平台触点一律经 `PlatformAdapter` 注入——
+/// reduceMotion 探测、terminate 等不直接依赖 AppKit/SwiftUI。）
 @MainActor
 @Observable
 public final class AppEnvironment {
@@ -21,6 +21,9 @@ public final class AppEnvironment {
     public let lifecycle: SkillLifecycle
     public let tagService: TagService
     public let distributionService: DistributionService
+
+    /// 平台行为适配器（macOS=AppKit 实现；Linux=xdg-open 等实现；缺省 Null 兜底）。
+    public let adapter: any PlatformAdapter
 
     /// 列表选中态（三面板共享）。
     public var selectedSkillID: String?
@@ -102,13 +105,15 @@ public final class AppEnvironment {
 
     public init(
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        adapter: any PlatformAdapter = NullPlatformAdapter()
     ) {
         self.homeDirectory = homeDirectory
         self.akBase = homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
         self.firstRun = FirstRunStore(defaults: defaults)
         self.settings = AppSettingsStore(defaults: defaults)
-        self.updates = UpdateModel(terminate: { NSApplication.shared.terminate(nil) })
+        self.adapter = adapter
+        self.updates = UpdateModel(terminate: { [adapter] in adapter.terminateApp() })
         let base = self.akBase
         let store = AppStore()
         // loadCacheEagerly=false：装配零 IO（SQLite 首读不再阻塞首屏）；bootstrap 后台 warmup
@@ -235,12 +240,12 @@ public final class AppEnvironment {
     }
 
     /// 合并 catalog + 禁用合成条目（标签筛选视图使用）。
-    func catalogForTagFilter() -> [Skill] {
+    public func catalogForTagFilter() -> [Skill] {
         catalogStore.current + tagService.disabledTaggedSkills(catalog: catalogStore.current)
     }
 
     /// 操作 + 历史落账。
-    func runOperation(skill: Skill, direction: OperationDirection) async {
+    public func runOperation(skill: Skill, direction: OperationDirection) async {
         await operationService.run(skill: skill, direction: direction)
         if let failure = store.state.operation.failureMessage {
             history.append(skillID: skill.id, name: skill.name, direction: direction, result: .failure(message: failure))
@@ -320,14 +325,14 @@ public final class AppEnvironment {
     }
 
     /// 快照恢复（先快照当前 → 重建旧内容；失败回滚不丢数据）。
-    func restoreSnapshot(skill: Skill, sha: String) async {
+    public func restoreSnapshot(skill: Skill, sha: String) async {
         await snapshotService.restore(skill: skill, sha: sha)
     }
 
     // MARK: - Phase 2：分发门面
 
     /// 把本机 skill 安装到目标 agent 的 skill 根目录（非破坏复制）。
-    func distributeInstall(skill: Skill, targetSkillRoot: URL) async {
+    public func distributeInstall(skill: Skill, targetSkillRoot: URL) async {
         await distributionService.install(
             source: .existingSkill(
                 agentID: skill.owners.first ?? "unknown",
@@ -341,7 +346,7 @@ public final class AppEnvironment {
     }
 
     /// 导入本地目录到目标 agent 的 skill 根目录。
-    func importSkill(from directory: URL, targetSkillRoot: URL) async {
+    public func importSkill(from directory: URL, targetSkillRoot: URL) async {
         await distributionService.install(
             source: .localDirectory(path: directory.path),
             targetSkillRoot: targetSkillRoot,
@@ -352,7 +357,7 @@ public final class AppEnvironment {
 
     /// git 来源候选提案（clone 到临时区并列出合法 skill；零候选返回空数组）。
     /// 失败时走 store 的标准错误呈现（不进入 inFlight 状态机——提案阶段）。
-    func proposeGitCandidates(url: String) async -> [GitSkillCandidate] {
+    public func proposeGitCandidates(url: String) async -> [GitSkillCandidate] {
         let installer = GitInstaller(baseDirectory: akBase)
         do {
             let materialized = try await installer.materialize(url: url)
@@ -382,7 +387,7 @@ public final class AppEnvironment {
     }
 
     /// 勾选的 git 候选逐个安装（串行门内执行），装完清理临时区。
-    func installGitCandidates(_ candidates: [GitSkillCandidate], targetSkillRoot: URL) async {
+    public func installGitCandidates(_ candidates: [GitSkillCandidate], targetSkillRoot: URL) async {
         let installer = GitInstaller(baseDirectory: akBase)
         for candidate in candidates {
             await distributionService.install(
@@ -398,7 +403,7 @@ public final class AppEnvironment {
     }
 
     /// 更新全部铺设落点（确认后调用）。
-    func updateAllLandingPoints(from skill: Skill) async -> LandingPointsUpdateSummary {
+    public func updateAllLandingPoints(from skill: Skill) async -> LandingPointsUpdateSummary {
         await distributionService.updateAllLandingPoints(from: skill)
     }
 
@@ -406,7 +411,7 @@ public final class AppEnvironment {
     /// git 候选提案失败的错误呈现直接走 store（不进入 inFlight 状态机）。
     /// skillID → 标签名集合（按 TagStore.revision 缓存；曾每次 filter 调用重建整表、
     /// 逐 skillID N 次串行队列锁往返）。
-    func tagsBySkill() -> [String: [String]] {
+    public func tagsBySkill() -> [String: [String]] {
         let revision = tagService.storeRevision()
         if let cache = tagsSnapshot, cache.revision == revision {
             return cache.map
@@ -422,7 +427,7 @@ public final class AppEnvironment {
     /// @ObservationIgnored：缓存本身不进 observable 通道，避免 getter 写缓存引发再渲染循环。
     @ObservationIgnored private var sidebarCache: (version: Int, agentCount: Int, rows: [SidebarAgentModel.Row])?
 
-    func sidebarRows() -> [SidebarAgentModel.Row] {
+    public func sidebarRows() -> [SidebarAgentModel.Row] {
         let version = catalogStore.version
         let agentCount = store.state.agents.count
         if let cache = sidebarCache, cache.version == version, cache.agentCount == agentCount {
@@ -443,7 +448,7 @@ public final class AppEnvironment {
         let tagRevision: Int
     }
 
-    func overviewModel() -> OverviewModel {
+    public func overviewModel() -> OverviewModel {
         let key = OverviewCacheKey(
             catalogVersion: catalogStore.version,
             agentCount: store.state.agents.count,
@@ -460,13 +465,6 @@ public final class AppEnvironment {
         )
         overviewCache = (key, model)
         return model
-    }
-
-    /// Reduce Motion 策略：用户设置覆盖优先，未覆盖时跟随系统辅助功能设置。
-    var motionPolicy: MotionPolicy {
-        MotionPolicy(reduceMotion: settings.effectiveReduceMotion(
-            accessibility: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        ))
     }
 }
 
@@ -486,7 +484,3 @@ private func translateLifecycle(_ error: SkillLifecycleError) -> OperationError 
         .underlying(detail: "操作失败：\(path)（\(note)）")
     }
 }
-
-
-
-#endif

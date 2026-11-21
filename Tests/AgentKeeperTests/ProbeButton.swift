@@ -5,6 +5,7 @@ import SwiftUI
 import AppKit
 import DomainKit
 import AppCore
+import AgentKeeperShared
 @testable import AgentKeeperUI
 
 @MainActor
