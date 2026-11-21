@@ -24,8 +24,10 @@ jobs:
         run: swift --version
 
       - name: Build (all targets, zero warnings expected)
-        run: swift build 2>&1 | tee build.log
-        # 0-warning 纪律：有 warning 即失败
+        run: |
+          set -o pipefail
+          swift build 2>&1 | tee build.log
+        # 0-warning 纪律：有 warning 即失败（pipefail 保证 swift build 失败不吞）
       - name: Fail on warnings
         run: "! grep -E 'warning:' build.log"
 
@@ -64,10 +66,14 @@ jobs:
       - name: Select Swift
         uses: swift-actions/setup-swift@v2
         with:
-          swift-version: "6.2"
+          # 6.2.1 的 libswiftObservation.so 有链接缺陷（undefined swift::threading::fatal），
+          # 6.2.4 已修；6.4 默认 SwiftBuild 引擎在 Linux 有资源包缺陷，升级前先验证。
+          swift-version: "6.2.4"
 
       - name: Build (platform-neutral targets, zero warnings expected)
-        run: swift build 2>&1 | tee build.log
+        run: |
+          set -o pipefail
+          swift build 2>&1 | tee build.log
 
       - name: Fail on warnings
         run: "! grep -E 'warning:' build.log"
