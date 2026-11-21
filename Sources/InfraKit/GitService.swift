@@ -27,11 +27,13 @@ public struct GitService: @unchecked Sendable {
     }
 
     /// 解析实际可用的 git 路径：注入路径可用即用；否则按 PATH 环境变量逐目录探测名为 `git` 的可执行文件；都不可用则原样返回（调用侧有体面降级）。
+    /// 路径拼接走 URL（String.appendingPathComponent 在新 Apple SDK 已移除，corelibs 仍在——跨平台统一用 URL）。
     private static func resolveGitPath(injected: String, fileManager: FileManager) -> String {
         if fileManager.isExecutableFile(atPath: injected) { return injected }
         let pathEnv = ProcessInfo.processInfo.environment["PATH"] ?? ""
         for directory in pathEnv.split(separator: ":", omittingEmptySubsequences: true) {
-            let candidate = String(directory).appendingPathComponent("git")
+            let candidate = URL(fileURLWithPath: String(directory))
+                .appendingPathComponent("git").path
             if fileManager.isExecutableFile(atPath: candidate) { return candidate }
         }
         return injected

@@ -1,9 +1,10 @@
+AgentKeeper.app/
+.build/
+build/
+DerivedData/
+dist/
 .DS_Store
 .superpowers/
-.build/
 swiftpm/
-xcuserdata/
-DerivedData/
 *.xcodeproj/project.xcworkspace/xcuserdata/
-AgentKeeper.app/
-build/
+xcuserdata/
