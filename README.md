@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![Platform](https://img.shields.io/badge/platform-macOS%2015+-black)
+![Platform](https://img.shields.io/badge/platform-macOS%2015%20%7C%20Linux-blue)
 ![Tests](https://img.shields.io/badge/tests-392%20passing-brightgreen)
 [![Release](https://img.shields.io/github/v/release/yangl326-Dylan/agentkeeper?label=release)](https://github.com/yangl326-Dylan/agentkeeper/releases/latest)
 
@@ -57,6 +57,14 @@ AgentKeeper 解决这三件事：**统一目录 → 分歧检测 → 安全停�
 
 ```bash
 curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-macos.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+**Linux（Ubuntu 24.04+，CLI，静态链接免工具链）**：
+
+```bash
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-linux-ubuntu24.04.zip
 unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
 ak doctor
 ```
@@ -174,6 +182,14 @@ AgentKeeper fixes exactly this: **unified catalog → drift detection → safe d
 
 ```bash
 curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-macos.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+**Linux (Ubuntu 24.04+, CLI, statically linked — no toolchain needed)**:
+
+```bash
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-linux-ubuntu24.04.zip
 unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
 ak doctor
 ```
