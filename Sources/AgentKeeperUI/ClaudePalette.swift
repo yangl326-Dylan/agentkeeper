@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppKit
 
@@ -36,3 +37,5 @@ extension NSColor {
         self.init(srgbRed: r, green: g, blue: b, alpha: 1)
     }
 }
+
+#endif

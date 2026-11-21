@@ -49,9 +49,44 @@ jobs:
           name: AgentKeeper-app
           path: AgentKeeper.app
 
+  test-linux:
+    # 平台无关纪律防线：core（DomainKit/InfraKit/AppCore）+ ak 必须在 Linux 全绿。
+    # Package.swift 在 Linux 上只声明平台无关目标（macOS UI 目标被 #if os(macOS) 排除）。
+    name: Test & Build (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libsqlite3-dev
+
+      - name: Select Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.2"
+
+      - name: Build (platform-neutral targets, zero warnings expected)
+        run: swift build 2>&1 | tee build.log
+
+      - name: Fail on warnings
+        run: "! grep -E 'warning:' build.log"
+
+      - name: Test
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 2
+          retry_wait_seconds: 5
+          timeout_minutes: 12
+          command: swift test --verbose
+
+      - name: Smoke ak CLI
+        run: |
+          "$(swift build --show-bin-path)/ak" help
+
   release:
     name: Release (tag v*)
-    needs: test
+    needs: [test, test-linux]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-15
     timeout-minutes: 15
@@ -72,6 +107,16 @@ jobs:
           (cd dist && zip -qry ../AgentKeeper-cli-macos.zip ak -x '*.DS_Store')
           zip -qry AgentKeeper-app-macos.zip AgentKeeper.app
 
+      - name: Build Linux CLI release
+        run: |
+          set -euo pipefail
+          # Linux CLI：静态链接 Swift 运行时（免工具链运行）；系统依赖仅 glibc/libsqlite3
+          swift build -c release --product ak --static-swift-stdlib
+          BIN_DIR="$(swift build -c release --product ak --static-swift-stdlib --show-bin-path)"
+          mkdir -p dist-linux
+          cp "$BIN_DIR/ak" dist-linux/ak
+          (cd dist-linux && zip -qry ../AgentKeeper-cli-linux-ubuntu24.04.zip ak)
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -79,3 +124,4 @@ jobs:
           files: |
             AgentKeeper-cli-macos.zip
             AgentKeeper-app-macos.zip
+            AgentKeeper-cli-linux-ubuntu24.04.zip

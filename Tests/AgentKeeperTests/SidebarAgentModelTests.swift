@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
@@ -62,3 +63,5 @@ import AppCore
         #expect(rows[0].skillCount == 0)
     }
 }
+
+#endif

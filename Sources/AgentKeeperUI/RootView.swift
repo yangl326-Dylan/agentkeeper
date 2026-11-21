@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppCore
 import DomainKit
@@ -1166,3 +1167,5 @@ struct GitInstallSheet: View {
         dismiss()
     }
 }
+
+#endif

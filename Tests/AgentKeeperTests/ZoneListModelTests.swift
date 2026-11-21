@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
@@ -58,3 +59,5 @@ import AppCore
         #expect(ZoneListModel.zoneTitle(zone: .trash, rows: [], l10n: en) == "Trash · 0")
     }
 }
+
+#endif

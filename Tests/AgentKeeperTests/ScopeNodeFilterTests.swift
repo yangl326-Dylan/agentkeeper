@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
@@ -67,3 +68,5 @@ import AppCore
         #expect(kept == .agent("agent-0"))
     }
 }
+
+#endif

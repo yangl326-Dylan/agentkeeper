@@ -1,3 +1,4 @@
+#if os(macOS)
 import AppKit
 import Testing
 @testable import AgentKeeperUI
@@ -42,3 +43,5 @@ import Testing
         #expect(alphaAt(34, 1) < 0.05)
     }
 }
+
+#endif

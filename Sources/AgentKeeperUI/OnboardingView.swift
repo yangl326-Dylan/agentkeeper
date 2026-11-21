@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppCore
 
@@ -76,3 +77,5 @@ public struct OnboardingView: View {
         }
     }
 }
+
+#endif

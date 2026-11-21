@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import AppCore
 import DomainKit
@@ -107,7 +108,7 @@ public final class AppEnvironment {
         self.akBase = homeDirectory.appendingPathComponent(".agentkeeper", isDirectory: true)
         self.firstRun = FirstRunStore(defaults: defaults)
         self.settings = AppSettingsStore(defaults: defaults)
-        self.updates = UpdateModel()
+        self.updates = UpdateModel(terminate: { NSApplication.shared.terminate(nil) })
         let base = self.akBase
         let store = AppStore()
         // loadCacheEagerly=false：装配零 IO（SQLite 首读不再阻塞首屏）；bootstrap 后台 warmup
@@ -201,17 +202,20 @@ public final class AppEnvironment {
         self.isOnboardingVisible = !FirstRunStore(defaults: defaults).hasCompletedOnboarding
     }
 
-    /// 首启：后台预热缓存（UI 立即有内容）→ 全量扫描 + 挂载 FSEvents 监听（整批回调 → 一次 MainActor hop）。
+    /// 首启：后台预热缓存（UI 立即有内容）→ 全量扫描 + 挂载文件监听（整批回调 → 一次 MainActor hop）。
     public func bootstrap() async {
         async let warmup: Void = catalogStore.warmupFromCache()
         await scanService.runScan(projectRoots: [])
         _ = await warmup
-        let monitor = FSEventMonitor(latencySeconds: 0.5) { [weak self] paths in
+        // 平台适配：macOS=FSEvents，Linux=inotify（FileMonitorFactory 内 #if 分派，共享代码零 os 分支）
+        let monitor = FileMonitorFactory.make(latencySeconds: 0.5) { [weak self] paths in
             Task { @MainActor in
                 await self?.pipeline.onEvents(paths: paths)
             }
         }
-        await pipeline.attach(monitor: monitor)
+        if let monitor {
+            await pipeline.attach(monitor: monitor)
+        }
     }
 
     /// 立即扫描（主窗口/菜单栏共用）。
@@ -484,3 +488,5 @@ private func translateLifecycle(_ error: SkillLifecycleError) -> OperationError 
 }
 
 
+
+#endif

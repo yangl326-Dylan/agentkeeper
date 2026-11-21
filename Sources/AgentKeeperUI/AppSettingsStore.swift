@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import AppCore
 import SwiftUI
@@ -73,3 +74,5 @@ public final class AppSettingsStore {
         reduceMotionOverride ?? accessibility
     }
 }
+
+#endif

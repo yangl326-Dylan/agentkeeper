@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import SwiftUI
@@ -69,3 +70,5 @@ import AppKit
         #expect(ns.blueComponent > 0.999)
     }
 }
+
+#endif

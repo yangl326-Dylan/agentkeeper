@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import DomainKit
 import AppCore
@@ -41,3 +42,5 @@ enum SidebarAgentModel {
         }
     }
 }
+
+#endif

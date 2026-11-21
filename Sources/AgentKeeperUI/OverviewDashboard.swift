@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import SwiftUI
 import AppCore
@@ -191,3 +192,5 @@ extension ScopeKind {
         }
     }
 }
+
+#endif

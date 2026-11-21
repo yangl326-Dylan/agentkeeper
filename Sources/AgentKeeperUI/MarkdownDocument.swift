@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import SwiftUI
 import AppCore
@@ -306,3 +307,5 @@ struct MarkdownDocumentView: View {
             ?? AttributedString(text)
     }
 }
+
+#endif

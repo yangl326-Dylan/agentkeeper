@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
@@ -90,3 +91,5 @@ import AppCore
         #expect(env.searchText.isEmpty)
     }
 }
+
+#endif

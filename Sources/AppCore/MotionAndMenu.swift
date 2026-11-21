@@ -1,11 +1,11 @@
 import Foundation
-import SwiftUI
 import DomainKit
 import InfraKit
 
-// MARK: - 动效策略（6.3）
+// MARK: - 动效类别（6.3）
 
 /// 动效类别（时长与 easing 按 macOS 原生质感定制）。
+/// SwiftUI `Animation` 构造在 UI 层（MotionPolicy，见 AgentKeeperUI/MotionPolicy.swift）——本类型保持平台无关。
 public enum MotionCategory: Hashable, Sendable {
     /// 列表行插入/删除/移动（轻量淡入）；不该打扰。
     case listTransition
@@ -13,28 +13,6 @@ public enum MotionCategory: Hashable, Sendable {
     case detailTransition
     /// 扫描进行中的呼吸态（纯装饰）。
     case scanPulse
-}
-
-/// 动效策略：系统「减少动态效果」开启时全部返回 nil（即时切换，保留状态语义）。
-public struct MotionPolicy: Hashable, Sendable {
-    public var reduceMotion: Bool
-
-    public init(reduceMotion: Bool) {
-        self.reduceMotion = reduceMotion
-    }
-
-    /// 对应类别的 Animation；nil 表示不动画（即时呈现）。
-    public func animation(for category: MotionCategory) -> Animation? {
-        guard !reduceMotion else { return nil }
-        switch category {
-        case .listTransition:
-            return Animation.snappy(duration: 0.22)
-        case .detailTransition:
-            return Animation.snappy(duration: 0.3)
-        case .scanPulse:
-            return Animation.easeInOut(duration: 1.2)
-        }
-    }
 }
 
 // MARK: - 菜单栏摘要（6.4）

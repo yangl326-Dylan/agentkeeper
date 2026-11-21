@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 @testable import AgentKeeperUI
@@ -61,3 +62,5 @@ import Testing
         #expect(blocks == [.paragraph(text: "见 **粗体** 与 `代码`。")])
     }
 }
+
+#endif

@@ -1,3 +1,5 @@
+// macOS GUI 入口（Linux 占位入口见 LinuxMain.swift）。
+#if os(macOS)
 import SwiftUI
 import AgentKeeperUI
 import AppCore
@@ -55,3 +57,4 @@ struct AgentKeeperApp: App {
         .menuBarExtraStyle(.window)
     }
 }
+#endif

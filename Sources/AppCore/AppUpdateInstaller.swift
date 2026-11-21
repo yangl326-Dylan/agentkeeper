@@ -1,9 +1,5 @@
+#if os(macOS)
 import Foundation
-
-/// 安装接口（测试注入 fake；真实实现替换当前 App Bundle）。
-public protocol AppInstalling: Sendable {
-    func install(release: ReleaseInfo, zipURL: URL) throws
-}
 
 /// 原地更新安装器。
 ///
@@ -192,3 +188,4 @@ public struct AppUpdateInstaller: AppInstalling, Sendable {
         }
     }
 }
+#endif

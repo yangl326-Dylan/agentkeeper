@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
@@ -60,3 +61,4 @@ final class ReceiveBox: @unchecked Sendable {
         paths.append(path)
     }
 }
+#endif
