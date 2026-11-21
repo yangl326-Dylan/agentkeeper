@@ -668,7 +668,7 @@ struct SkillDetailContent: View {
         }
     }
 
-    @ViewBuilder
+    // 显式 return + AnyView：不加 @ViewBuilder（新版编译器会对「builder 被显式 return 禁用」告警）
     private func operationButtons(_ skill: Skill) -> some View {
         let isDisabled = skill.status == .disabled
         let pending = env.store.state.operation
