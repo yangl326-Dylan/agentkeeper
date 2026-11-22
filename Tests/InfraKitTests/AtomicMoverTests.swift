@@ -4,6 +4,26 @@ import DomainKit
 @testable import InfraKit
 
 @Suite struct AtomicMoverTests {
+    @Test func unknownVolumeFallsBackToOptimisticRenameInsteadOfThrowing() throws {
+        // 卷判定取不到（st_dev 不可得，如部分容器挂载点/CI runner /tmp）→
+        // 不再抛「无法确定所在物理卷」，乐观 rename + EXDEV 兜底（2026-11-22 CI 回归）。
+        // source 指向不存在路径 → attributesOfFileSystem 必失败 → 走未知卷分支。
+        let home = makeFakeHome(files: [])
+        defer { cleanup(home) }
+        let source = home.appendingPathComponent("nonexistent/skill", isDirectory: true)
+        let destination = home.appendingPathComponent("dst/skill", isDirectory: true)
+
+        let strategy = try AtomicMover.volumeStrategy(source: source, destination: destination, fileManager: .default)
+        #expect(strategy == .rename)
+    }
+
+    @Test func crossDeviceErrorWordingContract() {
+        // Foundation Linux 的 EXDEV 报错文案形态契约（execute 兜底依赖此匹配）
+        #expect(AtomicMover.isCrossDeviceError(NSError(domain: NSPOSIXErrorDomain, code: 18)))
+        #expect(AtomicMover.isCrossDeviceError(AtomicMoverError.underlying(path: "/x", note: "rename failed: cross-device link")))
+        #expect(!AtomicMover.isCrossDeviceError(AtomicMoverError.verifyFailed(path: "/x")))
+    }
+
     @Test func sameVolumeMoveIsRenameAtomic() throws {
         let home = makeFakeHome(files: ["src/skill-a/SKILL.md", "src/skill-a/scripts/run.sh"])
         defer { cleanup(home) }
