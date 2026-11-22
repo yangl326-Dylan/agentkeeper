@@ -67,8 +67,9 @@ if [ "$MODE" = "--deb" ] || [ "$MODE" = "--all" ]; then
     cp "$STAGE/pkg/ak" "$STAGE/deb/usr/bin/ak"
     if [ "$HAS_APP" = "1" ]; then
         cp "$STAGE/pkg/agentkeeper" "$STAGE/deb/usr/bin/agentkeeper"
-        # 图标：四档 hicolor（ Gtk3Backend 桌面/托盘按尺寸取用）
-        for size in 32x32 64x64 128x128 256x256; do
+        # 图标：五档 hicolor（32/64/128/256/512；与 macOS AppIcon 同源——
+        # assets/icons 由 scripts/gen-icon-linux.py 从 gen-icon.swift 几何复刻）
+        for size in 32x32 64x64 128x128 256x256 512x512; do
             mkdir -p "$STAGE/deb/usr/share/icons/hicolor/$size/apps"
             src="assets/icons/agentkeeper-${size%%x*}.png"
             [ -f "$src" ] && cp "$src" "$STAGE/deb/usr/share/icons/hicolor/$size/apps/agentkeeper.png"

@@ -5,6 +5,10 @@
 // 象牙纸 squircle 底 + 陶土开口匣（中央镂空透出纸底）+ 2×2 三实一空格架
 // + 深炭滑入卡（收编动势）。Claude 品牌语言：大面积纸面留白 + 单一陶土主体。
 //
+// Linux 同源复刻：scripts/gen-icon-linux.py（SVG 矢量转译本脚本全部几何/配色
+// 常量 → assets/icons/agentkeeper-*.png，供 .desktop/hicolor/托盘）。改图标
+// 设计需双端同步。
+//
 // 形状：macOS 标准 squircle（Finder 同款）——1024 画布上 824×824 圆角矩形
 // （居中、四角 100px 留白透明）；icns 不自动加圆角，必须自带 alpha。
 // 每个输出尺寸独立重渲染（矢量几何按比例重算，避免位图缩放发糊）。

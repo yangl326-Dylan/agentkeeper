@@ -73,7 +73,7 @@ public struct LinuxPlatformAdapter: PlatformAdapter, Sendable {
     public func mountTray(_ descriptor: TrayDescriptor, actions: TrayActions) -> Bool {
         tray.mount(
             descriptor: descriptor,
-            iconName: "package", // freedesktop 主题图标（v1：无自绘 PNG 依赖）
+            iconName: "agentkeeper", // hicolor 真图标（与 macOS AppIcon 同源；.deb 安装后经主题解析）
             actions: actions,
             quit: { [adapter = self] in adapter.terminateApp() },
             loader: loader
