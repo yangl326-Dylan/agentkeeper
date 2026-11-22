@@ -24,15 +24,53 @@ public protocol PlatformAdapter {
     /// 退出应用（更新安装后重启流程、托盘退出菜单）。
     func terminateApp()
 
-    /// 挂载托盘图标（v1 默认空实现：macOS 走 MenuBarExtra，不经过本协议）。
-    func mountTray()
+    /// 挂载托盘图标；成功返回 true，失败（桌面环境无托盘支持等）返回 false 由界面内提示降级。
+    /// descriptor 携带菜单文案（摘要行 + 各菜单项标签，随界面语言）；
+    /// actions 为菜单动作（平台栈自行把回调桥接回主线程）。
+    /// v1 默认返回 false：macOS 走 MenuBarExtra，不经过本协议。
+    @discardableResult func mountTray(_ descriptor: TrayDescriptor, actions: TrayActions) -> Bool
 
     /// 卸载托盘图标（v1 默认空实现，同上）。
     func unmountTray()
 }
 
+/// 托盘菜单文案（挂载时由调用方按当前界面语言组装）。
+public struct TrayDescriptor: Sendable {
+    /// 摘要行（不可点，如 "12 skills · 3 agents"）。
+    public let summary: String
+    /// 「打开主窗口」。
+    public let openMainWindowTitle: String
+    /// 「立即扫描」。
+    public let scanNowTitle: String
+    /// 「退出」。
+    public let quitTitle: String
+
+    public init(summary: String, openMainWindowTitle: String, scanNowTitle: String, quitTitle: String) {
+        self.summary = summary
+        self.openMainWindowTitle = openMainWindowTitle
+        self.scanNowTitle = scanNowTitle
+        self.quitTitle = quitTitle
+    }
+}
+
+/// 托盘菜单动作集（mountTray 注入；实现方保证从平台事件循环桥接回主线程执行）。
+public struct TrayActions: Sendable {
+    /// 「打开主窗口」。
+    public let openMainWindow: @MainActor @Sendable () -> Void
+    /// 「立即扫描」。
+    public let scanNow: @MainActor @Sendable () -> Void
+
+    public init(
+        openMainWindow: @escaping @MainActor @Sendable () -> Void,
+        scanNow: @escaping @MainActor @Sendable () -> Void
+    ) {
+        self.openMainWindow = openMainWindow
+        self.scanNow = scanNow
+    }
+}
+
 extension PlatformAdapter {
-    public func mountTray() {}
+    public func mountTray(_ descriptor: TrayDescriptor, actions: TrayActions) -> Bool { false }
     public func unmountTray() {}
 }
 

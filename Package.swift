@@ -17,6 +17,11 @@ let package = Package(
     dependencies: [
         // sha256 指纹统一实现（Apple 官方维护，Linux 官方支持；macOS 侧由 CryptoKit 转发）。
         .package(url: "https://github.com/apple/swift-crypto", from: "3.10.0"),
+        // Linux GUI 栈（SwiftCrossUI + Gtk3Backend；add-linux-app 决策 3）。
+        // 依赖无条件声明（平台纪律：清单零 os 分支）；Gtk3Backend 在 macOS 也参与构建（CI 装 GTK3 头文件）。
+        // 选 Gtk3Backend 而非 GtkBackend：AppIndicator 托盘库（libayatana-appindicator3）
+        // 只支持 GTK3，GTK4 进程内再 dlopen GTK3 会类型注册冲突（GtkWidget critical）。
+        .package(url: "https://github.com/moreSwift/swift-cross-ui", from: "0.11.0"),
     ],
     targets: [
         .target(
@@ -51,9 +56,29 @@ let package = Package(
             name: "AgentKeeperUI",
             dependencies: ["AgentKeeperShared", "AppCore", "DomainKit", "InfraKit"]
         ),
+        // Linux GUI 栈（SCUI 视图 + LinuxPlatformAdapter）。源文件整文件 `#if os(Linux)` 守卫，
+        // macOS 上编为空模块（与 AgentKeeperUI 的整文件 `#if os(macOS)` 对称）。
+        .target(
+            name: "AgentKeeperUILinux",
+            dependencies: [
+                "AgentKeeperShared",
+                "AppCore",
+                "DomainKit",
+                "InfraKit",
+                .product(name: "SwiftCrossUI", package: "swift-cross-ui"),
+                .product(name: "Gtk3Backend", package: "swift-cross-ui"),
+            ]
+        ),
         .executableTarget(
             name: "AgentKeeper",
-            dependencies: ["AgentKeeperShared", "AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
+            dependencies: [
+                "AgentKeeperShared",
+                "AgentKeeperUI",
+                "AgentKeeperUILinux",
+                "AppCore",
+                "DomainKit",
+                "InfraKit",
+            ]
         ),
         .executableTarget(
             name: "ak",
@@ -73,7 +98,14 @@ let package = Package(
         ),
         .testTarget(
             name: "AgentKeeperTests",
-            dependencies: ["AgentKeeperShared", "AgentKeeperUI", "AppCore", "DomainKit", "InfraKit"]
+            dependencies: [
+                "AgentKeeperShared",
+                "AgentKeeperUI",
+                "AgentKeeperUILinux",
+                "AppCore",
+                "DomainKit",
+                "InfraKit",
+            ]
         )
     ],
     swiftLanguageModes: [.v6]

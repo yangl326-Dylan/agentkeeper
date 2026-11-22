@@ -102,6 +102,7 @@ public struct L10n: Sendable {
     public var importSkill: String { zh ? "导入 skill…" : "Import Skill…" }
     public var installFromGit: String { zh ? "从 git 安装…" : "Install from Git…" }
     public var settingsMenu: String { zh ? "设置…" : "Settings…" }
+    public var settingsWindow: String { zh ? "设置" : "Settings" }
 
     // MARK: 状态条
 

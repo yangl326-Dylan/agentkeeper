@@ -20,6 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Gtk3Backend（AgentKeeperUILinux 依赖，无条件声明）在 macOS 也参与构建，需要 GTK3 头文件
+      - name: Install GTK (Gtk3Backend build requirement)
+        run: brew install gtk+3 pkg-config
+
       - name: Select Swift (toolchain bundled with runner Xcode)
         run: swift --version
 
@@ -61,12 +65,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install system dependencies
-        # swift 工具链运行/构建依赖 + 本仓库 libsqlite3
+        # swift 工具链运行/构建依赖 + 本仓库 libsqlite3；libgtk-3-dev 为
+        # Gtk3Backend（AgentKeeperUILinux，无条件声明）构建所需 GTK3 头文件
         run: >
           sudo apt-get update -qq && sudo apt-get install -y -qq
-          binutils libcurl4-openssl-dev libedit2 libgcc-13-dev libncurses-dev
-          libpython3-dev libsqlite3-dev libstdc++-13-dev libxml2-dev libz3-dev
-          pkg-config zlib1g-dev
+          binutils libcurl4-openssl-dev libedit2 libgcc-13-dev libgtk-3-dev
+          libncurses-dev libpython3-dev libsqlite3-dev libstdc++-13-dev
+          libxml2-dev libz3-dev pkg-config zlib1g-dev
 
       # 官方 tarball 直装（unstripped 布局保留 usr/ 前缀——工具链自定位依赖它；
       # setup-swift 版本清单滞后不认 6.2.x 补丁版；6.2.1 有 libswiftObservation 链接缺陷，
@@ -102,14 +107,71 @@ jobs:
         run: |
           "$(swift build --show-bin-path)/ak" help
 
+  build-linux-cli:
+    # Linux 分发产物必须在 Linux runner 上构建（在 macOS runner 上跑
+    # swift build 得到的是 macOS 二进制，不能冒充 Linux 包）。
+    # 产物：CLI（静态链接）+ GUI（Gtk3Backend 动态链接）→ tar.gz 与 .deb
+    # （scripts/build-linux-app.sh 自动检测 .build release GUI 二进制并纳入打包）。
+    name: Build Linux CLI + GUI artifacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        # libsqlite3-dev: CLI 静态链接；libgtk-3-dev: GUI（Gtk3Backend）动态链接
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libsqlite3-dev libgtk-3-dev
+
+      - name: Install Swift 6.2.4 (official tarball)
+        run: |
+          set -e
+          curl -L --retry 3 -sS -o /tmp/swift.tar.gz \
+            "https://download.swift.org/swift-6.2.4-release/ubuntu2404/swift-6.2.4-RELEASE/swift-6.2.4-RELEASE-ubuntu24.04.tar.gz"
+          mkdir -p /opt/swift && tar -xzf /tmp/swift.tar.gz -C /opt/swift
+          echo "/opt/swift/swift-6.2.4-RELEASE-ubuntu24.04/usr/bin" >> "$GITHUB_PATH"
+
+      - name: Build static Linux CLI
+        run: |
+          set -euo pipefail
+          # 静态链接 Swift 运行时（免工具链运行）；系统依赖仅 glibc/libsqlite3
+          swift build -c release --product ak --static-swift-stdlib
+          BIN_DIR="$(swift build -c release --product ak --static-swift-stdlib --show-bin-path)"
+          mkdir -p dist-linux
+          cp "$BIN_DIR/ak" dist-linux/ak
+
+      - name: Build Linux GUI + package (tar.gz / .deb)
+        run: |
+          set -euo pipefail
+          swift build -c release --product AgentKeeper
+          bash scripts/build-linux-app.sh --all
+
+      - name: Upload Linux CLI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgentKeeper-cli-linux
+          path: dist-linux/ak
+
+      - name: Upload Linux GUI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgentKeeper-gui-linux
+          path: |
+            dist/agentkeeper-gui-linux-*.tar.gz
+            dist/agentkeeper_*.deb
+          if-no-files-found: error
+
   release:
     name: Release (tag v*)
-    needs: [test, test-linux]
+    needs: [test, test-linux, build-linux-cli]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: macos-15
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
+      # AgentKeeperUILinux 无条件依赖 Gtk3Backend → macOS 构建也需 GTK3 头文件
+      - name: Install GTK (Gtk3Backend build requirement)
+        run: brew install gtk+3 pkg-config
 
       - name: Build release binaries
         run: |
@@ -125,15 +187,30 @@ jobs:
           (cd dist && zip -qry ../AgentKeeper-cli-macos.zip ak -x '*.DS_Store')
           zip -qry AgentKeeper-app-macos.zip AgentKeeper.app
 
-      - name: Build Linux CLI release
+      - name: Download Linux CLI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AgentKeeper-cli-linux
+          path: dist-linux
+
+      - name: Download Linux GUI artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: AgentKeeper-gui-linux
+          path: dist-gui
+
+      - name: Package Linux CLI
         run: |
           set -euo pipefail
-          # Linux CLI：静态链接 Swift 运行时（免工具链运行）；系统依赖仅 glibc/libsqlite3
-          swift build -c release --product ak --static-swift-stdlib
-          BIN_DIR="$(swift build -c release --product ak --static-swift-stdlib --show-bin-path)"
-          mkdir -p dist-linux
-          cp "$BIN_DIR/ak" dist-linux/ak
+          test -x dist-linux/ak
           (cd dist-linux && zip -qry ../AgentKeeper-cli-linux-ubuntu24.04.zip ak)
+
+      - name: Stage Linux GUI artifacts
+        run: |
+          set -euo pipefail
+          # 打包脚本产物名已含版本（tag 触发时即发布版本号），原样进 Release
+          mv dist-gui/*.tar.gz dist-gui/*.deb dist/
+          ls -la dist/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -143,3 +220,5 @@ jobs:
             AgentKeeper-cli-macos.zip
             AgentKeeper-app-macos.zip
             AgentKeeper-cli-linux-ubuntu24.04.zip
+            dist/agentkeeper-gui-linux-*.tar.gz
+            dist/agentkeeper_*.deb
