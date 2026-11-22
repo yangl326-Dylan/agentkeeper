@@ -53,5 +53,5 @@
   - 注：32/64/128/256 四档一次性入库；.deb 打包循环装四档 hicolor
 - [x] 5.3 本机实测 `apt install` .deb → GNOME 搜索可见 → 启动正常 → 卸载干净
   - 注：`dpkg -i` 后 /usr/bin 双二进制 + .desktop + 四档图标就位；安装版 GUI 启动/托盘注册冒烟通过；`dpkg -r` 卸载零残留
-- [ ] 5.4 ci.yml：Linux app 产物进 release；README 下载矩阵 + 托盘环境声明；INSTALL.md Linux GUI 安装段
-  - 注：ci.yml `build-linux-cli` 产物进 release 已完成；README GUI 下载矩阵与 INSTALL.md Linux GUI 段待本 PR 收尾
+- [x] 5.4 ci.yml：Linux app 产物进 release；README 下载矩阵 + 托盘环境声明；INSTALL.md Linux GUI 安装段
+  - 注：build-linux-cli 扩为 CLI+GUI 双产物（run 44972509524 全绿，AgentKeeper-gui-linux artifact 72.7MB）→ release job 并入 Release；README/INSTALL.md 双语 Linux GUI 安装段 + 托盘 SNI 环境声明已落

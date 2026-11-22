@@ -72,7 +72,10 @@
 
 - `build-linux-cli` job 扩为 **CLI + GUI 双产物**（GUI release 构建 + 打包进 artifact），release job 下载并入 Release（`agentkeeper-gui-linux-*.tar.gz` + `agentkeeper_*.deb`）。
 - macOS job 与 Linux test job 的 GTK 头文件依赖随 backend 切换改 `gtk+3` / `libgtk-3-dev`。
-- PR #5 三 job（macOS / Linux test / Linux CLI+GUI artifacts）以提交 `48e637b` 触发，结果见 PR 页（本报告撰写时 in_progress）。
+- **PR #5 CI 三 job 全绿**（run [44972509524](https://github.com/yangl326-Dylan/agentkeeper/actions/runs/44972509524)，提交 `f083197`）：macOS 9m42s ✓ / Linux test 4m15s ✓ / Linux CLI+GUI artifacts 11m55s ✓（`AgentKeeper-gui-linux` artifact 72.7MB = tar.gz + .deb）。
+- 首轮 CI 失败两处教训（已修复）：
+  1. `Fail on warnings` 误杀 SwiftPM/ld 非代码噪声（Gtk3 C 目标链接的 `prohibited flag(s)`、CGtk 的 pkg-config provider 提示）→ 0-warning 纪律改为白名单过滤后检查；
+  2. artifacts job 静态链接 ak 缺 `libcurl4-openssl-dev`（libFoundationNetworking 需要 `-lcurl`）→ apt 列表与 test-linux job 对齐。
 
 ## 3. 与 macOS 版一致性核对（任务 4.4）
 
@@ -88,4 +91,4 @@
 
 ## 5. 结论
 
-Linux GUI v1（三面板浏览/扫描/详情/设置/托盘/打包分发）在本机 Ubuntu 24.04 全链路验收通过：构建 0 warning、369 测试全绿、GUI 冒烟与安装链路实测通过。待 PR #5 CI 三 job 全绿后即可请求用户验收合入。
+Linux GUI v1（三面板浏览/扫描/详情/设置/托盘/打包分发）在本机 Ubuntu 24.04 全链路验收通过：构建 0 warning、369 测试全绿、GUI 冒烟与安装链路实测通过；**PR #5 CI 三 job 全绿（macOS / Linux test / Linux CLI+GUI artifacts，含 GUI 发布产物）**。可请求用户验收合入。
