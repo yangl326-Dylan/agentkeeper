@@ -93,11 +93,12 @@ public struct AtomicMover: @unchecked Sendable {
     }
 
     /// rename 尝试失败的错误是否为跨设备链接（EXDEV, errno 18）。
-    /// Foundation 在 Linux 上的报错文案不稳定（"cross-device link" / "Errno 18"），
-    /// 双关键词匹配。
+    /// 文案跨平台不稳定：Linux Foundation 形如 "cross-device link"/"Errno 18"，
+    /// macOS NSError 形如 'Code=18 "Cross-device link"' → 统一小写后四关键词匹配。
     static func isCrossDeviceError(_ error: Error) -> Bool {
-        let text = String(describing: error)
-        return text.contains("cross-device") || text.contains("EXDEV") || text.contains("Errno 18")
+        let text = String(describing: error).lowercased()
+        return text.contains("cross-device") || text.contains("exdev")
+            || text.contains("errno 18") || text.contains("code=18")
     }
 
     // MARK: - 执行
