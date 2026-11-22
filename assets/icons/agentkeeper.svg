@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBFAF7"/><stop offset="1" stop-color="#F0EDE5"/>
+    </linearGradient>
+    <linearGradient id="tray" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#DC7D5C"/><stop offset="1" stop-color="#B85A3B"/>
+    </linearGradient>
+    <clipPath id="squircle">
+      <rect x="100.0" y="100.0" width="824.0" height="824.0" rx="185.0"/>
+    </clipPath>
+    <filter id="cardShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8.0" stdDeviation="8.0" flood-color="#191919" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+  <g clip-path="url(#squircle)">
+    <!-- 纸面（上亮下微沉）+ 纸缘 hairline -->
+    <rect x="100.0" y="100.0" width="824.0" height="824.0" fill="url(#paper)"/>
+    <rect x="100.0" y="100.0" width="824.0" height="824.0" rx="185.0"
+          fill="none" stroke="#D8D3C7" stroke-width="5"/>
+    <!-- 开口匣：渐变匣体 + 外缘 hairline（镂空区域由下一步直接覆盖，视觉同 even-odd） -->
+    <rect x="262.0" y="254.0" width="500.0" height="440.0" rx="64.0" fill="url(#tray)"/>
+    <rect x="262.0" y="254.0" width="500.0" height="440.0" rx="64.0"
+          fill="none" stroke="#A54E2F" stroke-width="6"/>
+    <!-- 镂空底：沉一档纸色 + 顶部 34px 内阴影（匣口深度暗示） -->
+    <rect x="308.0" y="300.0" width="408.0" height="348.0" rx="40.0" fill="#EBE6DA"/>
+    <clipPath id="holeClip"><rect x="308.0" y="300.0" width="408.0" height="348.0" rx="40.0"/></clipPath>
+    <g clip-path="url(#holeClip)">
+      <rect x="308.0" y="300.0" width="408.0" height="34" fill="#000000" fill-opacity="0.13"/>
+    </g>
+    <!-- 格架 2×2：三张象牙卡（左上/左下/右下），右上留空「还有下一格」 -->
+    <rect x="334.0" y="326.0" width="166.0" height="136.0" rx="24.0" fill="#FAF9F5" stroke="#E2DCCE" stroke-width="4"/>
+    <rect x="334.0" y="486.0" width="166.0" height="136.0" rx="24.0" fill="#FAF9F5" stroke="#E2DCCE" stroke-width="4"/>
+    <rect x="524.0" y="486.0" width="166.0" height="136.0" rx="24.0" fill="#FAF9F5" stroke="#E2DCCE" stroke-width="4"/>
+    <!-- 滑入炭卡：骑在匣顶缘、右偏、-10°、轻投影 -->
+    <g transform="rotate(-10.0 629.0 298.0)">
+      <rect x="546.0" y="230.0" width="166.0" height="136.0" rx="24.0"
+            fill="#262624" filter="url(#cardShadow)"/>
+    </g>
+    <!-- 速度虚线 ×2（滑入反方向，右上；圆帽） -->
+    <line x1="744.0" y1="296.0" x2="808.0" y2="282.0"
+          stroke="#262624" stroke-opacity="0.24" stroke-width="9" stroke-linecap="round"/>
+    <line x1="718.0" y1="254.0" x2="760.0" y2="240.0"
+          stroke="#262624" stroke-opacity="0.13" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -3,23 +3,6 @@ import Testing
 import DomainKit
 @testable import AppCore
 
-@Suite struct MotionPolicyTests {
-    @Test func normalSystemGivesSnappyMacosAnimations() {
-        let policy = MotionPolicy(reduceMotion: false)
-        #expect(policy.animation(for: .listTransition) != nil)
-        #expect(policy.animation(for: .detailTransition) != nil)
-        // 扫描呼吸态是装饰性动效：默认有
-        #expect(policy.animation(for: .scanPulse) != nil)
-    }
-
-    @Test func reduceMotionDisablesAllDecorativeMotion() {
-        let policy = MotionPolicy(reduceMotion: true)
-        #expect(policy.animation(for: .listTransition) == nil)
-        #expect(policy.animation(for: .detailTransition) == nil)
-        #expect(policy.animation(for: .scanPulse) == nil)
-    }
-}
-
 @Suite struct MenuBarSummaryTests {
     private func skill(_ name: String, owner: AgentID) -> Skill {
         Skill(

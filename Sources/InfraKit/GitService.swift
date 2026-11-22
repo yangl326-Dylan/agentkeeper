@@ -17,12 +17,26 @@ public enum GitServiceError: Error, Hashable {
 
 public struct GitService: @unchecked Sendable {
     /// git 可执行文件绝对路径（默认 /usr/bin/git；可注入 brew git 做跨版本测试）。
+    /// 注入路径不可执行时按 PATH 逐目录探测回退（Linux 发行版 git 常在 /usr/bin 之外的 PATH 位置）。
     private let gitExecutablePath: String
     private let fileManager: FileManager
 
     public init(gitExecutablePath: String = "/usr/bin/git", fileManager: FileManager = .default) {
-        self.gitExecutablePath = gitExecutablePath
+        self.gitExecutablePath = Self.resolveGitPath(injected: gitExecutablePath, fileManager: fileManager)
         self.fileManager = fileManager
+    }
+
+    /// 解析实际可用的 git 路径：注入路径可用即用；否则按 PATH 环境变量逐目录探测名为 `git` 的可执行文件；都不可用则原样返回（调用侧有体面降级）。
+    /// 路径拼接走 URL（String.appendingPathComponent 在新 Apple SDK 已移除，corelibs 仍在——跨平台统一用 URL）。
+    private static func resolveGitPath(injected: String, fileManager: FileManager) -> String {
+        if fileManager.isExecutableFile(atPath: injected) { return injected }
+        let pathEnv = ProcessInfo.processInfo.environment["PATH"] ?? ""
+        for directory in pathEnv.split(separator: ":", omittingEmptySubsequences: true) {
+            let candidate = URL(fileURLWithPath: String(directory))
+                .appendingPathComponent("git").path
+            if fileManager.isExecutableFile(atPath: candidate) { return candidate }
+        }
+        return injected
     }
 
     // MARK: - 版本嗅探

@@ -1,5 +1,5 @@
 import Foundation
-import CryptoKit
+import Crypto
 import DomainKit
 
 // MARK: - Frontmatter 解析（SKILL.md YAML-lite）
@@ -183,6 +183,7 @@ public enum Fingerprint {
                 .contentModificationDateKey, .fileSizeKey
             ]),
                   values.isRegularFile == true, values.isSymbolicLink != true, values.isHidden != true,
+                  !url.lastPathComponent.hasPrefix("."),   // Linux corelibs 的 isHidden 不识别点文件，跨平台补点前缀判定（Darwin 上点文件本就 isHidden，语义不变）
                   let mtime = values.contentModificationDate?.timeIntervalSince1970,
                   let size = values.fileSize
             else { continue }
@@ -383,7 +384,8 @@ public enum SkillParsing {
         var files: [URL] = []
         for case let url as URL in enumerator {
             guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .isHiddenKey, .isSymbolicLinkKey]),
-                  values.isRegularFile == true, values.isSymbolicLink != true, values.isHidden != true
+                  values.isRegularFile == true, values.isSymbolicLink != true, values.isHidden != true,
+                  !url.lastPathComponent.hasPrefix(".")   // Linux 跨平台补点前缀判定（见 fingerprint 同注）
             else { continue }
             files.append(url)
         }

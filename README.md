@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml/badge.svg)](https://github.com/yangl326-Dylan/agentkeeper/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![Platform](https://img.shields.io/badge/platform-macOS%2015+-black)
+![Platform](https://img.shields.io/badge/platform-macOS%2015%20%7C%20Linux-blue)
 ![Tests](https://img.shields.io/badge/tests-392%20passing-brightgreen)
 [![Release](https://img.shields.io/github/v/release/yangl326-Dylan/agentkeeper?label=release)](https://github.com/yangl326-Dylan/agentkeeper/releases/latest)
 
@@ -60,6 +60,16 @@ curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/la
 unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
 ak doctor
 ```
+
+**Linux（Ubuntu 24.04+，CLI 静态链接免工具链；GUI 为 GTK3 应用）**：
+
+```bash
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-linux-ubuntu24.04.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+GUI app（GNOME/KDE 等 SNI 桌面）装 .deb：`agentkeeper_amd64.deb`（含托盘；依赖 `libgtk-3-0`、`libayatana-appindicator3-1` 自动补齐），详见 [INSTALL.md](INSTALL.md)。
 
 **Skill 安装（让 AI agent 自动用上 `ak`）**：
 
@@ -177,6 +187,16 @@ curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/la
 unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
 ak doctor
 ```
+
+**Linux (Ubuntu 24.04+, CLI statically linked — no toolchain needed; GUI is a GTK3 app)**:
+
+```bash
+curl -L -o /tmp/ak.zip https://github.com/yangl326-Dylan/agentkeeper/releases/latest/download/AgentKeeper-cli-linux-ubuntu24.04.zip
+unzip -o /tmp/ak.zip -d /tmp/ak-install && sudo install -m 0755 /tmp/ak-install/ak /usr/local/bin/ak
+ak doctor
+```
+
+GUI app (GNOME/KDE and other SNI-capable desktops): install the `agentkeeper_amd64.deb` (includes tray; deps `libgtk-3-0`, `libayatana-appindicator3-1` resolved by apt) — see [INSTALL.md](INSTALL.md).
 
 **Skill install (let AI agents pick up `ak` automatically)**:
 

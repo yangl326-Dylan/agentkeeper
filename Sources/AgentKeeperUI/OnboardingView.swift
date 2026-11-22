@@ -1,4 +1,6 @@
+#if os(macOS)
 import SwiftUI
+import AgentKeeperShared
 import AppCore
 
 /// 首启引导页（6.6）：说明扫描机制、目录授权与 ~/.agentkeeper 数据目录契约。
@@ -76,3 +78,5 @@ public struct OnboardingView: View {
         }
     }
 }
+
+#endif

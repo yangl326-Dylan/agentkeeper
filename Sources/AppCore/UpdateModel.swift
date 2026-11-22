@@ -1,5 +1,5 @@
 import Foundation
-import AppKit
+import Observation
 
 /// 设置页更新状态机（仅手动触发；外部不显示任何角标/红点）。
 @MainActor
@@ -29,13 +29,23 @@ public final class UpdateModel {
     private let terminate: @MainActor () -> Void
     private var lastRelease: ReleaseInfo?
 
+    /// 平台默认安装器：macOS=原地替换 .app；其余平台=占位（更新通道未接入，仅检查+跳转下载页）。
+    /// public：默认参数表达式会在调用侧取值，访问级必须覆盖跨模块调用方。
+    public static let fallbackInstaller: any AppInstalling = {
+        #if os(macOS)
+        return AppUpdateInstaller()
+        #else
+        return UnsupportedAppInstaller()
+        #endif
+    }()
+
     public init(
         currentVersion: AppVersion = .currentBundleVersion,
         bundleURL: URL = Bundle.main.bundleURL,
         fetcher: any ReleaseFetching = GitHubReleaseClient(),
         downloader: any UpdateDownloading = URLSessionUpdateDownloader(),
-        installer: any AppInstalling = AppUpdateInstaller(),
-        terminate: @escaping @MainActor () -> Void = { NSApplication.shared.terminate(nil) }
+        installer: any AppInstalling = fallbackInstaller,
+        terminate: @escaping @MainActor () -> Void = {}
     ) {
         self.currentVersion = currentVersion
         self.bundleURL = bundleURL

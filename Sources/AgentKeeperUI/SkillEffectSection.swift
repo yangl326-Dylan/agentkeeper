@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppCore
 import DomainKit
@@ -51,3 +52,5 @@ struct SkillEffectSection: View {
         return result
     }
 }
+
+#endif

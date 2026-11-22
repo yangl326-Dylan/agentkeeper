@@ -82,6 +82,13 @@ ak doctor
 3. **改任何 skill 文件前先征得用户同意**，包括「把全局更新同步到所有副本」的场景。
 4. `ak list` 里出现意外路径的 skill 时，先确认是不是插件缓存副本（如 OpenCode npm 缓存），再判断是否重复。
 
+## 构建与平台纪律（双平台）
+
+- 本仓库同时产出 macOS app / Linux CLI（Linux GUI 见 openspec change `add-linux-app`）。
+- **os 条件编译纪律**：`Package.swift` **零 os 分支**（清单内 `#if` 依赖 `env -i` 编译器探测，受限环境会静默空构建）；os 分支只允许出现在：平台适配文件（`FSEventMonitor` / `InotifyMonitor` / `FileMonitorFactory` / `AppUpdateInstaller` / `UpdateModel` 安装器缺省）、可执行入口（`AgentKeeperApp.swift` / `LinuxMain.swift`）、以及 macOS UI 层源文件的文件级 guard（`AgentKeeperUI/`、`AgentKeeperTests/` 整文件 `#if os(macOS)`，Linux 上编为空模块）。core 三目标（DomainKit/InfraKit/AppCore）零 os 分支。
+- Linux 上构建/测试（CI `test-linux` job 同款）：`swift build && swift test`（Swift ≤6.3）；Swift 6.4+ 需 `--build-system native`（6.4 默认 SwiftBuild 引擎，Linux 资源包查找有缺陷，升级前先验证）。
+- Linux CLI 发布：`swift build -c release --product ak --static-swift-stdlib`（静态链接 Swift 运行时，运行侧无需工具链）。
+
 ## 参考
 
 - 安装文档：[INSTALL.md](INSTALL.md)

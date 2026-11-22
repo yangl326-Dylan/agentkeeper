@@ -1,4 +1,20 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking   // Linux：URLSession/URLRequest/HTTPURLResponse 在此模块
+#endif
+
+/// 安装接口（测试注入 fake；真实实现替换当前 App Bundle）。
+/// 平台无关协议：macOS 由 AppUpdateInstaller 实现；其余平台由 UnsupportedAppInstaller 占位。
+public protocol AppInstalling: Sendable {
+    func install(release: ReleaseInfo, zipURL: URL) throws
+}
+
+/// 非 macOS 平台的占位安装器：原地更新通道未接入（Linux 更新=检查+跳转下载页，见 add-linux-app P3）。
+struct UnsupportedAppInstaller: AppInstalling, Sendable {
+    func install(release: ReleaseInfo, zipURL: URL) throws {
+        throw UpdateError.installationFailed("当前平台不支持应用内安装，请从 GitHub Releases 页面手动下载。")
+    }
+}
 
 /// 更新流程错误（UI 直接展示技术细节，外围文案由 L10n 提供）。
 public enum UpdateError: Error, Equatable, Sendable, LocalizedError {
@@ -71,6 +87,9 @@ public protocol ReleaseFetching: Sendable {
     func latestRelease() async throws -> ReleaseInfo
 }
 
+/// 网络层注入点类型（文件作用域：避免 struct 内 typealias 在 Linux 工具链上的递归推导问题）。
+public typealias ReleaseDataLoader = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
 /// GitHub Releases API 客户端（仅手动调用；未认证配额 60 次/小时）。
 public struct GitHubReleaseClient: ReleaseFetching {
     public static let defaultRepository = "yangl326-Dylan/agentkeeper"
@@ -80,7 +99,7 @@ public struct GitHubReleaseClient: ReleaseFetching {
     )!
 
     /// 网络层注入点（测试用；默认 URLSession）。
-    public typealias DataLoader = @Sendable (URLRequest) async throws -> (Data, URLResponse)
+    public typealias DataLoader = ReleaseDataLoader
 
     private let repository: String
     private let currentVersion: String

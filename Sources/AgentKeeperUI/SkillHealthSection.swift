@@ -1,3 +1,4 @@
+#if os(macOS)
 import SwiftUI
 import AppCore
 import DomainKit
@@ -33,3 +34,5 @@ struct SkillHealthSection: View {
         return "\(total) · \(l10n.healthFilesCount(skill.fileCount)) · SKILL.md \(md)"
     }
 }
+
+#endif

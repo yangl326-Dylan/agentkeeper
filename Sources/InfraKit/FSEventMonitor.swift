@@ -1,3 +1,4 @@
+#if os(macOS)
 import Foundation
 import CoreServices
 import DomainKit
@@ -96,3 +97,4 @@ public actor FSEventMonitor: FileMonitoring {
         }
     }
 }
+#endif

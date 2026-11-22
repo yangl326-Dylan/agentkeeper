@@ -1,8 +1,9 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
 import AppCore
-@testable import AgentKeeperUI
+@testable import AgentKeeperShared
 
 /// 侧栏 Agents 分组：只显示本机实际安装过的 agent（目录存在），
 /// 未安装的 harness 不进侧栏；行内展示可用状态与 skill 数。
@@ -62,3 +63,5 @@ import AppCore
         #expect(rows[0].skillCount == 0)
     }
 }
+
+#endif

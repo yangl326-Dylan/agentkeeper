@@ -1,6 +1,8 @@
+#if os(macOS)
 import Foundation
 import Testing
 import AppCore
+import AgentKeeperShared
 @testable import AgentKeeperUI
 
 /// 引导完成必须落盘（FirstRunStore）：App 级 @State 切换不可靠（SwiftUI 已知坑——
@@ -57,3 +59,5 @@ import AppCore
         #expect(FirstRunStore(defaults: defaults).hasCompletedOnboarding)
     }
 }
+
+#endif

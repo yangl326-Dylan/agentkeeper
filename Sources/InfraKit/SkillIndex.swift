@@ -1,5 +1,9 @@
 import Foundation
+#if canImport(SQLite3)
 import SQLite3
+#else
+import CSQLite3
+#endif
 import DomainKit
 
 /// Skill 索引缓存（SQLite）。

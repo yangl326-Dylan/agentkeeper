@@ -1,9 +1,11 @@
+#if os(macOS)
 import Foundation
 import Testing
 import SwiftUI
 import AppKit
 import DomainKit
 import AppCore
+import AgentKeeperShared
 @testable import AgentKeeperUI
 
 @MainActor
@@ -103,3 +105,5 @@ import AppCore
         try png.write(to: URL(fileURLWithPath: "/tmp/ak-ui/probe-effect.png"))
     }
 }
+
+#endif

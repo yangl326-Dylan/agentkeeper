@@ -1,8 +1,10 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
 import AppCore
 import InfraKit
+import AgentKeeperShared
 @testable import AgentKeeperUI
 
 /// 生命周期区流（env 层 E2E）：详情页删除 → 回收站行 → 恢复/彻底删除 →行清空。
@@ -100,3 +102,5 @@ import InfraKit
         ))
     }
 }
+
+#endif

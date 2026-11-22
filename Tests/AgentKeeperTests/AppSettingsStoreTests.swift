@@ -1,7 +1,9 @@
+#if os(macOS)
 import Foundation
 import SwiftUI
 import Testing
 import AppCore
+import AgentKeeperShared
 @testable import AgentKeeperUI
 
 /// 外观偏好（跟随系统/日间/夜间）——默认值、映射与 UserDefaults 持久化。
@@ -66,3 +68,5 @@ import AppCore
         #expect(reloaded.reduceMotionOverride == true)
     }
 }
+
+#endif

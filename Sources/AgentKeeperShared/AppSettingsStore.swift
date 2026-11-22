@@ -1,22 +1,15 @@
 import Foundation
+import Observation
 import AppCore
-import SwiftUI
 
 /// 外观模式：跟随系统 / 日间 / 夜间（默认跟随系统）。
+/// 注：ColorScheme 映射分栈实现（Shared 零 SwiftUI import）——
+/// macOS 侧见 AgentKeeperUI/AppSettingsColorScheme.swift。
 @MainActor
 public enum AppearanceMode: String, CaseIterable, Sendable {
     case system
     case light
     case dark
-
-    /// SwiftUI 强制色系；system → nil（不强制）。
-    public var colorScheme: ColorScheme? {
-        switch self {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
-        }
-    }
 }
 
 /// 常见配置存储（UserDefaults 后端；macOS SwiftUI Settings 场景推荐做法——
@@ -64,9 +57,6 @@ public final class AppSettingsStore {
             self.reduceMotionOverride = defaults.integer(forKey: Key.reduceMotion) == 1
         }
     }
-
-    /// 实际生效的强制色系（nil = 跟随系统）。
-    public var effectiveColorScheme: ColorScheme? { appearance.colorScheme }
 
     /// 实际生效的减弱动效（nil 覆盖 = 采辅助功能值）。
     public func effectiveReduceMotion(accessibility: Bool) -> Bool {

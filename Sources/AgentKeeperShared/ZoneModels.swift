@@ -55,3 +55,4 @@ public enum ZoneListModel {
         "\(zone.title(l10n)) · \(rows.count)"
     }
 }
+

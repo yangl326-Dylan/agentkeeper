@@ -1,7 +1,9 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
 import AppCore
+import AgentKeeperShared
 @testable import AgentKeeperUI
 
 /// 侧栏导航节点 → 列表筛选（节点集合 ∩ 搜索词；单选、无 toggle-off 语义）。
@@ -90,3 +92,5 @@ import AppCore
         #expect(env.searchText.isEmpty)
     }
 }
+
+#endif

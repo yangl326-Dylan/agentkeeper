@@ -1,7 +1,8 @@
+#if os(macOS)
 import Foundation
 import Testing
 import DomainKit
-@testable import AgentKeeperUI
+@testable import AgentKeeperShared
 
 /// Skill 预览异步加载（markdown 内容 + Finder 式文件清单）——磁盘 I/O 不得阻塞主线程 body。
 @MainActor
@@ -49,3 +50,5 @@ import DomainKit
         #expect(paths == ["a.txt", "sub", "sub/b.txt"])
     }
 }
+
+#endif

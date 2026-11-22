@@ -66,7 +66,9 @@ public struct AtomicMover: @unchecked Sendable {
 
     static func volumeStrategy(source: URL, destination: URL, fileManager: FileManager) throws -> MovePlan.Strategy {
         // 用文件系统设备号比较物理卷（比 URLResourceKey.volumeURL 兼容性更好）。
-        func deviceNumber(of url: URL, fallback: URL) throws -> Int {
+        // 取不到 st_dev 时返回 nil（部分容器/挂载点 Foundation 拿不到 systemNumber，
+        // 如 GitHub ubuntu-24.04 runner 的 /tmp——2026-11-22 实测）。
+        func deviceNumber(of url: URL, fallback: URL) -> Int? {
             for candidate in [url, fallback] {
                 if let attrs = try? fileManager.attributesOfFileSystem(forPath: candidate.path),
                    let number = attrs[.systemNumber] as? Int,
@@ -74,15 +76,29 @@ public struct AtomicMover: @unchecked Sendable {
                     return number
                 }
             }
-            throw AtomicMoverError.underlying(path: url.path, note: "无法确定所在物理卷")
+            return nil
         }
         // 判同卷看目标父目录（目标本身可能尚不存在）
-        let sourceDevice = try deviceNumber(of: source, fallback: source.deletingLastPathComponent())
-        let destinationDevice = try deviceNumber(
+        let sourceDevice = deviceNumber(of: source, fallback: source.deletingLastPathComponent())
+        let destinationDevice = deviceNumber(
             of: destination.deletingLastPathComponent(),
             fallback: destination.deletingLastPathComponent().deletingLastPathComponent()
         )
-        return sourceDevice == destinationDevice ? .rename : .copyVerifyDelete
+        // 双侧可证跨卷才走三步；一侧未知 → 乐观 rename，EXDEV 由 execute 兜底回退
+        // （rename 的 EXDEV 是内核权威判据，比 st_dev 比更可靠）。
+        if let sourceDevice, let destinationDevice, sourceDevice != destinationDevice {
+            return .copyVerifyDelete
+        }
+        return .rename
+    }
+
+    /// rename 尝试失败的错误是否为跨设备链接（EXDEV, errno 18）。
+    /// 文案跨平台不稳定：Linux Foundation 形如 "cross-device link"/"Errno 18"，
+    /// macOS NSError 形如 'Code=18 "Cross-device link"' → 统一小写后四关键词匹配。
+    static func isCrossDeviceError(_ error: Error) -> Bool {
+        let text = String(describing: error).lowercased()
+        return text.contains("cross-device") || text.contains("exdev")
+            || text.contains("errno 18") || text.contains("code=18")
     }
 
     // MARK: - 执行
@@ -93,27 +109,39 @@ public struct AtomicMover: @unchecked Sendable {
             do {
                 try fileManager.moveItem(at: plan.source, to: plan.destination)
             } catch {
-                throw AtomicMoverError.underlying(path: plan.source.path, note: "\(error)")
+                // 卷判定不可得时的乐观 rename：若内核报 EXDEV（跨设备链接），
+                // 回退 copy→verify→delete 三步方案；其余错误原样上抛
+                if Self.isCrossDeviceError(error) {
+                    try executeCopyVerifyDelete(plan)
+                } else {
+                    throw AtomicMoverError.underlying(path: plan.source.path, note: "\(error)")
+                }
             }
         case .copyVerifyDelete:
-            do {
-                try fileManager.copyItem(at: plan.source, to: plan.destination)
-            } catch {
-                throw AtomicMoverError.underlying(path: plan.source.path, note: "copy 失败: \(error)")
-            }
-            let destinationSha = Fingerprint.sha256OfDirectory(plan.destination) ?? ""
-            guard destinationSha == plan.expectedSha256 else {
-                // 校验失败：撤掉复制品，源不动
-                try? fileManager.removeItem(at: plan.destination)
-                throw AtomicMoverError.verifyFailed(path: plan.destination.path)
-            }
-            do {
-                try fileManager.removeItem(at: plan.source)
-            } catch {
-                // 删源失败不算执行失败（副本已就绪并校验）；报告给上层
-                try? fileManager.copyItem(at: plan.destination, to: plan.source)
-                throw AtomicMoverError.underlying(path: plan.source.path, note: "删除源失败: \(error)")
-            }
+            try executeCopyVerifyDelete(plan)
+        }
+    }
+
+    /// 三步跨卷方案：copy → verify（内容指纹）→ delete 源。
+    /// 任一步失败回滚已产生的部分效果（verify 失败撤复制品；删源失败撤成重命名语义并上抛）。
+    private func executeCopyVerifyDelete(_ plan: MovePlan) throws {
+        do {
+            try fileManager.copyItem(at: plan.source, to: plan.destination)
+        } catch {
+            throw AtomicMoverError.underlying(path: plan.source.path, note: "copy 失败: \(error)")
+        }
+        let destinationSha = Fingerprint.sha256OfDirectory(plan.destination) ?? ""
+        guard destinationSha == plan.expectedSha256 else {
+            // 校验失败：撤掉复制品，源不动
+            try? fileManager.removeItem(at: plan.destination)
+            throw AtomicMoverError.verifyFailed(path: plan.destination.path)
+        }
+        do {
+            try fileManager.removeItem(at: plan.source)
+        } catch {
+            // 删源失败不算执行失败（副本已就绪并校验）；报告给上层
+            try? fileManager.copyItem(at: plan.destination, to: plan.source)
+            throw AtomicMoverError.underlying(path: plan.source.path, note: "删除源失败: \(error)")
         }
     }
 

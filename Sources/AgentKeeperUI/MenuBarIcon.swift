@@ -1,3 +1,4 @@
+#if os(macOS)
 import AppKit
 
 /// 状态栏字形（MenuBarExtra label）——「收藏匣」母题的极简 template 投影。
@@ -70,3 +71,5 @@ public enum MenuBarIcon {
         }
     }
 }
+
+#endif
