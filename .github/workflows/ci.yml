@@ -33,7 +33,13 @@ jobs:
           swift build 2>&1 | tee build.log
         # 0-warning 纪律：有 warning 即失败（pipefail 保证 swift build 失败不吞）
       - name: Fail on warnings
-        run: "! grep -E 'warning:' build.log"
+        # 0-warning 纪律针对 Swift 代码告警；SwiftPM/链接器的非代码噪声不属纪律
+        # 范围（Gtk3 C 目标链接时 ld 抱怨 macOS frameworks = prohibited flag(s)；
+        # CGtk system library 的 pkg-config provider 提示 = install gtk4）→ 白名单放行
+        run: |
+          if grep -E 'warning:' build.log | grep -vE 'prohibited flag\(s\)|system-packager'; then
+            exit 1
+          fi
 
       - name: Test
         # macos-15 runner 上 swift-testing 执行器偶发整进程楔死（曾实证两轮挂起，
@@ -93,7 +99,12 @@ jobs:
           swift build 2>&1 | tee build.log
 
       - name: Fail on warnings
-        run: "! grep -E 'warning:' build.log"
+        # 同 macOS job：放行 SwiftPM/ld 的非代码噪声（Gtk3 C 目标 -pthread prohibited flag、
+        # CGtk pkg-config provider 提示）
+        run: |
+          if grep -E 'warning:' build.log | grep -vE 'prohibited flag\(s\)|system-packager'; then
+            exit 1
+          fi
 
       - name: Test
         uses: nick-fields/retry@v3
@@ -119,8 +130,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install system dependencies
-        # libsqlite3-dev: CLI 静态链接；libgtk-3-dev: GUI（Gtk3Backend）动态链接
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq libsqlite3-dev libgtk-3-dev
+        # 与 test-linux job 同列表（静态链接 ak 需 libcurl4-openssl-dev；Gtk3Backend
+        # GUI 构建需 libgtk-3-dev）
+        run: >
+          sudo apt-get update -qq && sudo apt-get install -y -qq
+          binutils libcurl4-openssl-dev libedit2 libgcc-13-dev libgtk-3-dev
+          libncurses-dev libpython3-dev libsqlite3-dev libstdc++-13-dev
+          libxml2-dev libz3-dev pkg-config zlib1g-dev
 
       - name: Install Swift 6.2.4 (official tarball)
         run: |
