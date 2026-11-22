@@ -121,8 +121,8 @@ import AgentKeeperShared
             "app_indicator_set_title", "app_indicator_set_menu",
         ]
         loader.symbolNamesByHandle[gtk.id] = [
-            "gtk_menu_new", "gtk_menu_item_new_with_label", "gtk_menu_shell_append",
-            "gtk_widget_show_all", "gtk_widget_set_sensitive",
+            "gtk_menu_new", "gtk_menu_item_new_with_label", "gtk_separator_menu_item_new",
+            "gtk_menu_shell_append", "gtk_widget_show_all", "gtk_widget_set_sensitive",
         ]
         loader.symbolNamesByHandle[gobject.id] = ["g_signal_connect_data"]
         #expect(AppIndicatorSymbolTable.resolve(loader: loader) != nil)

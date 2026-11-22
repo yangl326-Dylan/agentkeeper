@@ -82,7 +82,7 @@ Comment=跨 agent 的 skill 管理器
 Exec=/usr/bin/agentkeeper
 Icon=agentkeeper
 Terminal=false
-Categories=Development;Utility;
+Categories=Development;
 EOF
     fi
     cat > "$STAGE/deb/DEBIAN/control" <<EOF

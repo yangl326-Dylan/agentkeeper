@@ -31,18 +31,29 @@ public struct LinuxRootView: View {
         }
         .task {
             await env.bootstrap()
-            // 托盘：摘要行 + 打开主窗口（经协调器中转 SCUI openWindow）+ 立即扫描 + 退出
+            // 托盘：对齐 macOS 菜单面板（MenuSummarySection）的三层结构——
+            // 摘要行（N agents · M skills，不可点）→ agent 行（点击筛选该 agent）→
+            // 打开主窗口 / 立即扫描 / 退出。降级判定不变（mountTray false → 界内提示）。
             let l = env.l10n
-            let summary = "\(env.catalogStore.current.count) skills · \(env.sidebarRows().count) agents"
+            // 行数据与侧栏同源（SidebarAgentModel memoize：名称/skill 数/安装状态一致）
+            let agentRows = env.sidebarRows().map { row in
+                TrayAgentRow(id: row.id, name: row.name, skillCount: row.skillCount)
+            }
+            let summary = "\(agentRows.count) agents · \(env.catalogStore.current.count) skills"
             let descriptor = TrayDescriptor(
                 summary: summary,
                 openMainWindowTitle: l.menuOpenMain,
                 scanNowTitle: l.scanNow,
-                quitTitle: l.menuQuit
+                quitTitle: l.menuQuit,
+                agentRows: agentRows
             )
             let actions = TrayActions(
                 openMainWindow: { LinuxTrayCoordinator.shared.activateMainWindow() },
-                scanNow: { [env] in Task { await env.scanNow() } }
+                scanNow: { [env] in Task { await env.scanNow() } },
+                openAgent: { [env] agentID in
+                    env.openAgentFilter(agentID)
+                    LinuxTrayCoordinator.shared.activateMainWindow()
+                }
             )
             trayAvailable = env.adapter.mountTray(descriptor, actions: actions)
             LinuxTrayCoordinator.shared.registerOpenMainWindow { openWindow(id: "main") }

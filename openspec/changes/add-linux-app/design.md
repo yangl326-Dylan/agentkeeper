@@ -27,6 +27,7 @@ S1 双栈架构已确认（报告 §4.4，2026-11-21）：macOS 保留 SwiftUI�
    - 不用嵌套 ScrolledWindow（文件清单内嵌滚动渲染不稳）——由外层详情滚动容器统一承载。
    - Gtk paned 默认按内容压缩：列表列需 `frame(minWidth:)`（340pt），工具行按钮需 `fixedSize(horizontal:)` 防竖排挤压；设置分段按钮标签同款 `fixedSize` 防截断。
    - `Text` 在非理想高度上下文会截断（官方文档语义）：长提示句用 `fixedSize(horizontal: false, vertical: true)` 换行。
+   **性能结论（2026-11-22 实测）**：Gtk3Backend 的文本测量每次新建 Pango context+layout（`gtk_widget_create_pango_context`），状态更新/分栏拖动触发的全量重排被 Pango 初始化支配——真实三面板应用实测拖分栏 32% CPU、连点按钮 73% CPU（空闲 1%）。已在 upstream 修复并提 PR [moreSwift/swift-cross-ui#820](https://github.com/moreSwift/swift-cross-ui/pull/820)（`gtk_widget_get_pango_context` 共享 context + layout 复用）：同场景拖分栏 3%、点击 1%，渲染零回归。合入前本机开发/安装包经本地 checkout 补丁获得同等收益；CI 无头环境不受影响。
 4. **托盘（Linux）= AppIndicator**：经 DBus（StatusNotifierItem）最小实现或引入轻量库（task 内定案，倾向自写最小 DBus 客户端避免重依赖）；图标用共享令牌生成的 PNG；菜单项：摘要（只读行）、打开主窗口、立即扫描、退出。降级：DBus 注册失败 → 仅主窗口 + 界内提示（spec 降级场景）。
 5. **复用约定（写入 AGENTS.md，评审纪律）**：薄壳纪律（视图无逻辑）、文件镜像成对（`RootView`↔`LinuxRootView`）、设计令牌单一定义、文案全走 L10n、共享 VM 单测双 CI 平台全绿。视图文件头注释声明成对文件路径。
 6. **打包**：`scripts/build-linux-app.sh release [--deb|--targz]`：`swift build --static-swift-stdlib` → 组装 `/usr/bin/agentkeeper`、`/usr/share/applications/agentkeeper.desktop`、hicolor PNG（由 macOS release job 预生成入 `assets/icons/`，Linux 只消费）、`DEBIAN/control`（Depends: libgtk-4-1 等）。tar.gz 提供便携目录布局 + README。

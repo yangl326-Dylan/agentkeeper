@@ -10,6 +10,16 @@ final class TrayActionBox: @unchecked Sendable {
     }
 }
 
+/// 带参回调装箱（agent 行：闭包捕获 agentID，点击回传）。
+final class TrayAgentActionBox: @unchecked Sendable {
+    let action: @MainActor @Sendable (String) -> Void
+    let agentID: String
+    init(action: @escaping @MainActor @Sendable (String) -> Void, agentID: String) {
+        self.action = action
+        self.agentID = agentID
+    }
+}
+
 /// AppIndicator 符号表（全部 dlsym 一步到位；任一缺失 → nil 触发降级，
 /// 不留半挂载状态。降级判定由单测经 mock loader 覆盖）。
 struct AppIndicatorSymbolTable {
@@ -22,6 +32,7 @@ struct AppIndicatorSymbolTable {
     // gtk3
     let gtkMenuNew: @convention(c) () -> UnsafeMutableRawPointer?
     let gtkMenuItemNewWithLabel: @convention(c) (UnsafePointer<CChar>) -> UnsafeMutableRawPointer?
+    let gtkSeparatorMenuItemNew: @convention(c) () -> UnsafeMutableRawPointer?
     let gtkMenuShellAppend: @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void
     let gtkWidgetShowAll: @convention(c) (UnsafeMutableRawPointer?) -> Void
     let gtkWidgetSetSensitive: @convention(c) (UnsafeMutableRawPointer?, Bool) -> Void
@@ -44,6 +55,15 @@ struct AppIndicatorSymbolTable {
         }
     }
 
+    /// agent 行 activate 回调：取 AgentBox 回传 agentID 跳主线程执行。
+    static let agentActivateHandler: @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void = { _, userData in
+        guard let userData else { return }
+        let box = Unmanaged<TrayAgentActionBox>.fromOpaque(userData).takeUnretainedValue()
+        Task { @MainActor in
+            box.action(box.agentID)
+        }
+    }
+
     /// 库句柄 + 全符号解析；任一步失败返回 nil（降级判定单测走这里）。
     static func resolve(
         loader: any DynamicLibraryLoader,
@@ -63,6 +83,7 @@ struct AppIndicatorSymbolTable {
               let pSetMenu = loader.symbol(appIndicator, "app_indicator_set_menu"),
               let pMenuNew = loader.symbol(gtk, "gtk_menu_new"),
               let pItemNew = loader.symbol(gtk, "gtk_menu_item_new_with_label"),
+              let pSeparatorNew = loader.symbol(gtk, "gtk_separator_menu_item_new"),
               let pShellAppend = loader.symbol(gtk, "gtk_menu_shell_append"),
               let pShowAll = loader.symbol(gtk, "gtk_widget_show_all"),
               let pSetSensitive = loader.symbol(gtk, "gtk_widget_set_sensitive"),
@@ -77,6 +98,7 @@ struct AppIndicatorSymbolTable {
             appIndicatorSetMenu: unsafeBitCast(pSetMenu, to: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void).self),
             gtkMenuNew: unsafeBitCast(pMenuNew, to: (@convention(c) () -> UnsafeMutableRawPointer?).self),
             gtkMenuItemNewWithLabel: unsafeBitCast(pItemNew, to: (@convention(c) (UnsafePointer<CChar>) -> UnsafeMutableRawPointer?).self),
+            gtkSeparatorMenuItemNew: unsafeBitCast(pSeparatorNew, to: (@convention(c) () -> UnsafeMutableRawPointer?).self),
             gtkMenuShellAppend: unsafeBitCast(pShellAppend, to: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void).self),
             gtkWidgetShowAll: unsafeBitCast(pShowAll, to: (@convention(c) (UnsafeMutableRawPointer?) -> Void).self),
             gtkWidgetSetSensitive: unsafeBitCast(pSetSensitive, to: (@convention(c) (UnsafeMutableRawPointer?, Bool) -> Void).self),
@@ -118,12 +140,24 @@ final class AppIndicatorTray: @unchecked Sendable {
         guard let s = AppIndicatorSymbolTable.resolve(loader: loader) else { return false }
         guard let menu = s.gtkMenuNew() else { return false }
 
-        // 摘要行（不可点）
+        // 摘要行（不可点；对齐 macOS MenuBarHeaderRow 的 "N agents · M skills"）
         guard appendItem(descriptor.summary, sensitive: false, action: nil, to: menu, s) else { return false }
+        // agent 状态行（对齐 macOS MenuBarAgentRow：点击打开主窗口并筛选该 agent）
+        if !descriptor.agentRows.isEmpty {
+            guard appendSeparator(to: menu, s) else { return false }
+            for row in descriptor.agentRows {
+                let label = "\(row.name) · \(row.skillCount)"
+                guard appendAgentItem(label, agentID: row.id, action: actions.openAgent, to: menu, s)
+                else { return false }
+            }
+        }
         // 打开主窗口 / 立即扫描 / 退出
+        guard appendSeparator(to: menu, s) else { return false }
         guard appendItem(descriptor.openMainWindowTitle, sensitive: true, action: actions.openMainWindow, to: menu, s),
-              appendItem(descriptor.scanNowTitle, sensitive: true, action: actions.scanNow, to: menu, s),
-              appendItem(descriptor.quitTitle, sensitive: true, action: quit, to: menu, s)
+              appendItem(descriptor.scanNowTitle, sensitive: true, action: actions.scanNow, to: menu, s)
+        else { return false }
+        guard appendSeparator(to: menu, s) else { return false }
+        guard appendItem(descriptor.quitTitle, sensitive: true, action: quit, to: menu, s)
         else { return false }
 
         s.gtkWidgetShowAll(menu)
@@ -152,6 +186,30 @@ final class AppIndicatorTray: @unchecked Sendable {
             Unmanaged<TrayActionBox>.fromOpaque(pointer).release()
         }
         retainedActionPointers = []
+    }
+
+    /// 分组分隔线（对齐 macOS 面板的 Divider 层级）。
+    private func appendSeparator(to menu: UnsafeMutableRawPointer?, _ s: AppIndicatorSymbolTable) -> Bool {
+        guard let item = s.gtkSeparatorMenuItemNew() else { return false }
+        s.gtkMenuShellAppend(menu, item)
+        return true
+    }
+
+    /// agent 行：文本 "名称 · N"，activate 回传 agentID（Box 保活登记）。
+    private func appendAgentItem(
+        _ label: String,
+        agentID: String,
+        action: @escaping @MainActor @Sendable (String) -> Void,
+        to menu: UnsafeMutableRawPointer?,
+        _ s: AppIndicatorSymbolTable
+    ) -> Bool {
+        guard let item = s.gtkMenuItemNewWithLabel(label) else { return false }
+        s.gtkMenuShellAppend(menu, item)
+        let box = TrayAgentActionBox(action: action, agentID: agentID)
+        let userData = Unmanaged.passRetained(box).toOpaque()
+        retainedActionPointers.append(userData)
+        _ = s.gSignalConnectData(item, "activate", AppIndicatorSymbolTable.agentActivateHandler, userData, nil, 0)
+        return true
     }
 
     /// 构建菜单项并追加；带 action 时连接 "activate" 信号（Box 保活登记）。

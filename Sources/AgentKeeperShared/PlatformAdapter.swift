@@ -36,7 +36,7 @@ public protocol PlatformAdapter {
 
 /// 托盘菜单文案（挂载时由调用方按当前界面语言组装）。
 public struct TrayDescriptor: Sendable {
-    /// 摘要行（不可点，如 "12 skills · 3 agents"）。
+    /// 摘要行（不可点，如 "2 agents · 12 skills"）。
     public let summary: String
     /// 「打开主窗口」。
     public let openMainWindowTitle: String
@@ -44,12 +44,35 @@ public struct TrayDescriptor: Sendable {
     public let scanNowTitle: String
     /// 「退出」。
     public let quitTitle: String
+    /// agent 状态行（对齐 macOS 菜单面板 MenuSummarySection：每 agent 一行，点击筛选）。
+    public let agentRows: [TrayAgentRow]
 
-    public init(summary: String, openMainWindowTitle: String, scanNowTitle: String, quitTitle: String) {
+    public init(
+        summary: String,
+        openMainWindowTitle: String,
+        scanNowTitle: String,
+        quitTitle: String,
+        agentRows: [TrayAgentRow] = []
+    ) {
         self.summary = summary
         self.openMainWindowTitle = openMainWindowTitle
         self.scanNowTitle = scanNowTitle
         self.quitTitle = quitTitle
+        self.agentRows = agentRows
+    }
+}
+
+/// 托盘菜单的 agent 行（名称 + skill 计数；id 供「点击筛选该 agent」回传）。
+public struct TrayAgentRow: Sendable {
+    public let id: String
+    /// 展示名（如 "Claude Code"）。
+    public let name: String
+    public let skillCount: Int
+
+    public init(id: String, name: String, skillCount: Int) {
+        self.id = id
+        self.name = name
+        self.skillCount = skillCount
     }
 }
 
@@ -59,13 +82,17 @@ public struct TrayActions: Sendable {
     public let openMainWindow: @MainActor @Sendable () -> Void
     /// 「立即扫描」。
     public let scanNow: @MainActor @Sendable () -> Void
+    /// agent 行点击：打开主窗口并筛选该 agent（对齐 macOS 菜单面板左键语义）。
+    public let openAgent: @MainActor @Sendable (String) -> Void
 
     public init(
         openMainWindow: @escaping @MainActor @Sendable () -> Void,
-        scanNow: @escaping @MainActor @Sendable () -> Void
+        scanNow: @escaping @MainActor @Sendable () -> Void,
+        openAgent: @escaping @MainActor @Sendable (String) -> Void = { _ in }
     ) {
         self.openMainWindow = openMainWindow
         self.scanNow = scanNow
+        self.openAgent = openAgent
     }
 }
 
